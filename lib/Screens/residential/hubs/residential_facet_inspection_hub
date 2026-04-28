@@ -790,7 +790,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
               ElevatedButton(
                 onPressed: submitForm,
                 child: const Text(
-                  'Submit Estimate',
+                  'Submit Inspection',
                   style: TextStyle(fontSize: 18),
                 ),
               ),
