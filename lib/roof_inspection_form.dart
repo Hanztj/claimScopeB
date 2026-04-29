@@ -746,6 +746,62 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
       '${orientation.name.substring(1)}-${existingFacetsOfOrientation + 1}';
          }
     
+      String? _validateCurrentFacetBeforeAdvance() {
+    if (_currentFacetOrientation == FacetOrientation.none) {
+      return 'Select the facet orientation before continuing.';
+    }
+
+    if (_currentFacetOverviewPhoto == null) {
+      return 'Take the main overview photo for this facet before continuing.';
+    }
+
+    for (var i = 0; i < _currentFacetFlashingsData.length; i++) {
+      final flashing = _currentFacetFlashingsData[i];
+      final type = flashing['type'] as String?;
+
+      if (type == null || type.isEmpty) {
+        return 'Select the flashing type for Flashing ${i + 1}.';
+      }
+
+      if (type == 'Other') {
+        final otherValue =
+            (flashing['otherController'] as TextEditingController).text.trim();
+        if (otherValue.isEmpty) {
+          return 'Specify the flashing type for Flashing ${i + 1}.';
+        }
+      }
+
+      if (flashing['photo'] == null) {
+        return 'Take the main photo for Flashing ${i + 1} before continuing.';
+      }
+
+      final requiredFields = flashingFieldsForResidentialType(type);
+      for (final field in requiredFields) {
+        final value = flashing[field.key] as String?;
+        if (value == null || value.isEmpty) {
+          return 'Select ${field.label} for Flashing ${i + 1}.';
+        }
+      }
+    }
+
+    return null;
+  }
+
+  void _attemptAddNextFacet() {
+    final validationError = _validateCurrentFacetBeforeAdvance();
+    if (validationError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(validationError),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    _addNextFacet();
+  }
+
      void _addNextFacet() {
       
     _formKey.currentState!.save();
@@ -905,7 +961,12 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
 
   // --- SUBMIT FORM CORREGIDO ---
   void submitForm() async {
+<<<<<<< env-2wlxgi3lpetuj1hu
   if (frontElevationPhoto == null) {
+=======
+         
+    if (frontElevationPhoto == null) {
+>>>>>>> main
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Take the main Front Elevation Photo before submitting.'),
@@ -914,6 +975,7 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
     );
     return;
   }
+<<<<<<< env-2wlxgi3lpetuj1hu
 
   if (hasDripEdge && dripEdgePhoto == null) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -954,6 +1016,8 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
     );
     return;
   }
+=======
+>>>>>>> main
 
           // Validación personalizada de reemplazo de techo/sheathing
   if (roofCoverType == 'Shingles') {
@@ -1803,7 +1867,7 @@ _formKey.currentState!.save();
                           element['label'] == 'User Image',
                     );
                   },
-                  addNextFacet: _addNextFacet,
+                  addNextFacet: _attemptAddNextFacet,
                   submitForm: submitForm,
                   takePhoto: _takePhoto,
                   takeExtraPhotoForLabel: _takeExtraPhotoForLabel,
