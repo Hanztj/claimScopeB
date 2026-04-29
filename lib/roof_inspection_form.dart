@@ -1038,24 +1038,6 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
       return;
     }
 
-    if (sheathingRequiredToBeChanged) {
-      final partialSheathingText =
-          _sheathingPartialSqftController.text.trim();
-
-      final hasFullSheathing = sheathingFullReplacementRequired;
-      final hasPartialSheathing = partialSheathingText.isNotEmpty;
-
-      if (!hasFullSheathing && !hasPartialSheathing) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-                'Select full sheathing replacement or enter SF of sheathing to replace.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-
       if (sheathingType == null || sheathingType!.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
