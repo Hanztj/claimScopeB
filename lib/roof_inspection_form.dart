@@ -1073,28 +1073,9 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
       return;
     }
 
-           if (sheathingType == null || sheathingType!.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Select Sheathing Type.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
+        if (sheathingRequiredToBeChanged) {
 
-      if (sheathingSize == null || sheathingSize!.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Select Sheathing Size.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-
-    if (sheathingRequiredToBeChanged) {
-      final partialSheathingText =
+final partialSheathingText =
           _sheathingPartialSqftController.text.trim();
 
       final hasFullSheathing = sheathingFullReplacementRequired;
@@ -1109,8 +1090,27 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
           ),
         );
         return;
+      } 
+      if (sheathingType == null || sheathingType!.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Select Sheathing Type.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
       }
-    }
+      if (sheathingSize == null || sheathingSize!.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Select Sheathing Size.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+}
+
   }
     
   final isValid = _formKey.currentState!.validate();
