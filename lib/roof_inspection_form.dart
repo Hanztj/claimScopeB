@@ -939,6 +939,7 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
   bool isGlobal = false,
   int? ventIndex,
   int? flashingIndex,
+  int? otherElementIndex,
  }) async {
   final pickedFile = await picker.pickImage(
     source: ImageSource.camera,
@@ -997,6 +998,10 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
         flashingIndex < _currentFacetFlashingsData.length) {
       // Foto asociada a un flashing específico
       _currentFacetFlashingsData[flashingIndex]['photo'] = img;
+    } else if (otherElementIndex != null &&
+        otherElementIndex < _currentFacetOtherElementsData.length) {
+      // Foto asociada a un other element específico
+      _currentFacetOtherElementsData[otherElementIndex]['photo'] = img;
     }
   });
  }
