@@ -961,12 +961,8 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
 
   // --- SUBMIT FORM CORREGIDO ---
   void submitForm() async {
-<<<<<<< env-2wlxgi3lpetuj1hu
-  if (frontElevationPhoto == null) {
-=======
          
     if (frontElevationPhoto == null) {
->>>>>>> main
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Take the main Front Elevation Photo before submitting.'),
@@ -975,9 +971,8 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
     );
     return;
   }
-<<<<<<< env-2wlxgi3lpetuj1hu
 
-  if (hasDripEdge && dripEdgePhoto == null) {
+    if (hasDripEdge && dripEdgePhoto == null) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Take the main Drip Edge Photo before submitting.'),
@@ -1016,8 +1011,6 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
     );
     return;
   }
-=======
->>>>>>> main
 
           // Validación personalizada de reemplazo de techo/sheathing
   if (roofCoverType == 'Shingles') {
@@ -1038,7 +1031,7 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
       return;
     }
 
-      if (sheathingType == null || sheathingType!.isEmpty) {
+           if (sheathingType == null || sheathingType!.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Select Sheathing Type.'),
@@ -1052,6 +1045,24 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Select Sheathing Size.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+    if (sheathingRequiredToBeChanged) {
+      final partialSheathingText =
+          _sheathingPartialSqftController.text.trim();
+
+      final hasFullSheathing = sheathingFullReplacementRequired;
+      final hasPartialSheathing = partialSheathingText.isNotEmpty;
+
+      if (!hasFullSheathing && !hasPartialSheathing) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Select full sheathing replacement or enter SF of sheathing to replace.'),
             backgroundColor: Colors.red,
           ),
         );
