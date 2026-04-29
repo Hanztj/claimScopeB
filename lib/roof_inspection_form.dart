@@ -784,6 +784,48 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
       }
     }
 
+    for (var i = 0; i < _currentFacetVentsData.length; i++) {
+      final vent = _currentFacetVentsData[i];
+      final type = vent['type'] as String?;
+
+      if (type == null || type.isEmpty) {
+        return 'Select the vent type for Vent ${i + 1}.';
+      }
+
+      if (type == 'Other') {
+        final otherValue =
+            (vent['otherSpecifyController'] as TextEditingController).text.trim();
+        if (otherValue.isEmpty) {
+          return 'Specify the vent type for Vent ${i + 1}.';
+        }
+      }
+
+      if (vent['photo'] == null) {
+        return 'Take the main photo for Vent ${i + 1} before continuing.';
+      }
+    }
+
+    for (var i = 0; i < _currentFacetOtherElementsData.length; i++) {
+      final element = _currentFacetOtherElementsData[i];
+      final type = element['type'] as String?;
+
+      if (type == null || type.isEmpty) {
+        return 'Select the element type for Element ${i + 1}.';
+      }
+
+      if (type == 'Other') {
+        final otherValue =
+            (element['otherSpecifyController'] as TextEditingController).text.trim();
+        if (otherValue.isEmpty) {
+          return 'Specify the element type for Element ${i + 1}.';
+        }
+      }
+
+      if (element['photo'] == null) {
+        return 'Take the main photo for Element ${i + 1} before continuing.';
+      }
+    }
+
     return null;
   }
 

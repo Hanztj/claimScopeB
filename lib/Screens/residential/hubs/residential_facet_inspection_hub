@@ -563,7 +563,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
 
         const SizedBox(height: 20),
         const Text(
-          'Other elements on the roof',
+          'Other Elements on the Facet',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
