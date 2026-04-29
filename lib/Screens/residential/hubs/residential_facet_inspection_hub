@@ -660,6 +660,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
                   ElevatedButton(
                     onPressed: () => takePhoto(
                       'Other element photo ${idx + 1}',
+                      otherElementIndex: idx,
                     ),
                     child: const Text("Take element photo"),
                   ),
