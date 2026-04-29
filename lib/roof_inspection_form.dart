@@ -961,8 +961,12 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
 
   // --- SUBMIT FORM CORREGIDO ---
   void submitForm() async {
+<<<<<<< env-2wlxgi3lpetuj1hu
+  if (frontElevationPhoto == null) {
+=======
          
     if (frontElevationPhoto == null) {
+>>>>>>> main
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Take the main Front Elevation Photo before submitting.'),
@@ -971,6 +975,49 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
     );
     return;
   }
+<<<<<<< env-2wlxgi3lpetuj1hu
+
+  if (hasDripEdge && dripEdgePhoto == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Take the main Drip Edge Photo before submitting.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
+  if (starterRowInstalled && starterEaveInstalled && starterEavePhoto == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Take the main Starter Row Eave Photo before submitting.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
+  if (starterRowInstalled && starterRakeInstalled && starterRakePhoto == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Take the main Starter Row Rake Photo before submitting.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
+  if (iceAndWaterBarrierInstalled && iceAndWaterBarrierPhoto == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Take the main Ice & Water Barrier Photo before submitting.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+=======
+>>>>>>> main
 
           // Validación personalizada de reemplazo de techo/sheathing
   if (roofCoverType == 'Shingles') {
@@ -1003,6 +1050,26 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
           const SnackBar(
             content: Text(
                 'Select full sheathing replacement or enter SF of sheathing to replace.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      if (sheathingType == null || sheathingType!.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Select Sheathing Type.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      if (sheathingSize == null || sheathingSize!.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Select Sheathing Size.'),
             backgroundColor: Colors.red,
           ),
         );
