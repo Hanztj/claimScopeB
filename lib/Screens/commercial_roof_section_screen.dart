@@ -406,13 +406,6 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
               sync: _sync,
               takeCommercialPhoto: _takeCommercialPhoto,
             ),
-            CommercialTpoFlashings(
-              flashings: roof.tpoFlashings,
-              onChanged: _sync,
-              takePhoto: _takeCommercialPhoto,
-              buildingName: buildingName,
-              roofName: roofName,
-            ),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,

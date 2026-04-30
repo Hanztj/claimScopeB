@@ -1,4 +1,4 @@
-// lib/screens/commercial/components/commercial_flashing_catalog.dart
+// lib/catalogs/commercial_flashing_catalog.dart
 
 const Map<String, List<String>> tpoFlashingOptions = {
   'Flash Parapet wall': ['Up to 3\'', 'Over 3\' up to 6\''],
