@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../../inspection_report_model.dart';
+import '../components/commercial_tpo_flashings.dart';
 
 class CommercialFlatHubForm extends StatelessWidget {
   final CommercialRoofSectionData roof;
@@ -387,8 +388,17 @@ class CommercialFlatHubForm extends StatelessWidget {
             ),
           ],
         ],
+        if (roof.roofType == 'TPO') ...[
+          const SizedBox(height: 16),
+          CommercialTpoFlashings(
+            flashings: roof.tpoFlashings,
+            onChanged: sync,
+            takePhoto: takeCommercialPhoto,
+            buildingName: buildingName,
+            roofName: roofName,
+          ),
+        ],
       ],
     );
   }
 }
-

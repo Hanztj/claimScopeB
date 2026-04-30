@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:claimscope_clean/inspection_report_model.dart';
-import 'commercial_flashing_catalog.dart';
+import '../../../catalogs/commercial_flashing_catalog.dart';
 
 class CommercialTpoFlashings extends StatefulWidget {
   final List<CommercialFlashingData> flashings;
