@@ -1049,16 +1049,6 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
     return;
   }
 
-  if (iceAndWaterBarrierInstalled && iceAndWaterBarrierPhoto == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Take the main Ice & Water Barrier Photo before submitting.'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
-
           // Validación personalizada de reemplazo de techo/sheathing
   if (roofCoverType == 'Shingles') {
     final partialShinglesText =
