@@ -857,13 +857,13 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
    
    }
    Map<String, dynamic> _createNewVentData() {
-    final countController = TextEditingController();
+    final countController = TextEditingController(text: '1');
    final otherSpecifyController = TextEditingController();
 
    return {
     'type': null,
     'shouldBeChanged': false,
-    'count': '',
+    'count': '1',
     'includeSplitBoot': false,
     'includeLead': false,
     'otherSpecify': '',
@@ -889,11 +889,11 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
  }
 
  Map<String, dynamic> _createNewOtherElementData() {
-  final countController = TextEditingController();
+  final countController = TextEditingController(text: '1');
   final otherSpecifyController = TextEditingController();
   return {
     'type': null,
-    'count': '',
+    'count': '1',
     'shouldBeChanged': false,
     'detachAndResetOnly': false,
     'otherSpecify': '',
