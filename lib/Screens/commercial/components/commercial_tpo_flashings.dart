@@ -90,7 +90,8 @@ class _CommercialTpoFlashingsState extends State<CommercialTpoFlashings> {
         ...widget.flashings.asMap().entries.map((entry) {
           final index = entry.key;
           final flashing = entry.value;
-          final typeOptions = tpoFlashingOptions[flashing.type] ?? [];
+          final typeConfig = commercialTpoFlashingConfigForType(flashing.type);
+          final typeOptions = typeConfig.options;
 
           return Card(
             margin: const EdgeInsets.only(bottom: 16),
@@ -120,12 +121,18 @@ class _CommercialTpoFlashingsState extends State<CommercialTpoFlashings> {
                   DropdownButtonFormField<String>(
                     value: flashing.type,
                     decoration: const InputDecoration(labelText: 'Type', border: OutlineInputBorder()),
-                    items: tpoFlashingOptions.keys
+                    items: tpoFlashingTypes
                         .map((t) => DropdownMenuItem(value: t, child: Text(t)))
                         .toList(),
                     onChanged: (val) {
                       if (val != null) {
-                        setState(() => flashing.type = val);
+                        setState(() {
+                          flashing.type = val;
+                          flashing.size = null;
+                          flashing.material = null;
+                          flashing.grade = null;
+                          flashing.lfCount = null;
+                        });
                         widget.onChanged();
                       }
                     },
@@ -145,7 +152,7 @@ class _CommercialTpoFlashingsState extends State<CommercialTpoFlashings> {
                     ),
                   ],
 
-                  if (flashing.type == 'Curb flashing') ...[
+                  if (typeConfig.showLfCount) ...[
                     const SizedBox(height: 12),
                     TextField(
                       decoration: const InputDecoration(labelText: 'How many LF', border: OutlineInputBorder()),
@@ -157,12 +164,14 @@ class _CommercialTpoFlashingsState extends State<CommercialTpoFlashings> {
                     ),
                   ],
 
-                  if (flashing.type == 'Cap flashing') ...[
+                  if (typeConfig.materialOptions.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       value: flashing.material,
                       decoration: const InputDecoration(labelText: 'Material', border: OutlineInputBorder()),
-                      items: capFlashingMaterials.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
+                      items: typeConfig.materialOptions
+                          .map((m) => DropdownMenuItem(value: m, child: Text(m)))
+                          .toList(),
                       onChanged: (val) {
                         setState(() => flashing.material = val);
                         widget.onChanged();
@@ -170,12 +179,14 @@ class _CommercialTpoFlashingsState extends State<CommercialTpoFlashings> {
                     ),
                   ],
 
-                  if (flashing.type == 'Skylight flashing kit (dome)') ...[
+                  if (typeConfig.gradeOptions.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       value: flashing.grade,
                       decoration: const InputDecoration(labelText: 'Grade', border: OutlineInputBorder()),
-                      items: skylightGrades.map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
+                      items: typeConfig.gradeOptions
+                          .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                          .toList(),
                       onChanged: (val) {
                         setState(() => flashing.grade = val);
                         widget.onChanged();
@@ -281,7 +292,7 @@ Align(
           width: double.maxFinite,
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: tpoFlashingOptions.keys.map((type) {
+            children: tpoFlashingTypes.map((type) {
               return ListTile(
                 title: Text(type),
                 onTap: () {
