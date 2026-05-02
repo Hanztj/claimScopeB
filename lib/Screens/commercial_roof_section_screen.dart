@@ -550,6 +550,32 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
                       return;
                     }
 
+                    if (roof.roofType == 'TPO') {
+                      for (var i = 0; i < roof.tpoFlashings.length; i++) {
+                        if (roof.tpoFlashings[i].photo == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Take the main photo for Flashing ${i + 1}.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                      }
+
+                      for (var i = 0; i < roof.tpoVents.length; i++) {
+                        if (roof.tpoVents[i].photo == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Take the main photo for Vent ${i + 1}.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                      }
+                    }
+
                     // If this roof section has multiple facets, split into separate roof sections.
                     if ((roof.roofType == 'Shingles' || roof.roofType == 'Metal') &&
                         roof.hasMultipleFacets &&

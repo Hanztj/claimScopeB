@@ -3,31 +3,39 @@
 class CommercialFlashingFieldConfig {
   final List<String> options;
   final bool showLfCount;
+  final bool showCount;
+  final bool showFullPerimeter;
+  final bool showOtherSpecify;
   final List<String> materialOptions;
   final List<String> gradeOptions;
 
   const CommercialFlashingFieldConfig({
     this.options = const [],
     this.showLfCount = false,
+    this.showCount = false,
+    this.showFullPerimeter = false,
+    this.showOtherSpecify = false,
     this.materialOptions = const [],
     this.gradeOptions = const [],
   });
 }
 
 const List<String> tpoFlashingTypes = [
-  'Flash Parapet wall',
+  'Parapet Wall',
   'Curb flashing',
   'Cap flashing',
   'Skylight flashing kit (dome)',
-  'Skylight Step Flashing',
+  'Skylight step flashing kit',
+  'Other',
 ];
 
-const List<String> capFlashingMaterials = ['Metal', 'Copper', 'Steel'];
-const List<String> skylightGrades = ['Standard', 'High grade'];
+const List<String> capFlashingMaterials = ['Steel', 'Copper'];
+const List<String> skylightGrades = ['Average', 'High Grade'];
 
 const Map<String, CommercialFlashingFieldConfig> tpoFlashingConfigByType = {
-  'Flash Parapet wall': CommercialFlashingFieldConfig(
-    options: ['Up to 3\'', 'Over 3\' up to 6\''],
+  'Parapet Wall': CommercialFlashingFieldConfig(
+    options: ['Up to 3\'', '3\' up to 6\''],
+    showFullPerimeter: true,
   ),
   'Curb flashing': CommercialFlashingFieldConfig(
     showLfCount: true,
@@ -35,13 +43,20 @@ const Map<String, CommercialFlashingFieldConfig> tpoFlashingConfigByType = {
   'Cap flashing': CommercialFlashingFieldConfig(
     options: ['Average', 'Large'],
     materialOptions: capFlashingMaterials,
+    showFullPerimeter: true,
   ),
   'Skylight flashing kit (dome)': CommercialFlashingFieldConfig(
     options: ['Average', 'Large'],
     gradeOptions: skylightGrades,
+    showCount: true,
   ),
-  'Skylight Step Flashing': CommercialFlashingFieldConfig(
+  'Skylight step flashing kit': CommercialFlashingFieldConfig(
     options: ['Up to 5 sf', '5.1 to 12 sf', '12.1 sf or greater'],
+    showCount: true,
+  ),
+  'Other': CommercialFlashingFieldConfig(
+    showOtherSpecify: true,
+    showCount: true,
   ),
 };
 

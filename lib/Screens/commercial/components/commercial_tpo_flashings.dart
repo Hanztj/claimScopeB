@@ -2,7 +2,6 @@
 
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:claimscope_clean/inspection_report_model.dart';
 import '../../../catalogs/commercial_flashing_catalog.dart';
 
@@ -33,8 +32,6 @@ class CommercialTpoFlashings extends StatefulWidget {
 }
 
 class _CommercialTpoFlashingsState extends State<CommercialTpoFlashings> {
-  final _picker = ImagePicker();
-
   void _addFlashing(String type) {
     setState(() {
       widget.flashings.add(CommercialFlashingData(type: type));
@@ -62,17 +59,15 @@ class _CommercialTpoFlashingsState extends State<CommercialTpoFlashings> {
   }
 
   Future<void> _addExtraPhoto(int index) async {
-    final picked = await _picker.pickImage(
-      source: ImageSource.camera,
-      maxWidth: 1024,
-      imageQuality: 80,
+    await widget.takePhoto(
+      buildingName: widget.buildingName,
+      roofName: widget.roofName,
+      photoLabel: 'Flashing ${index + 1} - Extra Photo',
+      onSaved: (file) {
+        setState(() => widget.flashings[index].extraPhotos.add(file));
+        widget.onChanged();
+      },
     );
-    if (picked == null) return;
-
-    setState(() {
-      widget.flashings[index].extraPhotos.add(File(picked.path));
-    });
-    widget.onChanged();
   }
 
   @override
@@ -132,6 +127,9 @@ class _CommercialTpoFlashingsState extends State<CommercialTpoFlashings> {
                           flashing.material = null;
                           flashing.grade = null;
                           flashing.lfCount = null;
+                          flashing.count = null;
+                          flashing.fullPerimeter = null;
+                          flashing.otherSpecify = null;
                         });
                         widget.onChanged();
                       }
@@ -164,6 +162,38 @@ class _CommercialTpoFlashingsState extends State<CommercialTpoFlashings> {
                     ),
                   ],
 
+                  if (typeConfig.showFullPerimeter) ...[
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<bool>(
+                      value: flashing.fullPerimeter,
+                      decoration: const InputDecoration(labelText: 'Full perimeter?', border: OutlineInputBorder()),
+                      items: const [
+                        DropdownMenuItem(value: true, child: Text('Yes')),
+                        DropdownMenuItem(value: false, child: Text('No')),
+                      ],
+                      onChanged: (val) {
+                        setState(() {
+                          flashing.fullPerimeter = val;
+                          if (val == true) {
+                            flashing.lfCount = null;
+                          }
+                        });
+                        widget.onChanged();
+                      },
+                    ),
+                    if (flashing.fullPerimeter == false) ...[
+                      const SizedBox(height: 12),
+                      TextField(
+                        decoration: const InputDecoration(labelText: 'How many LF', border: OutlineInputBorder()),
+                        keyboardType: TextInputType.number,
+                        onChanged: (val) {
+                          flashing.lfCount = val;
+                          widget.onChanged();
+                        },
+                      ),
+                    ],
+                  ],
+
                   if (typeConfig.materialOptions.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
@@ -174,6 +204,29 @@ class _CommercialTpoFlashingsState extends State<CommercialTpoFlashings> {
                           .toList(),
                       onChanged: (val) {
                         setState(() => flashing.material = val);
+                        widget.onChanged();
+                      },
+                    ),
+                  ],
+
+                  if (typeConfig.showOtherSpecify) ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      decoration: const InputDecoration(labelText: 'Specify', border: OutlineInputBorder()),
+                      onChanged: (val) {
+                        flashing.otherSpecify = val;
+                        widget.onChanged();
+                      },
+                    ),
+                  ],
+
+                  if (typeConfig.showCount) ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      decoration: const InputDecoration(labelText: 'How many', border: OutlineInputBorder()),
+                      keyboardType: TextInputType.number,
+                      onChanged: (val) {
+                        flashing.count = val;
                         widget.onChanged();
                       },
                     ),
