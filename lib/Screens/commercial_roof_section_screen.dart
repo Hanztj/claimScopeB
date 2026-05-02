@@ -9,7 +9,7 @@ import 'commercial/hubs/commercial_flat_hub.dart';
 import 'commercial/hubs/commercial_metal_hub.dart';
 import 'commercial/hubs/commercial_shingles_hub.dart';
 import 'commercial_building_details_screen.dart';
-import 'commercial/components/commercial_tpo_flashings.dart';
+
 
 class CommercialRoofSectionScreen extends StatefulWidget {
   final String plan;
@@ -548,6 +548,32 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
                         ),
                       );
                       return;
+                    }
+
+                    if (roof.roofType == 'TPO') {
+                      for (var i = 0; i < roof.tpoFlashings.length; i++) {
+                        if (roof.tpoFlashings[i].photo == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Take the main photo for Flashing ${i + 1}.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                      }
+
+                      for (var i = 0; i < roof.tpoVents.length; i++) {
+                        if (roof.tpoVents[i].photo == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Take the main photo for Vent ${i + 1}.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                      }
                     }
 
                     // If this roof section has multiple facets, split into separate roof sections.

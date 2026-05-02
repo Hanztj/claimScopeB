@@ -180,6 +180,7 @@ class CommercialRoofSectionData {
 
   // ✅ NUEVO
   List<CommercialFlashingData> tpoFlashings = [];
+  List<CommercialVentData> tpoVents = [];
   
   // Para futuros tipos (metal, epdm, etc.)
   // List<CommercialFlashingData> metalFlashings = [];
@@ -318,6 +319,8 @@ class CommercialFlashingData {
   String? grade;
   String? lfCount;                // Solo para Curb Flashing
   String? otherSpecify;
+  String? count;
+  bool? fullPerimeter;
 
   File? photo;                    // Primera foto (obligatoria)
   List<File> extraPhotos = [];
@@ -328,6 +331,32 @@ class CommercialFlashingData {
     this.material,
     this.grade,
     this.lfCount,
+    this.otherSpecify,
+    this.count,
+    this.fullPerimeter,
+    this.photo,
+  });
+}
+
+class CommercialVentData {
+  String type;
+  String? size;
+  String? throatDimension;
+  String? throatDimensionOtherSpecify;
+  String? shape;
+  String? count;
+  String? otherSpecify;
+
+  File? photo;
+  List<File> extraPhotos = [];
+
+  CommercialVentData({
+    required this.type,
+    this.size,
+    this.throatDimension,
+    this.throatDimensionOtherSpecify,
+    this.shape,
+    this.count,
     this.otherSpecify,
     this.photo,
   });
