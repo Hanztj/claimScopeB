@@ -205,6 +205,13 @@ class AccessoryItemData {
 class HvacUnitData {
   String? type; // AC Unit / RTU / Other
   String? otherSpecify;
+  String? category;
+  String? subtype;
+  String? subtypeOtherSpecify;
+  String? count;
+  String? impellerDiameter;
+  bool shouldBeReplaced = false;
+  bool detachAndResetOnly = false;
 
   String action = 'No action required';
 
@@ -213,6 +220,7 @@ class HvacUnitData {
 
   bool nameplatePhotoCaptured = false;
   File? nameplatePhoto;
+  File? photo;
   List<File> extraPhotos = [];
 
   String? notes;

@@ -574,6 +574,18 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
                           return;
                         }
                       }
+
+                      for (var i = 0; i < roof.hvacUnits.length; i++) {
+                        if (roof.hvacUnits[i].photo == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Take the main photo for HVAC ${i + 1}.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                      }
                     }
 
                     // If this roof section has multiple facets, split into separate roof sections.

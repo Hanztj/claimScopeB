@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../../inspection_report_model.dart';
+import '../components/commercial_hvac_mechanical_rooftop.dart';
 import '../components/commercial_tpo_flashings.dart';
 import '../components/commercial_tpo_vents.dart';
 
@@ -401,6 +402,14 @@ class CommercialFlatHubForm extends StatelessWidget {
           const SizedBox(height: 16),
           CommercialTpoVents(
             vents: roof.tpoVents,
+            onChanged: sync,
+            takePhoto: takeCommercialPhoto,
+            buildingName: buildingName,
+            roofName: roofName,
+          ),
+          const SizedBox(height: 16),
+          CommercialHvacMechanicalRooftop(
+            items: roof.hvacUnits,
             onChanged: sync,
             takePhoto: takeCommercialPhoto,
             buildingName: buildingName,
