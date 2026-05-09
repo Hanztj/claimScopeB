@@ -8,7 +8,8 @@ import '../../../catalogs/commercial_hvac_mechanical_catalog.dart';
 import '../../../inspection_report_model.dart';
 
 class CommercialHvacMechanicalRooftop extends StatefulWidget {
-  final List<HvacUnitData> items;
+  final List<HvacUnitData> hvacItems;
+  final List<HvacUnitData> mechanicalItems;
   final Function() onChanged;
   final Future<void> Function({
     required String buildingName,
@@ -22,7 +23,8 @@ class CommercialHvacMechanicalRooftop extends StatefulWidget {
 
   const CommercialHvacMechanicalRooftop({
     super.key,
-    required this.items,
+    required this.hvacItems,
+    required this.mechanicalItems,
     required this.onChanged,
     required this.takePhoto,
     required this.buildingName,
@@ -36,14 +38,14 @@ class CommercialHvacMechanicalRooftop extends StatefulWidget {
 class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanicalRooftop> {
   void _addHvac() {
     setState(() {
-      widget.items.add(HvacUnitData()..category = commercialHvacCategory);
+      widget.hvacItems.add(HvacUnitData()..category = commercialHvacCategory);
     });
     widget.onChanged();
   }
 
   void _removeHvac(int index) {
     setState(() {
-      widget.items.removeAt(index);
+      widget.hvacItems.removeAt(index);
     });
     widget.onChanged();
   }
@@ -54,7 +56,7 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
       roofName: widget.roofName,
       photoLabel: 'HVAC ${index + 1} - Main Photo',
       onSaved: (file) {
-        setState(() => widget.items[index].photo = file);
+        setState(() => widget.hvacItems[index].photo = file);
         widget.onChanged();
       },
     );
@@ -66,7 +68,7 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
       roofName: widget.roofName,
       photoLabel: 'HVAC ${index + 1} - Extra Photo',
       onSaved: (file) {
-        setState(() => widget.items[index].extraPhotos.add(file));
+        setState(() => widget.hvacItems[index].extraPhotos.add(file));
         widget.onChanged();
       },
     );
@@ -83,7 +85,7 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
         ),
         const SizedBox(height: 12),
 
-        ...widget.items.asMap().entries.map((entry) {
+        ...widget.hvacItems.asMap().entries.map((entry) {
           final index = entry.key;
           final item = entry.value;
 
