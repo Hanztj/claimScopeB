@@ -142,6 +142,23 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
 
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
+                    value: item.action,
+                    decoration: const InputDecoration(labelText: 'Action', border: OutlineInputBorder()),
+                    items: const [
+                      DropdownMenuItem(value: 'No action required', child: Text('No action required')),
+                      DropdownMenuItem(value: 'Replace', child: Text('Replace')),
+                      DropdownMenuItem(value: 'Detach & reset', child: Text('Detach & reset')),
+                    ],
+                    onChanged: (val) {
+                      setState(() {
+                        item.action = val ?? 'No action required';
+                      });
+                      widget.onChanged();
+                    },
+                  ),
+
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
                     value: item.capacityText,
                     decoration: const InputDecoration(labelText: 'Capacity', border: OutlineInputBorder()),
                     items: commercialHvacCapacityOptions
