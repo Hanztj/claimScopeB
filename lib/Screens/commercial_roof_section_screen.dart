@@ -525,6 +525,63 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
                       return;
                     }
 
+                    if (_isFlatSystem) {
+                      if (roof.coreSamplePerformed) {
+                        if (roof.coreSamplePhoto == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please add a core sample photo.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                      } else {
+                        if (roof.insulationKnown == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please select whether the sublayer system is known.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+
+                        if (roof.insulationKnown == false &&
+                            roof.noCoreSampleApproach == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please select a sublayer estimating approach.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                      }
+
+                      if (roof.coreSamplePerformed || roof.insulationKnown == true) {
+                        if (roof.insulationMaterial == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please select the base insulation material.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+
+                        if (roof.insulationThickness == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please select the base insulation thickness.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                      }
+                    }
+
                     if (roof.roofType == 'Shingles' && roof.hasMultipleLayers == true) {
                       final layers = int.tryParse(_layersCountController.text.trim());
                       if (layers == null || layers < 2) {
