@@ -643,6 +643,18 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
                           return;
                         }
                       }
+
+                      for (var i = 0; i < roof.mechanicalUnits.length; i++) {
+                        if (roof.mechanicalUnits[i].photo == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Take the main photo for Mechanical ${i + 1}.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                      }
                     }
 
                     // If this roof section has multiple facets, split into separate roof sections.
