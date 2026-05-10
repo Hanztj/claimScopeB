@@ -409,7 +409,8 @@ class CommercialFlatHubForm extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           CommercialHvacMechanicalRooftop(
-            items: roof.hvacUnits,
+            hvacItems: roof.hvacUnits,
+            mechanicalItems: roof.mechanicalUnits,
             onChanged: sync,
             takePhoto: takeCommercialPhoto,
             buildingName: buildingName,

@@ -175,6 +175,7 @@ class CommercialRoofSectionData {
 
   List<AccessoryItemData> accessories = [];
   List<HvacUnitData> hvacUnits = [];
+  List<HvacUnitData> mechanicalUnits = [];
 
   String? notes;
 
