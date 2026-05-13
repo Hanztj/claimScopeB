@@ -320,6 +320,7 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
 
                 roof.insulationMaterial = null;
                 roof.insulationThickness = null;
+                roof.insulationMaterialOtherSpecify = null;
                 roof.isTapered = false;
                 roof.hasCoverBoard = false;
                 roof.coverBoardType = null;
@@ -406,6 +407,7 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
               sync: _sync,
               takeCommercialPhoto: _takeCommercialPhoto,
             ),
+            
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -513,7 +515,6 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
                       );
                       return;
                     }
-
                     if (roof.roofSubType == 'Other' &&
                         (_roofSubTypeOtherController.text.trim().isEmpty)) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -524,8 +525,8 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
                       );
                       return;
                     }
-
-                    if (_isFlatSystem) {
+                    
+                       if (_isFlatSystem) {
                       if (roof.coreSamplePerformed) {
                         if (roof.coreSamplePhoto == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -536,7 +537,18 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
                           );
                           return;
                         }
-                      } else {
+                      } 
+                      if (roof.insulationMaterial == 'Other' && 
+                     (roof.insulationMaterialOtherSpecify == null || roof.insulationMaterialOtherSpecify!.trim().isEmpty)) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                        content: Text('Please specify the insulation material.'),
+                       backgroundColor: Colors.red,
+                             ),
+                               );
+                              return;
+                            }
+                                            else {
                         if (roof.insulationKnown == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -546,7 +558,7 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
                           );
                           return;
                         }
-
+                         
                         if (roof.insulationKnown == false &&
                             roof.noCoreSampleApproach == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -606,8 +618,7 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
                       );
                       return;
                     }
-
-                    if (roof.roofType == 'TPO') {
+                       if (roof.roofType == 'TPO') {
                       for (var i = 0; i < roof.tpoFlashings.length; i++) {
                         if (roof.tpoFlashings[i].photo == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -643,7 +654,8 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
                           return;
                         }
                       }
-
+                    }
+                    
                       for (var i = 0; i < roof.mechanicalUnits.length; i++) {
                         if (roof.mechanicalUnits[i].photo == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -655,7 +667,6 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
                           return;
                         }
                       }
-                    }
 
                     // If this roof section has multiple facets, split into separate roof sections.
                     if ((roof.roofType == 'Shingles' || roof.roofType == 'Metal') &&
