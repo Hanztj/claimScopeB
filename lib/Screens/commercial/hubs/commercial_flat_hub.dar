@@ -158,14 +158,32 @@ class CommercialFlatHubForm extends StatelessWidget {
               DropdownMenuItem(value: 'EPS', child: Text('EPS')),
               DropdownMenuItem(value: 'XPS', child: Text('XPS')),
               DropdownMenuItem(value: 'Mineral Wool', child: Text('Mineral Wool')),
+              DropdownMenuItem(value: 'Other', child: Text('Other')),
             ],
             onChanged: (val) {
               setState(() {
                 roof.insulationMaterial = val;
                 roof.insulationThickness = null;
+                if (val != 'Other') {
+                  roof.insulationMaterialOtherSpecify = null;
+                }
               });
             },
           ),
+          if (roof.insulationMaterial == 'Other') ...[
+    const SizedBox(height: 12),
+    TextField(
+      decoration: const InputDecoration(
+        labelText: 'Specify insulation material *',
+        border: OutlineInputBorder(),
+        hintText: 'Ej: Polyiso, Foam, etc.',
+      ),
+      onChanged: (value) {
+        roof.insulationMaterialOtherSpecify = value.trim().isEmpty ? null : value.trim();
+        sync(); // Para guardar en tiempo real
+      },
+    ),
+  ],
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: roof.insulationThickness,
