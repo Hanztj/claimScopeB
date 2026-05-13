@@ -161,6 +161,7 @@ class CommercialRoofSectionData {
 
   String? insulationMaterial; // ISO/EPS/XPS/Mineral Wool
   String? insulationThickness;
+  String? insulationMaterialOtherSpecify;
   bool isTapered = false;
 
   bool hasCoverBoard = false;
@@ -185,7 +186,6 @@ class CommercialRoofSectionData {
   
   // Para futuros tipos (metal, epdm, etc.)
   // List<CommercialFlashingData> metalFlashings = [];
-
 
 }
 
