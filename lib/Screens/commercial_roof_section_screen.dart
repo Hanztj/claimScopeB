@@ -1,4 +1,12 @@
 import 'dart:io';
+import 'dart:convert';
+import 'package:http/http.dart' as http; 
+import 'package:path_provider/path_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,6 +17,11 @@ import 'commercial/hubs/commercial_flat_hub.dart';
 import 'commercial/hubs/commercial_metal_hub.dart';
 import 'commercial/hubs/commercial_shingles_hub.dart';
 import 'commercial_building_details_screen.dart';
+import 'package:claimscope_clean/Services/pdf_service.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:claimscope_clean/Services/stripe_service.dart';
+import 'package:claimscope_clean/Services/email_service.dart';
+import '../utils/labeled_photos_zip.dart';
 
 
 class CommercialRoofSectionScreen extends StatefulWidget {
@@ -32,6 +45,127 @@ class CommercialRoofSectionScreen extends StatefulWidget {
 class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScreen> {
   late final CommercialRoofSectionData roof;
 
+  // Función que muestra las opciones de envío para reportes comerciales
+Future<void> _showSubmissionOptions(File techPdf, File photoPdf) async {
+  showDialog(
+    context: context,
+    builder: (BuildContext dialogContext) {
+      return AlertDialog(
+        title: const Text('Send Inspection Report'),
+        content: SingleChildScrollView(
+          child: ListBody(
+            children: <Widget>[
+              // Option 1: Send to HF Estimates via email (disponible para todos los planes)
+              ListTile(
+                leading: const Icon(Icons.business),
+                title: const Text('Send to HF Estimates by email'),
+                subtitle: const Text(
+                  'This will create a paid estimate Order',
+                ),
+                onTap: () {
+                  Navigator.of(dialogContext).pop();
+                  _confirmRushAndSendToHfByEmail(techPdf, photoPdf);
+                },
+              ),
+
+              // Option 2: Send to registered email (gratuito)
+              ListTile(
+                leading: const Icon(Icons.email),
+                title: const Text('1) Send to my email'),
+                subtitle: const Text(
+                  'Receive the PDF report(s) in your registered email.',
+                ),
+                onTap: () {
+                  Navigator.of(dialogContext).pop();
+                  _sendReportViaEmail(techPdf, photoPdf);
+                },
+              ),
+
+              const Divider(),
+              // Opciones adicionales para usuarios Premium
+              if (widget.plan == 'premium') ...[
+                ListTile(
+                  leading: const Icon(Icons.email_outlined),
+                  title: const Text('2) Send to another email'),
+                  subtitle: const Text(
+                    'Send the reports to any email address.',
+                  ),
+                  onTap: () {
+                    Navigator.of(dialogContext).pop();
+                    _sendReportToCustomEmail(techPdf, photoPdf);
+                  },
+                ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.cloud_upload),
+                  title: const Text('Store in Cloud'),
+                  subtitle: const Text(
+                    'Save a copy of the report in your account (Cloud storage).',
+                  ),
+                  onTap: () async {
+                    Navigator.of(dialogContext).pop();
+                    await _storeReportInCloud(techPdf, photoPdf);
+                  },
+                ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.folder_zip),
+                  title: const Text('Download ZIP (labeled photos)'),
+                  subtitle: const Text(
+                    'Creates a ZIP with labeled photos (excludes gallery images).',
+                  ),
+                  onTap: () async {
+                    Navigator.of(dialogContext).pop();
+                    final messenger = ScaffoldMessenger.of(context);
+                    try {
+                      final zip = await _generateLabeledPhotosZip();
+                      if (!mounted) return;
+                      await Share.shareXFiles([XFile(zip.path)], 
+                          text: 'Inspection Photos ZIP');
+                    } catch (e) {
+                      if (!mounted) return;
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text('Error creating ZIP: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ] else
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: TextButton(
+                    onPressed: () {
+                      StripeService.launchCheckout('premium');
+                    },
+                    child: Text(
+                      'Upgrade to Premium to enable cloud storage, additional recipients and downloadable ZIP with labeled photos',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.secondary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            child: const Text('Cancel'),
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
   final _picker = ImagePicker();
 
   final _roofLabelController = TextEditingController();
@@ -46,41 +180,519 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
   final _coverOtherController = TextEditingController();
   final _notesController = TextEditingController();
 
-  bool _showFinishActions = false;
+  final _showFinishActions = false;
 
-  Future<void> _showSubmissionOptions() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Submission Options',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                const Text('Commercial submission options are not implemented yet.'),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.of(ctx).pop(),
-                    child: const Text('Close'),
-                  ),
-                ),
-              ],
+  void _confirmRushAndSendToHfByEmail(File techPdf, File photoPdf) {
+  bool rush = false;
+
+  showDialog(
+    context: context,
+    builder: (rushDialogContext) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Rush Order? (+\$15)'),
+            content: CheckboxListTile(
+              title: const Text('Is this a rush order? (+\$15)'),
+              value: rush,
+              onChanged: (val) {
+                setState(() {
+                  rush = val ?? false;
+                });
+              },
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(rushDialogContext).pop(),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(rushDialogContext).pop();
+   
+                  _sendToHfByEmail(techPdf, photoPdf, rushOrder: rush);
+                },
+                child: const Text('Continue'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+ } 
+
+ // Function helper email 
+  bool _isProbablyValidEmail(String value) {
+  final email = value.trim();
+  if (email.isEmpty) return false;
+  if (email.contains(' ')) return false;
+
+  final at = email.indexOf('@');
+  if (at <= 0) return false; // no puede empezar con @
+  if (at != email.lastIndexOf('@')) return false; // solo un @
+
+  final dot = email.lastIndexOf('.');
+  if (dot <= at + 1) return false; // debe haber un . después del @
+  if (dot == email.length - 1) return false; // no termina con .
+
+  return true;
+}
+
+// here was te fucntions _sanitizedPhotoBaseName and _generateLabeledPhotosZip, moved to utils/labeled_photos_zip.dart
+String _sanitizeFilename(String input) {
+  var s = input.trim();
+  if (s.isEmpty) return 'UNKNOWN';
+  s = s.replaceAll(RegExp(r'[\/\\\:\*\?\"\<\>\|]'), '');
+  s = s.replaceAll(RegExp(r'\s+'), ' ').trim();
+  return s.isEmpty ? 'UNKNOWN' : s;
+}
+void main() {
+  // Test cases
+  final testCases = {
+    'test@example.com': true,
+    'user.name@domain.co': true,
+    'plainaddress': false,
+    '@missinguser.com': false,
+    'user@': false,
+    'user@domain': false,
+    'user@domain.': false,
+    'user name@domain.com': false,
+    '': false,
+  };
+
+    testCases.forEach((email, expected) {
+    final result = _isProbablyValidEmail(email);
+    assert(result == expected, 'Expected $_isProbablyValidEmail("$email") to be $expected but got $result');
+  });
+}
+
+Future<File> _generateLabeledPhotosZip() async {
+  // Excluir imágenes de galería (se agregan como label 'User Image')
+  final items = widget.report.photoReportItems.where((p) {
+    return p.label.trim() != 'User Image';
+  }).toList();
+
+  final archive = buildLabeledPhotosArchive(items);
+  final zipBytes = encodeZipBytes(archive);
+
+  final claim = widget.report.claimNumber.trim().isEmpty
+      ? 'NOCLAIM'
+      : _sanitizeFilename(widget.report.claimNumber);
+
+  final insured = widget.report.clientName.trim().isEmpty
+      ? 'UNKNOWN'
+      : _sanitizeFilename(widget.report.clientName);
+
+  final dir = await getApplicationDocumentsDirectory();
+  final filename = '$claim - $insured - Inspection Photos (ZIP).zip';
+
+  final zipFile = await writeZipToFile(
+    zipBytes: zipBytes,
+    outputDir: dir,
+    filename: filename,
+  );
+
+  return zipFile;
+}
+
+// Solo Premium+Extra : preguntar si quiere almacenar en la nube (sin cobro HF)
+Future<bool> _askStoreReportInCloud() async {
+  if (widget.plan != 'premium') return false;
+
+  final navigator = Navigator.of(context);
+
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Store report in Cloud?'),
+      content: const Text(
+        'Do you want to store this inspection report in your account (Cloud)?',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => navigator.pop(false),
+          child: const Text('No'),
+        ),
+        TextButton(
+          onPressed: () => navigator.pop(true),
+          child: const Text('Yes'),
+        ),
+      ],
+    ),
+  );
+
+  return result ?? false;
+}
+
+Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
+  showDialog(
+    context: context,
+    builder: (BuildContext dialogContext) {
+      return AlertDialog(
+        title: const Text('Store in Cloud'),
+        content: const Text(
+          'This will save a copy of both reports (Technical and Photographic) '
+          'to your cloud storage. You can access them anytime from your account.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(dialogContext).pop();
+              
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(
+                  child: CircularProgressIndicator(),
+                ),
+              );
+              
+              try {
+                final user = FirebaseAuth.instance.currentUser;
+                if (user == null) {
+                  throw Exception('User not logged in');
+                }
+                
+                final userId = user.uid;
+                final reportId = widget.report.claimNumber.isEmpty 
+                    ? DateTime.now().millisecondsSinceEpoch.toString() 
+                    : widget.report.claimNumber;
+                
+                final storageRef = FirebaseStorage.instance
+                    .ref()
+                    .child('users/$userId/reports/$reportId');
+                
+                final techRef = storageRef.child('technical_report.pdf');
+                await techRef.putFile(techPdf);
+                final techUrl = await techRef.getDownloadURL();
+                
+                final photoRef = storageRef.child('photographic_report.pdf');
+                await photoRef.putFile(photoPdf);
+                final photoUrl = await photoRef.getDownloadURL();
+                
+                await FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(userId)
+                    .collection('stored_reports')
+                    .doc(reportId)
+                    .set({
+                  'reportId': reportId,
+                  'propertyAddress': '${widget.report.address}, ${widget.report.city}, ${widget.report.state} ${widget.report.zip}',
+                  'technicalPdfUrl': techUrl,
+                  'photographicPdfUrl': photoUrl,
+                  'storedAt': FieldValue.serverTimestamp(),
+                  'reportType': 'commercial',
+                  'isCommercial': true,
+                });
+                
+                if (!mounted) return;
+                Navigator.pop(context);
+                
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Reports stored successfully in cloud'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } catch (e) {
+                if (!mounted) return;
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error storing in cloud: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Store in Cloud'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+ 
+                            Future<void> _sendReportViaEmail(File techPdf, File photoPdf, {String? extraEmail}) async {
+                            // Aquí se llamara un servicio backend
+                               final messenger = ScaffoldMessenger.of(context);
+                               final user = FirebaseAuth.instance.currentUser;
+                               if (user == null || user.email == null || user.email!.isEmpty) {
+                                     messenger.showSnackBar(
+                                const SnackBar(content: Text('User not authenticated')),
+                                );
+                               return;
+                                }
+                                    
+                                    final toEmails = <String>[user.email!];
+                                if (widget.plan == 'premium' && extraEmail != null && extraEmail.trim().isNotEmpty) {
+                                 toEmails.add(extraEmail.trim());
+                               }     
+                                    
+                                   messenger.showSnackBar(
+                               const SnackBar(content: Text('Sending email...')),
+                                );
+                                  try {
+                               await EmailService.sendEmailWithReports(
+                               toEmails: toEmails,
+                               techPdf: techPdf,
+                               photoPdf: photoPdf,
+                                 );
+
+                               if (!mounted) return;
+
+                              messenger.showSnackBar(
+                               const SnackBar(content: Text('Email sent successfully')),
+                              );
+                               final shouldStore = await _askStoreReportInCloud();
+                               if (shouldStore) {
+                               await _storeReportInCloud(techPdf, photoPdf);
+                              }
+                               
+                               } catch (e) {
+                              if (!mounted) return;
+
+                               messenger.showSnackBar(
+                               SnackBar(content: Text('Error sending email: $e')),
+                             );
+                              }
+                             }
+
+                            Future<void> _sendReportToCustomEmail(File techPdf, File photoPdf) async {
+  final TextEditingController emailController = TextEditingController();
+  
+  showDialog(
+    context: context,
+    builder: (BuildContext dialogContext) {
+      return AlertDialog(
+        title: const Text('Send to Custom Email'),
+        content: TextField(
+          controller: emailController,
+          decoration: const InputDecoration(
+            hintText: 'recipient@example.com',
+            labelText: 'Email Address',
+            border: OutlineInputBorder(),
+          ),
+          keyboardType: TextInputType.emailAddress,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final email = emailController.text.trim();
+              if (email.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter an email address'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+              
+              Navigator.of(dialogContext).pop();
+              
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(
+                  child: CircularProgressIndicator(),
+                ),
+              );
+              
+              try {
+                final user = FirebaseAuth.instance.currentUser;
+                final idToken = await user?.getIdToken();
+                
+                final response = await http.post(
+                  Uri.parse('https://us-central1-claimscope.cloudfunctions.net/sendReportEmail'),
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer $idToken',
+                  },
+                  body: jsonEncode({
+                    'toEmail': email,
+                    'techPdfBase64': base64Encode(techPdf.readAsBytesSync()),
+                    'photoPdfBase64': base64Encode(photoPdf.readAsBytesSync()),
+                    'reportId': widget.report.claimNumber.isEmpty 
+                        ? DateTime.now().millisecondsSinceEpoch.toString() 
+                        : widget.report.claimNumber,
+                    'propertyAddress': '${widget.report.address}, ${widget.report.city}, ${widget.report.state} ${widget.report.zip}',
+                  }),
+                );
+                
+                if (!mounted) return;
+                Navigator.pop(context);
+                
+                if (response.statusCode == 200) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Report sent successfully to custom email'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } else {
+                  throw Exception('Failed to send email');
+                }
+              } catch (e) {
+                if (!mounted) return;
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error sending to custom email: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Send'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+       // Solo Premium: almacenar + email (sin cobro HF)
+        // HF Estimates por email (Basic & Premium) – aquí sí habrá cobro HF
+          //--Helper price calculation function
+        double _calculateHfEmailPrice({required bool rushOrder}) {
+    
+                          const double basePrice = 70.0;        // precio base por roof estimate
+                         // const double shedAddon = 10.0;        // extra si hay shed
+                          //const double structureAddon = 15.0;   // extra si hay estructura grande
+                          const double rushFee = 25.0;          // rush order
+                          //const double commercialExtra = 20.0;  // extra para comercial
+  
+                                double total = basePrice;
+  
+                               // if (hasShed) {total += shedAddon;
+                               // }
+                                //if (hasDetachedStructure) {total += structureAddon;
+                               // }
+                                //if (widget.isCommercial) {total += commercialExtra;
+                                //}
+                                if (rushOrder) {total += rushFee;
+                                }
+  
+                          // Descuento 10% para el plan básico, 15% para el premium (aplicado al total después de sumar addons y rush)
+                            if (widget.plan == 'basic') total *= 0.90;   // 10%
+                            if (widget.plan == 'premium') total *= 0.85; // 15% total
+  
+                              return total;
+                              }
+
+   Future<void> _sendToHfByEmail(File techPdf, File photoPdf,
+        {required bool rushOrder}) async{  
+            final shouldStore = await _askStoreReportInCloud();
+  if (!mounted) return;
+
+  if (shouldStore) {
+    await _storeReportInCloud(techPdf, photoPdf);
+    if (!mounted) return;
+  }
+
+             final messenger = ScaffoldMessenger.of(context);
+             final total = _calculateHfEmailPrice(rushOrder: rushOrder);
+            
+  showDialog(
+  context: context,
+  barrierDismissible: false,
+  builder: (_) => const AlertDialog(
+    content: Row(
+      children: [
+        CircularProgressIndicator(),
+        SizedBox(width: 16),
+        Expanded(child: Text('Please wait… preparing checkout')),
+      ],
+    ),
+  ),
+);
+        try{    
+  messenger.showSnackBar(
+    SnackBar(content: Text('Preparing HF order... Total: \$${total.toStringAsFixed(2)}',
+      ),
+      duration: const Duration(seconds: 3),
+    ),
+  );
+  
+       //Upload PDFs to cloud storage and get URLs (placeholder logic, implement with Firebase Storage or similar)
+  final storage =  FirebaseStorage.instance;
+  final timeStamp = DateTime.now().millisecondsSinceEpoch;
+  final uid = FirebaseAuth.instance.currentUser!.uid;
+
+  final techUploadTask = await storage.ref('temp_reports/$uid/hf_orders/$timeStamp/tech.pdf').putFile(techPdf);
+  final photoUploadTask = await storage.ref('temp_reports/$uid/hf_orders/$timeStamp/photos.pdf').putFile(photoPdf);
+
+  final techUrl = await techUploadTask.ref.getDownloadURL();
+  final photoUrl = await photoUploadTask.ref.getDownloadURL();
+
+    // Llamar a backend para crear orden en HF Estimates (puede ser una Cloud Function que luego llama a la API de Xactimate)
+     final idToken = await FirebaseAuth.instance.currentUser!.getIdToken();
+    
+    final response = await http.post(
+      Uri.parse('https://us-central1-claimscope.cloudfunctions.net/createHfEstimatesCheckoutSession'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $idToken',
+      },
+      body: jsonEncode({
+        'techPdfUrl': techUrl,
+        'photoPdfUrl': photoUrl,
+        'rushOrder': rushOrder,
+        'isCommercial': true,
+        // Comercial: usar roofSections y additionalBuildings en lugar de hasShed/hasDetachedStructure
+        'roofSectionsCount': widget.report.commercialBuildings.fold(0, (sum, b) => sum + b.roofs.length),
+        'additionalBuildingsCount': widget.report.commercialBuildings.length - 1,
+        'plan': widget.plan,
+        'userEmail': FirebaseAuth.instance.currentUser?.email,
+        'clientName': widget.report.clientName,
+        'claimNumber': widget.report.claimNumber,
+        'address': '${widget.report.address}, ${widget.report.city}, ${widget.report.state} ${widget.report.zip}',
+        'dateInspected': widget.report.dateInspected,
+        'successUrl': 'claimscope://success',
+        'cancelUrl': 'claimscope://cancel',
+      }),
+    );
+    
+    final result = jsonDecode(response.body);
+    final sessionUrl = result['url'] as String?;
+    
+    if (sessionUrl == null) {
+      throw Exception("The function did not return the Stripe URL.");
+    }
+
+  // Abrir la URL de Stripe Checkout
+        final url = Uri.parse(sessionUrl);
+        final success= await launchUrl(url, mode: LaunchMode.externalApplication);
+          if (!success) {
+            throw Exception("Stripe Checkout could not be opened.");
+          }
+               } catch (e) {
+      debugPrint('HF Xactimate failed: $e');
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: const Color.fromARGB(255, 244, 54, 54),
+            duration: const Duration(seconds: 3),
           ),
         );
-      },
-    );
-  }
+      }
+      
+    } finally {if (mounted) Navigator.of(context, rootNavigator: true).pop();
+   }
+        }
+
 
   @override
   void initState() {
@@ -493,7 +1105,7 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
                               return;
                             }
 
-                            await _showSubmissionOptions();
+                           // await _showSubmissionOptions();
                           },
                           child: const Text('Submit Inspection'),
                         ),
@@ -505,6 +1117,8 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
                 return ElevatedButton(
                   onPressed: () async {
                     _sync();
+                    widget.report.isCommercial = true;
+                    roof.reportType = 'commercial';
 
                     if (roof.overviewPhoto == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -693,6 +1307,7 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
                       for (var i = 2; i <= total; i++) {
                         final r = CommercialRoofSectionData();
                         r.roofType = roof.roofType;
+                        r.reportType = 'commercial';
                         r.roofSubType = roof.roofSubType;
                         r.roofSubTypeOtherSpecify = roof.roofSubTypeOtherSpecify;
                         r.pitch = roof.pitch;
@@ -731,12 +1346,10 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
                       }
                     }
 
-                    if (isFinalStep) {
-                      setState(() {
-                        _showFinishActions = true;
-                      });
-                      return;
-                    }
+                   if (isFinalStep) {
+                   await _submitCommercialReport();
+                   return;
+                     }
 
                     final nextRoofIndex = widget.roofIndex + 1;
                     if (nextRoofIndex < building.roofs.length) {
@@ -758,7 +1371,8 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
                       final nextBuilding = buildings[nextBuildingIndex];
                       if (nextBuilding.roofs.isEmpty) {
                         nextBuilding.roofs.add(
-                          CommercialRoofSectionData()..roofLabel = 'Main Roof',
+                          CommercialRoofSectionData()..roofLabel = 'Main Roof' 
+                          ..reportType = 'commercial',
                         );
                       }
 
@@ -781,5 +1395,38 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
         ],
       ),
     );
+  }
+  // === FUNCIÓN PARA ENVIAR REPORTE COMERCIAL ===
+  Future<void> _submitCommercialReport() async {
+    try {
+      widget.report.isCommercial = true;
+      roof.reportType = 'commercial';
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Generar PDFs
+      final pdfs = await PdfService.generateReports(widget.report);
+
+      if (!mounted) return;
+      Navigator.pop(context); // Cerrar loading
+
+      // Usar la versión local de _showSubmissionOptions (la que ya tienes en este archivo)
+      // Mostrar opciones de envío con los PDFs generados
+       _showSubmissionOptions(pdfs['technical']!, pdfs['photographic']!);
+
+       } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error generando PDFs: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }
