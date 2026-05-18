@@ -26,14 +26,14 @@ import 'package:claimscope_clean/catalogs/flashing_catalog.dart';
 
 
 
-enum FacetOrientation {
+ enum FacetOrientation {
   north,
   south,
   east,
   west, 
   none, // Para cuando no se ha seleccionado ninguna
-}
-class RoofInspectionForm extends StatefulWidget {
+ }
+ class RoofInspectionForm extends StatefulWidget {
   
   final String plan; // Cambiado de bool isSubscribed
   final InspectionReport report;
@@ -44,9 +44,9 @@ class RoofInspectionForm extends StatefulWidget {
 
   @override
   State<RoofInspectionForm> createState() => _RoofInspectionFormState();
-}
+ }
 
-class _RoofInspectionFormState extends State<RoofInspectionForm> {
+ class _RoofInspectionFormState extends State<RoofInspectionForm> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final picker = ImagePicker();
                     
@@ -126,7 +126,7 @@ class _RoofInspectionFormState extends State<RoofInspectionForm> {
              
                    // Download ZIP with labeled photos (without HF fee)
 
-    const Divider(),
+                    const Divider(),
                         if (widget.plan == 'premium')
                      ListTile(
                      leading: const Icon(Icons.folder_zip),
@@ -197,7 +197,7 @@ class _RoofInspectionFormState extends State<RoofInspectionForm> {
   );
  }
                  
-Widget _buildFlashingSubfields(Map<String, dynamic> data) {
+ Widget _buildFlashingSubfields(Map<String, dynamic> data) {
   final String? type = data['type'];
 
   if (type == null) return const SizedBox.shrink();
@@ -216,7 +216,7 @@ Widget _buildFlashingSubfields(Map<String, dynamic> data) {
       );
     }).toList(),
   );
-}
+ }
      
  // Paso adicional: preguntar por Rush Order ANTES de calcular precio / cobrar / enviar
  void _confirmRushAndSendToHfByEmail(File techPdf, File photoPdf) {
@@ -426,10 +426,10 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
       ),
     );
   }
-}
+ }
 
- Future<void> _sendReportViaEmail(File techPdf, File photoPdf, {String? extraEmail}) async {
-                // Aquí se llamara un servicio backend
+                            Future<void> _sendReportViaEmail(File techPdf, File photoPdf, {String? extraEmail}) async {
+                            // Aquí se llamara un servicio backend
                                final messenger = ScaffoldMessenger.of(context);
                                final user = FirebaseAuth.instance.currentUser;
                                if (user == null || user.email == null || user.email!.isEmpty) {
@@ -471,12 +471,12 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
                                SnackBar(content: Text('Error sending email: $e')),
                              );
                               }
-       }
+                             }
    // Solo Premium: enviar a otros correos (sin cobro HF)
-void _sendReportToCustomEmail(File techPdf, File photoPdf) {
-  final extraEmailController = TextEditingController();
+   void _sendReportToCustomEmail(File techPdf, File photoPdf) {
+   final extraEmailController = TextEditingController();
 
-  showDialog(
+   showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
       title: const Text('Send to another email'),
@@ -511,11 +511,11 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
         ),
       ],
     ),
-  );
-}
-   // Solo Premium: almacenar + email (sin cobro HF)
-   // HF Estimates por email (Basic & Premium) – aquí sí habrá cobro HF
- //--Helper price calculation function
+    );
+         }
+       // Solo Premium: almacenar + email (sin cobro HF)
+        // HF Estimates por email (Basic & Premium) – aquí sí habrá cobro HF
+          //--Helper price calculation function
         double _calculateHfEmailPrice({required bool rushOrder}) {
     
                           const double basePrice = 70.0;        // precio base por roof estimate
@@ -576,7 +576,7 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
     ),
   );
   
-       //Upload PDFs to cloud storage and get URLs (placeholder logic, implement with Firebase Storage or similar)
+       //Upload PDFs to cloud storage and get URLs 
   final storage =  FirebaseStorage.instance;
   final timeStamp = DateTime.now().millisecondsSinceEpoch;
   final uid = FirebaseAuth.instance.currentUser!.uid;
@@ -783,15 +783,13 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
         }
       }
     }
-
+                  
     for (var i = 0; i < _currentFacetVentsData.length; i++) {
       final vent = _currentFacetVentsData[i];
       final type = vent['type'] as String?;
-
       if (type == null || type.isEmpty) {
         return 'Select the vent type for Vent ${i + 1}.';
       }
-
       if (type == 'Other') {
         final otherValue =
             (vent['otherSpecifyController'] as TextEditingController).text.trim();
@@ -799,7 +797,6 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
           return 'Specify the vent type for Vent ${i + 1}.';
         }
       }
-
       if (vent['photo'] == null) {
         return 'Take the main photo for Vent ${i + 1} before continuing.';
       }
@@ -808,7 +805,6 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
     for (var i = 0; i < _currentFacetOtherElementsData.length; i++) {
       final element = _currentFacetOtherElementsData[i];
       final type = element['type'] as String?;
-
       if (type == null || type.isEmpty) {
         return 'Select the element type for Element ${i + 1}.';
       }
@@ -857,8 +853,8 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
    
    }
    Map<String, dynamic> _createNewVentData() {
-    final countController = TextEditingController(text: '1');
-   final otherSpecifyController = TextEditingController();
+    final countController = TextEditingController(text:'1'); // Default 1 vent if user adds a vent
+   final otherSpecifyController = TextEditingController(); 
 
    return {
     'type': null,
@@ -889,7 +885,7 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
  }
 
  Map<String, dynamic> _createNewOtherElementData() {
-  final countController = TextEditingController(text: '1');
+  final countController = TextEditingController(text:'1'); // Default 1 element if user adds an element
   final otherSpecifyController = TextEditingController();
   return {
     'type': null,
@@ -998,7 +994,8 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
         flashingIndex < _currentFacetFlashingsData.length) {
       // Foto asociada a un flashing específico
       _currentFacetFlashingsData[flashingIndex]['photo'] = img;
-    } else if (otherElementIndex != null &&
+       
+       } else if (otherElementIndex != null &&
         otherElementIndex < _currentFacetOtherElementsData.length) {
       // Foto asociada a un other element específico
       _currentFacetOtherElementsData[otherElementIndex]['photo'] = img;
@@ -1068,7 +1065,7 @@ void _sendReportToCustomEmail(File techPdf, File photoPdf) {
       return;
     }
 
-        if (sheathingRequiredToBeChanged) {
+if (sheathingRequiredToBeChanged) {
 
 final partialSheathingText =
           _sheathingPartialSqftController.text.trim();
