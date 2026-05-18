@@ -17,6 +17,7 @@ class InspectionReport {
   String typeOfLoss = '';
   String causeOfLoss = '';
   bool isResidential = true;
+  bool isCommercial = false;
 
   // INSPECTOR
   String inspectorCompany = '';
@@ -105,6 +106,7 @@ class CommercialRoofSectionData {
   String? roofType;
   String? roofSubType;
   String? roofSubTypeOtherSpecify;
+  String? reportType;
 
   // When shingles/metal uses facets, we split into multiple roof sections.
   bool facetsGenerated = false;
@@ -182,8 +184,8 @@ class CommercialRoofSectionData {
 
   // ✅ NUEVO
   List<CommercialFlashingData> tpoFlashings = [];
-  List<CommercialVentData> tpoVents = [];
-  
+   List<CommercialVentData> tpoVents = [];
+
   // Para futuros tipos (metal, epdm, etc.)
   // List<CommercialFlashingData> metalFlashings = [];
 
@@ -202,6 +204,7 @@ class AccessoryItemData {
 
   String? notes;
 }
+
 
 class HvacUnitData {
   String? type; // AC Unit / RTU / Other
@@ -322,6 +325,7 @@ class OtherElementData {
 // ==================== COMMERCIAL FLASHINGS ====================
 
 class CommercialFlashingData {
+ 
   String type;                    // Ej: "Flash Parapet wall"
   String? size;
   String? material;
