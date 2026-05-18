@@ -1430,3 +1430,4 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
     }
   }
 }
+  
