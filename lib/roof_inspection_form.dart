@@ -15,7 +15,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:claimscope_clean/screens/my_reports_screen.dart';
  // Para ArchiveFile y ZipEncoder
 import 'package:path_provider/path_provider.dart'; // Para getApplicationDocumentsDirectory
-import 'package:share_plus/share_plus.dart'; // Para Share y XFile
 import 'package:claimscope_clean/utils/labeled_photos_zip.dart';
 import 'package:claimscope_clean/catalogs/roof_catalog.dart';
 import 'package:claimscope_clean/catalogs/roof_components_catalog.dart';
@@ -23,7 +22,7 @@ import 'package:claimscope_clean/screens/residential/hubs/residential_shingles_h
 import 'package:claimscope_clean/screens/residential/hubs/residential_roof_accessories_hub.dart';
 import 'package:claimscope_clean/screens/residential/hubs/residential_facet_inspection_hub.dart';
 import 'package:claimscope_clean/catalogs/flashing_catalog.dart';
-
+import '../Screens/widgets/submission_options_dialog.dart';  
 
 
  enum FacetOrientation {
@@ -52,150 +51,19 @@ import 'package:claimscope_clean/catalogs/flashing_catalog.dart';
                     
  // Añadir dentro de class _RoofInspectionFormState extends State<RoofInspectionForm> {
 
- void _showSubmissionOptions(File techPdf, File photoPdf) {
-  showDialog(
+ Future<void> _showSubmissionOptions(File techPdf, File photoPdf) {
+  return showSubmissionOptions(
     context: context,
-    builder: (BuildContext dialogContext) {
-      return AlertDialog(
-        title: const Text('Send Inspection Report'),
-        content: SingleChildScrollView(
-          child: ListBody(
-            children: <Widget>[
-                            
-               //Option 1: Send to HF Estimates via email (Basic and Premium) – this option WILL charge a fee
-              ListTile(
-                leading: const Icon(Icons.business),
-                title: const Text('Send to HF Estimates by email'),
-                subtitle: const Text(
-                  'This will create a paid estimate Order',
-                ),
-                onTap: () {
-                  Navigator.of(dialogContext).pop();
-                  _confirmRushAndSendToHfByEmail(techPdf, photoPdf);
-                },
-              ),
-
-              //Option 2 send to registered email (Basic and Premium) – this option is free
-
-              ListTile(
-                leading: const Icon(Icons.email),
-                title: const Text('1) Send to my email'),
-                subtitle: const Text(
-                  'Receive the PDF report(s) in your registered email.',
-                ),
-                onTap: () {
-                  Navigator.of(dialogContext).pop();
-                  _sendReportViaEmail(techPdf, photoPdf);
-                },
-              ),
-
-                 // Additional options for Premium users
-
-              const Divider(),
-              if (widget.plan == 'premium') ...[
-                // sent to custom email (without HF fee)
-                ListTile(
-                  leading: const Icon(Icons.email_outlined),
-                  title: const Text('2) Send to another email'),
-                  subtitle: const Text(
-                    'Send the reports to any email address.',
-                  ),
-                  onTap: () {
-                    Navigator.of(dialogContext).pop();
-                    _sendReportToCustomEmail(techPdf, photoPdf);
-                  },
-                ),
-
-                // Store in Cloud (without HF fee)
-
-                  const Divider(),
-                  if (widget.plan == 'premium')
-                ListTile(
-                  leading: const Icon(Icons.cloud_upload),
-                  title: const Text(
-                    'Store in Cloud',
-                  ),
-                  subtitle: const Text(
-                    'Save a copy of the report in your account (Cloud storage).',
-                  ),
-                  onTap: () async {
-                    Navigator.of(dialogContext).pop();
-                    await _storeReportInCloud(techPdf, photoPdf);
-                  },
-                ),
-             
-                   // Download ZIP with labeled photos (without HF fee)
-
-                    const Divider(),
-                        if (widget.plan == 'premium')
-                     ListTile(
-                     leading: const Icon(Icons.folder_zip),
-                     title: const Text('Download ZIP (labeled photos)'),
-                     subtitle: const Text('Creates a ZIP with labeled photos (excludes gallery images).'),
-                      onTap: () async {
-                      Navigator.of(dialogContext).pop();
-
-                      final messenger = ScaffoldMessenger.of(context);
-                      
-                      final zip = await _generateLabeledPhotosZip();
-                        if (!mounted) return;
-                      await Share.shareXFiles([XFile(zip.path)], text: 'Inspection Photos ZIP');
-                     try {
-                     final zip = await _generateLabeledPhotosZip();
-                     if (!mounted) return;
-
-                     messenger.showSnackBar(
-                     SnackBar(content: Text('ZIP created: ${zip.path}')),
-                      );
-                      } catch (e) {
-                      if (!mounted) return;
-
-                    messenger.showSnackBar(
-                      SnackBar(
-                     content: Text('Error creating ZIP: $e'),
-                     backgroundColor: Colors.red,
-                    ),
-                    );
-                     }
-                      },
-                    ),
-                      
-             
-              ] 
-                else
-                Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: TextButton(
-                 onPressed: () {
-                 // No necesitamos await aquí; solo disparamos el checkout de Premium
-                 StripeService.launchCheckout('premium');
-               },
-                child: Text(
-                   'Upgrade to Premium to enable cloud storage,additional recipients and Downloadable ZIP with labeled photos',
-                   textAlign: TextAlign.center,
-                   style: TextStyle(
-                    color: Theme.of(context).colorScheme.secondary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  ),
-                  ),
-                  ),
-             
-            ],
-          ),
-        ),
-        actions: <Widget>[
-          TextButton(
-            child: const Text('Cancel'),
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-            },
-          ),
-        ],
-      );
-    },
+    techPdf: techPdf,
+    photoPdf: photoPdf,
+    plan: widget.plan,
+    onSendToHf: _confirmRushAndSendToHfByEmail,
+    onSendToMyEmail: _sendReportViaEmail,
+    onSendToCustomEmail: _sendReportToCustomEmail,
+    onStoreInCloud: _storeReportInCloud,
+    onGenerateLabeledZip: _generateLabeledPhotosZip,
   );
- }
+}
                  
  Widget _buildFlashingSubfields(Map<String, dynamic> data) {
   final String? type = data['type'];
