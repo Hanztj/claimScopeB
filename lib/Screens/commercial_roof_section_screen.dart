@@ -18,10 +18,11 @@ import 'commercial/hubs/commercial_metal_hub.dart';
 import 'commercial/hubs/commercial_shingles_hub.dart';
 import 'commercial_building_details_screen.dart';
 import 'package:claimscope_clean/Services/pdf_service.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:claimscope_clean/Services/stripe_service.dart';
+//import 'package:share_plus/share_plus.dart';
+//import 'package:claimscope_clean/Services/stripe_service.dart';
 import 'package:claimscope_clean/Services/email_service.dart';
 import '../utils/labeled_photos_zip.dart';
+import '../Screens/widgets/submission_options_dialog.dart';  
 
 
 class CommercialRoofSectionScreen extends StatefulWidget {
@@ -45,126 +46,20 @@ class CommercialRoofSectionScreen extends StatefulWidget {
 class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScreen> {
   late final CommercialRoofSectionData roof;
 
-  // Función que muestra las opciones de envío para reportes comerciales
-Future<void> _showSubmissionOptions(File techPdf, File photoPdf) async {
-   await showDialog<void>(
+  Future<void> _showSubmissionOptions(File techPdf, File photoPdf) {
+  return showSubmissionOptions(
     context: context,
-    builder: (BuildContext dialogContext) {
-      return AlertDialog(
-        title: const Text('Send Inspection Report'),
-        content: SingleChildScrollView(
-          child: ListBody(
-            children: <Widget>[
-              // Option 1: Send to HF Estimates via email (disponible para todos los planes)
-              ListTile(
-                leading: const Icon(Icons.business),
-                title: const Text('Send to HF Estimates by email'),
-                subtitle: const Text(
-                  'This will create a paid estimate Order',
-                ),
-                onTap: () {
-                  Navigator.of(dialogContext).pop();
-                  _confirmRushAndSendToHfByEmail(techPdf, photoPdf);
-                },
-              ),
-
-              // Option 2: Send to registered email (gratuito)
-              ListTile(
-                leading: const Icon(Icons.email),
-                title: const Text('1) Send to my email'),
-                subtitle: const Text(
-                  'Receive the PDF report(s) in your registered email.',
-                ),
-                onTap: () {
-                  Navigator.of(dialogContext).pop();
-                  _sendReportViaEmail(techPdf, photoPdf);
-                },
-              ),
-
-              const Divider(),
-              // Opciones adicionales para usuarios Premium
-              if (widget.plan == 'premium') ...[
-                ListTile(
-                  leading: const Icon(Icons.email_outlined),
-                  title: const Text('2) Send to another email'),
-                  subtitle: const Text(
-                    'Send the reports to any email address.',
-                  ),
-                  onTap: () {
-                    Navigator.of(dialogContext).pop();
-                    _sendReportToCustomEmail(techPdf, photoPdf);
-                  },
-                ),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.cloud_upload),
-                  title: const Text('Store in Cloud'),
-                  subtitle: const Text(
-                    'Save a copy of the report in your account (Cloud storage).',
-                  ),
-                  onTap: () async {
-                    Navigator.of(dialogContext).pop();
-                    await _storeReportInCloud(techPdf, photoPdf);
-                  },
-                ),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.folder_zip),
-                  title: const Text('Download ZIP (labeled photos)'),
-                  subtitle: const Text(
-                    'Creates a ZIP with labeled photos (excludes gallery images).',
-                  ),
-                  onTap: () async {
-                    Navigator.of(dialogContext).pop();
-                    final messenger = ScaffoldMessenger.of(context);
-                    try {
-                      final zip = await _generateLabeledPhotosZip();
-                      if (!mounted) return;
-                      await Share.shareXFiles([XFile(zip.path)], 
-                          text: 'Inspection Photos ZIP');
-                    } catch (e) {
-                      if (!mounted) return;
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text('Error creating ZIP: $e'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  },
-                ),
-              ] else
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: TextButton(
-                    onPressed: () {
-                      StripeService.launchCheckout('premium');
-                    },
-                    child: Text(
-                      'Upgrade to Premium to enable cloud storage, additional recipients and downloadable ZIP with labeled photos',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.secondary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-        actions: <Widget>[
-          TextButton(
-            child: const Text('Cancel'),
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-            },
-          ),
-        ],
-      );
-    },
+    techPdf: techPdf,
+    photoPdf: photoPdf,
+    plan: widget.plan,
+    onSendToHf: _confirmRushAndSendToHfByEmail,
+    onSendToMyEmail: _sendReportViaEmail,
+    onSendToCustomEmail: _sendReportToCustomEmail,
+    onStoreInCloud: _storeReportInCloud,
+    onGenerateLabeledZip: _generateLabeledPhotosZip,
   );
 }
+
 
   final _picker = ImagePicker();
 
@@ -567,7 +462,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
           //--Helper price calculation function
         double _calculateHfEmailPrice({required bool rushOrder}) {
     
-                          const double basePrice = 70.0;        // precio base por roof estimate
+                          const double basePrice = 100;        // precio base por commercial roof estimate
                          // const double shedAddon = 10.0;        // extra si hay shed
                           //const double structureAddon = 15.0;   // extra si hay estructura grande
                           const double rushFee = 25.0;          // rush order
@@ -1044,6 +939,39 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
               border: OutlineInputBorder(),
             ),
             onChanged: (_) => _sync(),
+          ),
+                    const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                final images = await _picker.pickMultiImage(
+                  maxWidth: 1024,
+                  imageQuality: 80,
+                );
+
+                if (images.isEmpty) return;
+
+                for (final x in images) {
+                  widget.report.addPhoto(
+                    File(x.path),
+                    buildCommercialPhotoLabel(
+                      building: buildingName,
+                      roof: roofName,
+                      label: 'User Image',
+                    ),
+                  );
+                }
+
+                if (!mounted) return;
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Photos added')),
+                );
+              },
+              icon: const Icon(Icons.add_photo_alternate),
+              label: const Text('Add Images from Gallery'),
+            ),
           ),
           const SizedBox(height: 16),
           SizedBox(
