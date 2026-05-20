@@ -462,7 +462,6 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
     'techPdfUrl': techUrl,
     'photoPdfUrl': photoUrl,
     'rushOrder': rushOrder,
-    'isCommercial': widget.isCommercial,
     'hasShed': hasShed,
     'hasDetachedStructure': hasDetachedStructure,
     'plan': widget.plan, // 'basic' / 'premium'
@@ -486,7 +485,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
             throw Exception("Stripe Checkout could not be opened.");
           }
                } catch (e) {
-      debugPrint('HF Xactimate failed: $e');
+      debugPrint('Send to HF failed: $e');
       if (mounted) {
         messenger.showSnackBar(
           SnackBar(
