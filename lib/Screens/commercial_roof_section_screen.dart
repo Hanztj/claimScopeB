@@ -47,7 +47,7 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
 
   // Función que muestra las opciones de envío para reportes comerciales
 Future<void> _showSubmissionOptions(File techPdf, File photoPdf) async {
-  showDialog(
+   await showDialog<void>(
     context: context,
     builder: (BuildContext dialogContext) {
       return AlertDialog(
@@ -651,7 +651,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
         'rushOrder': rushOrder,
         'isCommercial': true,
         // Comercial: usar roofSections y additionalBuildings en lugar de hasShed/hasDetachedStructure
-        'roofSectionsCount': widget.report.commercialBuildings.fold(0, (sum, b) => sum + b.roofs.length),
+        'roofSectionsCount': widget.report.commercialBuildings.fold(0, (bldgSectsum, b) => bldgSectsum + b.roofs.length),
         'additionalBuildingsCount': widget.report.commercialBuildings.length - 1,
         'plan': widget.plan,
         'userEmail': FirebaseAuth.instance.currentUser?.email,
@@ -1129,6 +1129,16 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
                       );
                       return;
                     }
+                      if (roof.roofType == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                      content: Text('Select the type of roof covering.'),
+                      backgroundColor: Colors.red,
+                      ),
+                       );
+                        return;
+                       }
+
                     if (roof.roofSubType == 'Other' &&
                         (_roofSubTypeOtherController.text.trim().isEmpty)) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -1398,29 +1408,43 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
   }
   // === FUNCIÓN PARA ENVIAR REPORTE COMERCIAL ===
   Future<void> _submitCommercialReport() async {
+    
+              if (roof.roofType == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Select the type of roof covering.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+    
     try {
       widget.report.isCommercial = true;
       roof.reportType = 'commercial';
-
+           // 2. MOSTRAR LOADING (Solo si las validaciones pasaron)
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (context) => const Center(child: CircularProgressIndicator()),
       );
-
       // Generar PDFs
       final pdfs = await PdfService.generateReports(widget.report);
-
-      if (!mounted) return;
-      Navigator.pop(context); // Cerrar loading
-
-      // Usar la versión local de _showSubmissionOptions (la que ya tienes en este archivo)
-      // Mostrar opciones de envío con los PDFs generados
-       _showSubmissionOptions(pdfs['technical']!, pdfs['photographic']!);
+        // 4. VALIDAR INTEGRIDAD DE LOS PDFs GENERADOS
+               if (!pdfs.containsKey('tech') || !pdfs.containsKey('photos')) {
+        throw Exception('PDF generation did not return the expected reports.');
+         }
+          // 5. CERRAR LOADING DE FORMA SEGURA
+          if (!mounted) return;
+           Navigator.pop(context); // Cerrar loading
+      // 6. MOSTRAR OPCIONES DE ENVÍO (Una sola vez con su respectivo await si aplica)
+        await _showSubmissionOptions(pdfs['tech']!, pdfs['photos']!);
 
        } catch (e) {
       if (!mounted) return;
-      Navigator.pop(context);
+      // Un truco seguro para cerrar el diálogo en el catch sin remover pantallas de atrás
+       Navigator.of(context).popUntil((route) => route.isCurrent);
+       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error generando PDFs: $e'),
@@ -1430,4 +1454,3 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
     }
   }
 }
-  
