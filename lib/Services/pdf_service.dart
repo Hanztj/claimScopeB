@@ -4,14 +4,17 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:claimscope_clean/inspection_report_model.dart';
 
+
 class PdfService {
+
   static Future<Map<String, File>> generateReports(InspectionReport report) async {
     final pdfTech = pw.Document();
     final pdfPhotos = pw.Document();
       // Determinar si es comercial
   final isCommercial = report.isCommercial == true || report.commercialBuildings.isNotEmpty;
+  
   if(isCommercial){
-
+          
         // --- PDF TÉCNICO COMERCIAL ---
         pdfTech.addPage(
         pw.MultiPage(
@@ -37,7 +40,7 @@ class PdfService {
           _buildDataRow("Cause of Loss", report.causeOfLoss),
           pw.SizedBox(height: 10),
 
-          // SECCIÓN 2: INSPECTOR (mismo que residential)
+           // SECCIÓN 2: INSPECTOR (mismo que residential)
           _buildSectionTitle("INSPECTOR INFORMATION"),
           _buildDataRow("Inspector Company", report.inspectorCompany),
           _buildDataRow("Inspector Name", report.inspectorName),
@@ -45,17 +48,20 @@ class PdfService {
           _buildDataRow("Email", report.inspectorEmail),
           _buildDataRow("Date Inspected", report.dateInspected),
           pw.SizedBox(height: 10),
-
+ 
           // SECCIÓN 3: SCOPE (mismo que residential)
           _buildSectionTitle("INSPECTION SCOPE"),
           _buildDataRow("Roof estimate", report.inspectRoof ? "Yes" : "No"),
           _buildDataRow("Elevations", report.inspectElevations ? "Yes" : "No"),
            pw.SizedBox(height: 10),
 
-          // SECCIÓN 4: BUILDINGS & ROOFS (comercial)
+                     // SECCIÓN 4: BUILDINGS & ROOFS (comercial)
           _buildSectionTitle("BUILDINGS & ROOF SECTIONS"),
-              // Listar cada edificio
-          ...List.generate(report.commercialBuildings.length, (i) {
+          _buildDataRow("Occupancy Type", "Commercial"),
+           pw.SizedBox(height: 5),   
+          
+           // Listar cada edificio
+           ...List.generate(report.commercialBuildings.length, (i) {
            final building = report.commercialBuildings[i];
            return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -81,13 +87,12 @@ class PdfService {
             ],
            );
           }),
-               ],
-        ),
+        ],
+        ),  
         );
-
-              // --- PDF DE FOTOS COMERCIAL ---
+                          // --- PDF DE FOTOS COMERCIAL ---
 // Recolectar todas las fotos comerciales
-final List<PhotoItem> commercialPhotos = [];
+    final List<PhotoItem> commercialPhotos = [];
 
 for (var building in report.commercialBuildings) {
   for (var roof in building.roofs) {
@@ -138,7 +143,6 @@ for (var vent in roof.tpoVents) {
   }
 }
 
-// === FALTABA ESTE CÓDIGO ===
 for (var i = 0; i < commercialPhotos.length; i += 2) {
   pdfPhotos.addPage(
     pw.Page(
@@ -154,8 +158,9 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
     ),
   );
 }
-// === FIN DEL CÓDIGO AGREGADO ===
-  } else {
+            
+  } 
+  else {
        // --- PDF TÉCNICO: ORDENADO Residential---
         pdfTech.addPage(
        pw.MultiPage(
@@ -198,7 +203,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
 
                     // SECCIÓN 4: ROOF DETAILS
    _buildSectionTitle("ROOF SYSTEM DETAILS"),
-   _buildDataRow("Occupancy Type", report.isResidential ? "Residential" : "Commercial"),
+   _buildDataRow("Occupancy Type", "Residential"),
    _buildDataRow("Roof Cover Type", report.roofCoverType ?? "N/A"),
    _buildDataRow("Subtype", report.roofSubType ?? "N/A"),
 
