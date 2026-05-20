@@ -1,12 +1,9 @@
 import 'dart:io';
-import 'dart:convert';
-import 'package:http/http.dart' as http; 
 import 'package:path_provider/path_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -18,12 +15,10 @@ import 'commercial/hubs/commercial_metal_hub.dart';
 import 'commercial/hubs/commercial_shingles_hub.dart';
 import 'commercial_building_details_screen.dart';
 import 'package:claimscope_clean/Services/pdf_service.dart';
-//import 'package:share_plus/share_plus.dart';
-//import 'package:claimscope_clean/Services/stripe_service.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:claimscope_clean/Services/email_service.dart';
 import '../utils/labeled_photos_zip.dart';
 import '../Screens/widgets/submission_options_dialog.dart';  
-
 
 class CommercialRoofSectionScreen extends StatefulWidget {
   final String plan;
@@ -43,6 +38,12 @@ class CommercialRoofSectionScreen extends StatefulWidget {
   State<CommercialRoofSectionScreen> createState() => _CommercialRoofSectionScreenState();
 }
 
+class BuildingPricing {
+  /// Roof sections con cubierta DISTINTA a la principal de ESTE edificio.
+  final int extraRoofSections;
+  const BuildingPricing({required this.extraRoofSections});
+}
+
 class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScreen> {
   late final CommercialRoofSectionData roof;
 
@@ -59,7 +60,6 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
     onGenerateLabeledZip: _generateLabeledPhotosZip,
   );
 }
-
 
   final _picker = ImagePicker();
 
@@ -86,9 +86,9 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
       return StatefulBuilder(
         builder: (context, setState) {
           return AlertDialog(
-            title: const Text('Rush Order? (+\$15)'),
+            title: const Text('Rush Order? (+\$25)'),
             content: CheckboxListTile(
-              title: const Text('Is this a rush order? (+\$15)'),
+              title: const Text('Is this a rush order? (+\$25)'),
               value: rush,
               onChanged: (val) {
                 setState(() {
@@ -312,7 +312,6 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
     },
   );
 }
-
  
                             Future<void> _sendReportViaEmail(File techPdf, File photoPdf, {String? extraEmail}) async {
                             // Aquí se llamara un servicio backend
@@ -358,133 +357,89 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
                              );
                               }
                              }
+                               // Solo Premium: enviar a otros correos (sin cobro HF)
+   void _sendReportToCustomEmail(File techPdf, File photoPdf) {
+   final extraEmailController = TextEditingController();
 
-                            Future<void> _sendReportToCustomEmail(File techPdf, File photoPdf) async {
-  final TextEditingController emailController = TextEditingController();
-  
-  showDialog(
+   showDialog(
     context: context,
-    builder: (BuildContext dialogContext) {
-      return AlertDialog(
-        title: const Text('Send to Custom Email'),
-        content: TextField(
-          controller: emailController,
-          decoration: const InputDecoration(
-            hintText: 'recipient@example.com',
-            labelText: 'Email Address',
-            border: OutlineInputBorder(),
-          ),
-          keyboardType: TextInputType.emailAddress,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Send to another email'),
+      content: TextField(
+        controller: extraEmailController,
+        keyboardType: TextInputType.emailAddress,
+        decoration: const InputDecoration(
+          labelText: 'Recipient email',
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final email = emailController.text.trim();
-              if (email.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please enter an email address'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
-              
-              Navigator.of(dialogContext).pop();
-              
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => const Center(
-                  child: CircularProgressIndicator(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () async {
+            final extraEmail = extraEmailController.text.trim();
+            Navigator.pop(ctx);
+            if (!_isProbablyValidEmail(extraEmail)) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Please enter a valid email.'),
+                  backgroundColor: Colors.red,
                 ),
               );
-              
-              try {
-                final user = FirebaseAuth.instance.currentUser;
-                final idToken = await user?.getIdToken();
-                
-                final response = await http.post(
-                  Uri.parse('https://us-central1-claimscope.cloudfunctions.net/sendReportEmail'),
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer $idToken',
-                  },
-                  body: jsonEncode({
-                    'toEmail': email,
-                    'techPdfBase64': base64Encode(techPdf.readAsBytesSync()),
-                    'photoPdfBase64': base64Encode(photoPdf.readAsBytesSync()),
-                    'reportId': widget.report.claimNumber.isEmpty 
-                        ? DateTime.now().millisecondsSinceEpoch.toString() 
-                        : widget.report.claimNumber,
-                    'propertyAddress': '${widget.report.address}, ${widget.report.city}, ${widget.report.state} ${widget.report.zip}',
-                  }),
-                );
-                
-                if (!mounted) return;
-                Navigator.pop(context);
-                
-                if (response.statusCode == 200) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Report sent successfully to custom email'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                } else {
-                  throw Exception('Failed to send email');
-                }
-              } catch (e) {
-                if (!mounted) return;
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error sending to custom email: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            child: const Text('Send'),
-          ),
-        ],
-      );
-    },
-  );
-}
-
+              return;
+            }
+            await _sendReportViaEmail(techPdf, photoPdf, extraEmail: extraEmail);
+          },
+          child: const Text('Send'),
+        ),
+      ],
+    ),
+    );
+         }
+  
        // Solo Premium: almacenar + email (sin cobro HF)
         // HF Estimates por email (Basic & Premium) – aquí sí habrá cobro HF
           //--Helper price calculation function
-        double _calculateHfEmailPrice({required bool rushOrder}) {
-    
-                          const double basePrice = 100;        // precio base por commercial roof estimate
-                         // const double shedAddon = 10.0;        // extra si hay shed
-                          //const double structureAddon = 15.0;   // extra si hay estructura grande
-                          const double rushFee = 25.0;          // rush order
-                          //const double commercialExtra = 20.0;  // extra para comercial
-  
-                                double total = basePrice;
-  
-                               // if (hasShed) {total += shedAddon;
-                               // }
-                                //if (hasDetachedStructure) {total += structureAddon;
-                               // }
-                                //if (widget.isCommercial) {total += commercialExtra;
-                                //}
-                                if (rushOrder) {total += rushFee;
-                                }
-  
-                          // Descuento 10% para el plan básico, 15% para el premium (aplicado al total después de sumar addons y rush)
-                            if (widget.plan == 'basic') total *= 0.90;   // 10%
-                            if (widget.plan == 'premium') total *= 0.85; // 15% total
-  
-                              return total;
-                              }
+       double? _calculateHfEmailPrice({
+  required bool rushOrder,
+  required List<BuildingPricing> buildings,
+}) {
+  const double basePrice        = 100.0; // UNA sola vez
+  const double rushOrderFee     = 25.0;
+  const double perSectionFee    = 30.0;  // por sección extra (por edificio)
+  const double sectionsCapFee   = 120.0; // 4+ secciones extra en un edificio (fijo)
+  const double perBuildingAddon = 50.0;  // por edificio adicional (2do, 3ro)
+  const int    buildingsLimit   = 4;     // 4+ edificios → web
+
+  final int buildingsCount = buildings.length;
+  if (buildingsCount == 0) return null;
+  if (buildingsCount >= buildingsLimit) return null; // redirigir a HF web
+
+  double total = basePrice;
+
+  // Secciones de cubierta distinta, por edificio (cap 4+ por edificio = $120)
+  for (final b in buildings) {
+    if (b.extraRoofSections >= 4) {
+      total += sectionsCapFee;
+    } else if (b.extraRoofSections > 0) {
+      total += b.extraRoofSections * perSectionFee;
+    }
+  }
+
+  // Edificios adicionales (a partir del 2do, hasta 3 adicionales)
+  if (buildingsCount > 1) {
+    total += (buildingsCount - 1) * perBuildingAddon;
+  }
+
+  if (rushOrder) total += rushOrderFee;
+
+  if (widget.plan == 'basic')   total *= 0.90;
+  if (widget.plan == 'premium') total *= 0.85;
+
+  return total;
+}
 
    Future<void> _sendToHfByEmail(File techPdf, File photoPdf,
         {required bool rushOrder}) async{  
@@ -497,7 +452,14 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
   }
 
              final messenger = ScaffoldMessenger.of(context);
-             final total = _calculateHfEmailPrice(rushOrder: rushOrder);
+             final total = _calculateHfEmailPrice(
+  rushOrder: rushOrder,
+  buildings: widget.report.commercialBuildings.map((b) => 
+    BuildingPricing(
+      extraRoofSections: b.roofs.length,
+    )
+  ).toList(),
+);
             
   showDialog(
   context: context,
@@ -513,12 +475,14 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
   ),
 );
         try{    
-  messenger.showSnackBar(
-    SnackBar(content: Text('Preparing HF order... Total: \$${total.toStringAsFixed(2)}',
-      ),
-      duration: const Duration(seconds: 3),
+ messenger.showSnackBar(
+  SnackBar(
+    content: Text(
+      'Preparing HF order... Total: \$${total?.toStringAsFixed(2) ?? 'N/A'}',
     ),
-  );
+    duration: const Duration(seconds: 3),
+  ),
+);
   
        //Upload PDFs to cloud storage and get URLs (placeholder logic, implement with Firebase Storage or similar)
   final storage =  FirebaseStorage.instance;
@@ -532,15 +496,9 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
   final photoUrl = await photoUploadTask.ref.getDownloadURL();
 
     // Llamar a backend para crear orden en HF Estimates (puede ser una Cloud Function que luego llama a la API de Xactimate)
-     final idToken = await FirebaseAuth.instance.currentUser!.getIdToken();
-    
-    final response = await http.post(
-      Uri.parse('https://us-central1-claimscope.cloudfunctions.net/createHfEstimatesCheckoutSession'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $idToken',
-      },
-      body: jsonEncode({
+  final callable = FirebaseFunctions.instance.httpsCallable('createHfEstimatesCheckoutSession');
+
+       final result = await callable.call({
         'techPdfUrl': techUrl,
         'photoPdfUrl': photoUrl,
         'rushOrder': rushOrder,
@@ -556,15 +514,12 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
         'dateInspected': widget.report.dateInspected,
         'successUrl': 'claimscope://success',
         'cancelUrl': 'claimscope://cancel',
-      }),
-    );
+      });
     
-    final result = jsonDecode(response.body);
-    final sessionUrl = result['url'] as String?;
-    
-    if (sessionUrl == null) {
-      throw Exception("The function did not return the Stripe URL.");
-    }
+     final sessionUrl = result.data['url'] as String?;
+     if (sessionUrl == null) {
+    throw Exception("The function did not return the Stripe URL.");
+  }
 
   // Abrir la URL de Stripe Checkout
         final url = Uri.parse(sessionUrl);
@@ -587,7 +542,6 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
     } finally {if (mounted) Navigator.of(context, rootNavigator: true).pop();
    }
         }
-
 
   @override
   void initState() {
