@@ -4,7 +4,6 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:claimscope_clean/inspection_report_model.dart';
 
-
 class PdfService {
 
   static Future<Map<String, File>> generateReports(InspectionReport report) async {
@@ -319,7 +318,6 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
     ],
    ),
    pw.SizedBox(height: 10),
-
 
    // NUEVO: DETALLES POR FACET
    _buildSectionTitle("FACET DETAILS"),
