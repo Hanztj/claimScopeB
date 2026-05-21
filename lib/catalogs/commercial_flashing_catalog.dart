@@ -24,6 +24,8 @@ const List<String> tpoFlashingTypes = [
   'Parapet Wall',
   'Curb flashing',
   'Cap flashing',
+  'Metal Z Flashing',
+  'Metal Z flashing / drip cap',
   'Skylight flashing kit (dome)',
   'Skylight step flashing kit',
   'Other',
@@ -34,8 +36,8 @@ const List<String> skylightGrades = ['Average', 'High Grade'];
 
 const Map<String, CommercialFlashingFieldConfig> tpoFlashingConfigByType = {
   'Parapet Wall': CommercialFlashingFieldConfig(
-    options: ['Up to 3\'', '3\' up to 6\''],
-    showFullPerimeter: true,
+   options: ['Up to 3\'', '3\' up to 6\''],
+   showFullPerimeter: true,
   ),
   'Curb flashing': CommercialFlashingFieldConfig(
     showLfCount: true,
@@ -44,6 +46,12 @@ const Map<String, CommercialFlashingFieldConfig> tpoFlashingConfigByType = {
     options: ['Average', 'Large'],
     materialOptions: capFlashingMaterials,
     showFullPerimeter: true,
+  ),
+  'Metal Z Flashing': CommercialFlashingFieldConfig(
+    showLfCount: true,
+  ),
+  'Metal Z flashing / drip cap': CommercialFlashingFieldConfig(
+    showLfCount: true,
   ),
   'Skylight flashing kit (dome)': CommercialFlashingFieldConfig(
     options: ['Average', 'Large'],
