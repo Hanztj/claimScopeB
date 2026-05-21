@@ -41,6 +41,11 @@ class CommercialFlatHubForm extends StatelessWidget {
     required this.takeCommercialPhoto,
   });
 
+      bool get _supportsFlatAccessories =>
+      roof.roofType == 'TPO' ||
+      roof.roofType == 'EPDM' ||
+      roof.roofType == 'Modified Bitumen';
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -408,7 +413,8 @@ class CommercialFlatHubForm extends StatelessWidget {
             ),
           ],
         ],
-        if (roof.roofType == 'TPO') ...[
+
+         if (_supportsFlatAccessories) ...[
           const SizedBox(height: 16),
           CommercialTpoFlashings(
             flashings: roof.tpoFlashings,
@@ -417,7 +423,7 @@ class CommercialFlatHubForm extends StatelessWidget {
             buildingName: buildingName,
             roofName: roofName,
           ),
-          const SizedBox(height: 16),
+                  const SizedBox(height: 16),
           CommercialTpoVents(
             vents: roof.tpoVents,
             onChanged: sync,
@@ -425,7 +431,8 @@ class CommercialFlatHubForm extends StatelessWidget {
             buildingName: buildingName,
             roofName: roofName,
           ),
-          const SizedBox(height: 16),
+                    const SizedBox(height: 16),
+
           CommercialHvacMechanicalRooftop(
             hvacItems: roof.hvacUnits,
             mechanicalItems: roof.mechanicalUnits,
