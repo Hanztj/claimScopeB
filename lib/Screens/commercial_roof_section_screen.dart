@@ -1,10 +1,8 @@
 import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../catalogs/roof_catalog.dart';
@@ -18,7 +16,10 @@ import 'package:claimscope_clean/Services/pdf_service.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:claimscope_clean/Services/email_service.dart';
 import '../utils/labeled_photos_zip.dart';
-import '../Screens/widgets/submission_options_dialog.dart';  
+import '../Screens/widgets/submission_options_dialog.dart'; 
+import 'package:share_plus/share_plus.dart';
+import 'package:claimscope_clean/Services/stripe_service.dart';
+import '../catalogs/flashing_catalog.dart'; 
 
 class CommercialRoofSectionScreen extends StatefulWidget {
   final String plan;
@@ -47,7 +48,7 @@ class BuildingPricing {
 class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScreen> {
   late final CommercialRoofSectionData roof;
 
-  Future<void> _showSubmissionOptions(File techPdf, File photoPdf) {
+Future<void> _showSubmissionOptions(File techPdf, File photoPdf) {
   return showSubmissionOptions(
     context: context,
     techPdf: techPdf,
@@ -57,7 +58,7 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
     onSendToMyEmail: _sendReportViaEmail,
     onSendToCustomEmail: _sendReportToCustomEmail,
     onStoreInCloud: _storeReportInCloud,
-    onGenerateLabeledZip: _generateLabeledPhotosZip,
+    onGenerateLabeledZip: () => generateLabeledPhotosZip(widget.report),
   );
 }
 
@@ -132,63 +133,6 @@ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScree
   if (dot == email.length - 1) return false; // no termina con .
 
   return true;
-}
-
-// here was te fucntions _sanitizedPhotoBaseName and _generateLabeledPhotosZip, moved to utils/labeled_photos_zip.dart
-String _sanitizeFilename(String input) {
-  var s = input.trim();
-  if (s.isEmpty) return 'UNKNOWN';
-  s = s.replaceAll(RegExp(r'[\/\\\:\*\?\"\<\>\|]'), '');
-  s = s.replaceAll(RegExp(r'\s+'), ' ').trim();
-  return s.isEmpty ? 'UNKNOWN' : s;
-}
-void main() {
-  // Test cases
-  final testCases = {
-    'test@example.com': true,
-    'user.name@domain.co': true,
-    'plainaddress': false,
-    '@missinguser.com': false,
-    'user@': false,
-    'user@domain': false,
-    'user@domain.': false,
-    'user name@domain.com': false,
-    '': false,
-  };
-
-    testCases.forEach((email, expected) {
-    final result = _isProbablyValidEmail(email);
-    assert(result == expected, 'Expected $_isProbablyValidEmail("$email") to be $expected but got $result');
-  });
-}
-
-Future<File> _generateLabeledPhotosZip() async {
-  // Excluir imágenes de galería (se agregan como label 'User Image')
-  final items = widget.report.photoReportItems.where((p) {
-    return p.label.trim() != 'User Image';
-  }).toList();
-
-  final archive = buildLabeledPhotosArchive(items);
-  final zipBytes = encodeZipBytes(archive);
-
-  final claim = widget.report.claimNumber.trim().isEmpty
-      ? 'NOCLAIM'
-      : _sanitizeFilename(widget.report.claimNumber);
-
-  final insured = widget.report.clientName.trim().isEmpty
-      ? 'UNKNOWN'
-      : _sanitizeFilename(widget.report.clientName);
-
-  final dir = await getApplicationDocumentsDirectory();
-  final filename = '$claim - $insured - Inspection Photos (ZIP).zip';
-
-  final zipFile = await writeZipToFile(
-    zipBytes: zipBytes,
-    outputDir: dir,
-    filename: filename,
-  );
-
-  return zipFile;
 }
 
 // Solo Premium+Extra : preguntar si quiere almacenar en la nube (sin cobro HF)
@@ -593,6 +537,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
       source: ImageSource.camera,
       maxWidth: 1024,
       imageQuality: 80,
+      preferredCameraDevice: CameraDevice.rear,
     );
 
     if (picked == null) return;
@@ -766,6 +711,16 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
                 roof.hasRidgeVent = false;
                 roof.ridgeVentType = null;
                 roof.ridgeVentPhoto = null;
+                roof.hasValleyMetal = false;
+                roof.valleyMetalType = null;
+                roof.valleyMetalPhoto = null;
+                roof.shingleFlashings.clear();
+                roof.hasVents = false;
+                roof.shingleVents.clear();
+                roof.hasHvacEquipment = false;
+                roof.hasMechanicalEquipment = false;
+                roof.hvacUnits.clear();
+                roof.mechanicalUnits.clear();
 
                 roof.coreSamplePerformed = false;
                 roof.coreSamplePhoto = null;
@@ -1109,7 +1064,146 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
                             backgroundColor: Colors.red,
                           ),
                         );
+                         return;
+                      }
+                    }
+
+                    if (roof.roofType == 'Shingles') {
+                      if (roof.hasValleyMetal &&
+                          (roof.valleyMetalType == null ||
+                              roof.valleyMetalType!.isEmpty)) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please select the valley metal type.'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
                         return;
+                      }
+
+                      for (var i = 0; i < roof.shingleFlashings.length; i++) {
+                        final flashing = roof.shingleFlashings[i];
+                        if (flashing.type.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Select the flashing type for Flashing ${i + 1}.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                        if (flashing.type == 'Other' &&
+                            (flashing.otherSpecify == null ||
+                                flashing.otherSpecify!.trim().isEmpty)) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Specify the flashing type for Flashing ${i + 1}.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                        for (final field in flashingFieldsForResidentialType(flashing.type)) {
+                          final value = switch (field.key) {
+                            'material' => flashing.material,
+                            'size' => flashing.size,
+                            'finish' => flashing.finish,
+                            'grade' => flashing.grade,
+                            _ => null,
+                          };
+                          if (value == null || value.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Select ${field.label} for Flashing ${i + 1}.'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+                        }
+                        if (flashing.photo == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Take the main photo for Flashing ${i + 1}.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                      }
+
+                      if (roof.hasVents && roof.shingleVents.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Add at least one vent or uncheck Has Vents.'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+                      for (var i = 0; i < roof.shingleVents.length; i++) {
+                        final vent = roof.shingleVents[i];
+                        if (vent.type.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Select the vent type for Vent ${i + 1}.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                        if (vent.type == 'Other' &&
+                            (vent.otherSpecify == null ||
+                                vent.otherSpecify!.trim().isEmpty)) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Specify the vent type for Vent ${i + 1}.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                        if (vent.photo == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Take the main photo for Vent ${i + 1}.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                      }
+
+                      if (roof.hasHvacEquipment && roof.hvacUnits.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Add at least one HVAC item or uncheck HVAC equipment.'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+
+                      if (roof.hasMechanicalEquipment && roof.mechanicalUnits.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Add at least one mechanical equipment item or uncheck Mechanical Equipment.'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+
+                      for (var i = 0; i < roof.hvacUnits.length; i++) {
+                        if (roof.hvacUnits[i].photo == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Take the main photo for HVAC ${i + 1}.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
                       }
                     }
 
@@ -1225,6 +1319,11 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
                         r.hasRidgeVent = roof.hasRidgeVent;
                         r.ridgeVentType = roof.ridgeVentType;
                         r.ridgeVentPhoto = roof.ridgeVentPhoto;
+                        r.hasValleyMetal = roof.hasValleyMetal;
+                        r.valleyMetalType = roof.valleyMetalType;
+                        r.hasVents = roof.hasVents;
+                        r.hasHvacEquipment = roof.hasHvacEquipment;
+                        r.hasMechanicalEquipment = roof.hasMechanicalEquipment;
 
                         r.facetsGenerated = true;
                         r.facetGroupTotal = total;
