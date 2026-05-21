@@ -2,7 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../../../catalogs/flashing_catalog.dart';
+import '../../../catalogs/roof_components_catalog.dart';
 import '../../../inspection_report_model.dart';
+import '../components/commercial_hvac_mechanical_rooftop.dart';
 
 class CommercialShinglesHubForm extends StatelessWidget {
   final CommercialRoofSectionData roof;
@@ -35,8 +38,63 @@ class CommercialShinglesHubForm extends StatelessWidget {
     required this.deckPartialSqftController,
     required this.setState,
     required this.sync,
-    required this.takeCommercialPhoto,
+   required this.takeCommercialPhoto,
   });
+
+  static const List<String> _valleyMetalTypes = [
+    'Valley metal Standard',
+    'Valley metal W profile',
+    'Valley metal W profile painted',
+    'Valley metal copper',
+    'Valley metal painted',
+  ];
+
+  String? _dropdownValue(String? value, List<String> options) {
+    if (value == null || value.isEmpty || !options.contains(value)) {
+      return null;
+    }
+    return value;
+  }
+
+  String? _flashingFieldValue(FlashingData flashing, String key) {
+    switch (key) {
+      case 'material':
+        return flashing.material;
+      case 'size':
+        return flashing.size;
+      case 'finish':
+        return flashing.finish;
+      case 'grade':
+        return flashing.grade;
+      default:
+        return null;
+    }
+  }
+
+  void _setFlashingField(FlashingData flashing, String key, String? value) {
+    switch (key) {
+      case 'material':
+        flashing.material = value;
+        break;
+      case 'size':
+        flashing.size = value;
+        break;
+      case 'finish':
+        flashing.finish = value;
+        break;
+      case 'grade':
+        flashing.grade = value;
+        break;
+    }
+  }
+
+  void _resetFlashingDetails(FlashingData flashing) {
+    flashing.material = null;
+    flashing.size = null;
+    flashing.finish = null;
+    flashing.grade = null;
+    flashing.otherSpecify = null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -338,9 +396,65 @@ class CommercialShinglesHubForm extends StatelessWidget {
             ),
             child: const Text('Add extra Ridge Vent photo'),
           ),
-          if (roof.ridgeVentPhoto != null) ...[
+            if (roof.ridgeVentPhoto != null) ...[
             const SizedBox(height: 8),
             Image.file(roof.ridgeVentPhoto!, height: 140, fit: BoxFit.cover),
+          ],
+        ],
+
+        const SizedBox(height: 12),
+                CheckboxListTile(
+          title: const Text('Has Valley?'),
+          value: roof.hasValleyMetal,
+          onChanged: (val) {
+            setState(() {
+              roof.hasValleyMetal = val ?? false;
+              if (!roof.hasValleyMetal) {
+                roof.valleyMetalType = null;
+                roof.valleyMetalPhoto = null;
+              }
+            });
+          },
+        ),
+        if (roof.hasValleyMetal) ...[
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: _dropdownValue(roof.valleyMetalType, _valleyMetalTypes),
+            decoration: const InputDecoration(
+              labelText: 'Valley Metal Type',
+              border: OutlineInputBorder(),
+            ),
+            items: _valleyMetalTypes
+                .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                .toList(),
+            onChanged: (val) {
+              setState(() {
+                roof.valleyMetalType = val;
+              });
+            },
+          ),
+          const SizedBox(height: 8),
+          ElevatedButton(
+            onPressed: () => takeCommercialPhoto(
+              buildingName: buildingName,
+              roofName: roofName,
+              photoLabel: 'Valley Metal Photo',
+              onSaved: (f) => roof.valleyMetalPhoto = f,
+            ),
+            child: const Text('Take Valley Metal Photo'),
+          ),
+          TextButton(
+            onPressed: () => takeCommercialPhoto(
+              buildingName: buildingName,
+              roofName: roofName,
+              photoLabel: 'Valley Metal extra photo',
+              onSaved: (_) {},
+            ),
+            child: const Text('Add extra Valley Metal photo'),
+          ),
+          if (roof.valleyMetalPhoto != null) ...[
+            const SizedBox(height: 8),
+            Image.file(roof.valleyMetalPhoto!, height: 140, fit: BoxFit.cover),
           ],
         ],
 
@@ -435,8 +549,379 @@ class CommercialShinglesHubForm extends StatelessWidget {
           ),
           onChanged: (_) => sync(),
         ),
+
+        const SizedBox(height: 20),
+        const Text(
+          'Flashings on Roof Section',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+        const Divider(),
+        ...roof.shingleFlashings.asMap().entries.map((entry) {
+          final idx = entry.key;
+          final flashing = entry.value;
+          final fieldConfigs = flashingFieldsForResidentialType(flashing.type);
+
+          return Card(
+            margin: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Flashing ${idx + 1}',
+                                           style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () {
+                          setState(() {
+                            roof.shingleFlashings.removeAt(idx);
+                            sync();
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  DropdownButtonFormField<String>(
+                    initialValue: _dropdownValue(
+                      flashing.type,
+                      flashingTypesShingles,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Flashing Type',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: flashingTypesShingles
+                        .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                        .toList(),
+                    onChanged: (val) {
+                      setState(() {
+                        flashing.type = val ?? '';
+                        _resetFlashingDetails(flashing);
+                        sync();
+                      });
+                    },
+                  ),
+                  if (flashing.type == 'Other') ...[
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      initialValue: flashing.otherSpecify,
+                      decoration: const InputDecoration(
+                        labelText: 'Specify Other Flashing',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (val) {
+                        flashing.otherSpecify =
+                            val.trim().isEmpty ? null : val.trim();
+                        sync();
+                      },
+                    ),
+                  ],
+                  ...fieldConfigs.map((field) {
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _dropdownValue(
+                          _flashingFieldValue(flashing, field.key),
+                          field.options,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: field.label,
+                          border: const OutlineInputBorder(),
+                        ),
+                        items: field.options
+                            .map((o) => DropdownMenuItem(value: o, child: Text(o)))
+                            .toList(),
+                        onChanged: (val) {
+                          setState(() {
+                            _setFlashingField(flashing, field.key, val);
+                            sync();
+                          });
+                        },
+                      ),
+                    );
+                  }),
+                
+                    ElevatedButton(
+                    onPressed: () => takeCommercialPhoto(
+                      buildingName: buildingName,
+                      roofName: roofName,
+                      photoLabel: 'Flashing Photo ${idx + 1}',
+                      onSaved: (f) => flashing.photo = f,
+                    ),
+                    child: const Text('Take Flashing Photo'),
+                  ),
+                  TextButton(
+                    onPressed: () => takeCommercialPhoto(
+                      buildingName: buildingName,
+                      roofName: roofName,
+                      photoLabel: 'Flashing extra photo',
+                      onSaved: (f) => flashing.extraPhotos.add(f),
+                    ),
+                    child: const Text('Add extra Flashing photo'),
+                  ),
+                  if (flashing.photo != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: Image.file(flashing.photo!, height: 100),
+                    ),
+                ],
+              ),
+            ),
+          );
+        }),
+        ElevatedButton(
+          onPressed: () {
+            setState(() {
+              roof.shingleFlashings.add(FlashingData(type: ''));
+              sync();
+            });
+          },
+          child: const Text('Add Flashing'),
+        ),
+
+        const SizedBox(height: 20),
+        CheckboxListTile(
+           title: const Text('Has Vents (Is there vent installed)?'),
+          value: roof.hasVents,
+          onChanged: (val) {
+            setState(() {
+              roof.hasVents = val ?? false;
+              if (!roof.hasVents) {
+                roof.shingleVents.clear();
+              }
+              sync();
+            });
+          },
+        ),
+        if (roof.hasVents) ...[
+          const Text(
+            'Vents on Roof Section',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+          const Divider(),
+          ...roof.shingleVents.asMap().entries.map((entry) {
+            final ventIndex = entry.key;
+            final vent = entry.value;
+
+            return Card(
+              margin: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Vent ${ventIndex + 1}',
+                                             style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () {
+                            setState(() {
+                              roof.shingleVents.removeAt(ventIndex);
+                              sync();
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      initialValue: _dropdownValue(vent.type, ventTypesShingles),
+                      decoration: const InputDecoration(
+                        labelText: 'Vent Type',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: ventTypesShingles
+                                              .map((t) => DropdownMenuItem(
+                                value: t,
+                                child: Text(
+                                  t,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ))
+                          .toList(),
+                      onChanged: (val) {
+                        setState(() {
+                          vent.type = val ?? '';
+                          if (vent.type != 'Other') {
+                            vent.otherSpecify = null;
+                          }
+                          if (vent.type != 'Pipe jack') {
+                            vent.includeSplitBoot = false;
+                            vent.includeLead = false;
+                          }
+                          sync();
+                        });
+                      },
+                    ),
+                    CheckboxListTile(
+                      title: const Text('Should be Changed?'),
+                      value: vent.shouldBeChanged,
+                      onChanged: (val) {
+                        setState(() {
+                          vent.shouldBeChanged = val ?? false;
+                          sync();
+                        });
+                      },
+                    ),
+                    if (vent.type != 'Other') ...[
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        initialValue: vent.count ?? '1',
+                        decoration: InputDecoration(
+                          labelText: 'Count of ${vent.type.isEmpty ? 'vent' : vent.type}',
+                          border: const OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                        onChanged: (val) {
+                          vent.count = val;
+                          sync();
+                        },
+                      ),
+                    ],
+                    if (vent.type == 'Pipe jack')
+                      Column(
+                        children: [
+                          CheckboxListTile(
+                            title: const Text('Include Split Boot?'),
+                            value: vent.includeSplitBoot,
+                            onChanged: (val) {
+                              setState(() {
+                                vent.includeSplitBoot = val ?? false;
+                                sync();
+                              });
+                            },
+                          ),
+                          CheckboxListTile(
+                            title: const Text('Include Lead?'),
+                            value: vent.includeLead,
+                            onChanged: (val) {
+                              setState(() {
+                                vent.includeLead = val ?? false;
+                                sync();
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    if (vent.type == 'Other') ...[
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        initialValue: vent.otherSpecify,
+                        decoration: const InputDecoration(
+                          labelText: 'Specify Other Vent',
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (val) {
+                          vent.otherSpecify =
+                              val.trim().isEmpty ? null : val.trim();
+                          sync();
+                        },
+                      ),
+                    ],
+                    ElevatedButton(
+                      onPressed: () => takeCommercialPhoto(
+                        buildingName: buildingName,
+                        roofName: roofName,
+                        photoLabel: 'Vent Photo ${ventIndex + 1}',
+                        onSaved: (f) => vent.photo = f,
+                      ),
+                      child: const Text('Take Vent Photo'),
+                    ),
+                    TextButton(
+                      onPressed: () => takeCommercialPhoto(
+                        buildingName: buildingName,
+                        roofName: roofName,
+                        photoLabel: 'Vent extra photo',
+                        onSaved: (f) => vent.extraPhotos.add(f),
+                      ),
+                      child: const Text('Add extra Vent photo'),
+                    ),
+                    if (vent.photo != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Image.file(vent.photo!, height: 100),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          }),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                roof.shingleVents.add(VentData(type: '', count: '1'));
+                sync();
+              });
+            },
+            child: const Text('Add Vent'),
+          ),
+        ],
+
+        const SizedBox(height: 12),
+        CheckboxListTile(
+            title: const Text('Is there HVAC equipment installed?'),
+          value: roof.hasHvacEquipment,
+          onChanged: (val) {
+            setState(() {
+              roof.hasHvacEquipment = val ?? false;
+              if (!roof.hasHvacEquipment) {
+                roof.hvacUnits.clear();
+              }
+              sync();
+            });
+          },
+        ),
+        CheckboxListTile(
+           title: const Text('Is there mechanical equipment installed?'),
+          value: roof.hasMechanicalEquipment,
+          onChanged: (val) {
+            setState(() {
+              roof.hasMechanicalEquipment = val ?? false;
+              if (!roof.hasMechanicalEquipment) {
+                roof.mechanicalUnits.clear();
+              }
+              sync();
+            });
+          },
+        ),
+        if (roof.hasHvacEquipment || roof.hasMechanicalEquipment) ...[
+          const SizedBox(height: 16),
+          CommercialHvacMechanicalRooftop(
+            hvacItems: roof.hvacUnits,
+            mechanicalItems: roof.mechanicalUnits,
+            onChanged: sync,
+            takePhoto: takeCommercialPhoto,
+            buildingName: buildingName,
+            roofName: roofName,
+            showHvac: roof.hasHvacEquipment,
+            showMechanical: roof.hasMechanicalEquipment,
+          ),
+        ],
       ],
     );
   }
 }
-
