@@ -17,8 +17,6 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:claimscope_clean/Services/email_service.dart';
 import '../utils/labeled_photos_zip.dart';
 import '../Screens/widgets/submission_options_dialog.dart'; 
-import 'package:share_plus/share_plus.dart';
-import 'package:claimscope_clean/Services/stripe_service.dart';
 import '../catalogs/flashing_catalog.dart'; 
 
 class CommercialRoofSectionScreen extends StatefulWidget {
@@ -1218,7 +1216,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
                       );
                       return;
                     }
-                       if (roof.roofType == 'TPO') {
+                        if (_isFlatSystem) {
                       for (var i = 0; i < roof.tpoFlashings.length; i++) {
                         if (roof.tpoFlashings[i].photo == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
