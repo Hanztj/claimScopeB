@@ -140,6 +140,16 @@ class CommercialRoofSectionData {
   String? ridgeVentType;
   File? ridgeVentPhoto;
 
+  bool hasValleyMetal = false;
+  String? valleyMetalType;
+  File? valleyMetalPhoto;
+
+  List<FlashingData> shingleFlashings = [];
+  bool hasVents = false;
+  List<VentData> shingleVents = [];
+
+  bool hasHvacEquipment = false;
+  bool hasMechanicalEquipment = false;
   // Metal
   String? metalStyle; // Flat / Gable / Other
   bool? metalHasFacets; // Only used when metalStyle == 'Other'
@@ -238,6 +248,8 @@ class FlashingData {
   String? grade;
   String? otherSpecify;
   bool shouldBeChanged;
+  File? photo;
+  List<File> extraPhotos;
 
   FlashingData({
     required this.type,
@@ -247,7 +259,9 @@ class FlashingData {
     this.grade,
     this.otherSpecify,
     this.shouldBeChanged = false,
-  });
+    this.photo,
+    List<File>? extraPhotos,
+  }) : extraPhotos = extraPhotos ?? [];
 }
 
 class VentData {
@@ -257,6 +271,8 @@ class VentData {
   bool includeSplitBoot;
   bool includeLead;
   String? otherSpecify;
+  File? photo;
+  List<File> extraPhotos;
 
   VentData({
     required this.type,
@@ -265,7 +281,9 @@ class VentData {
     this.includeSplitBoot = false,
     this.includeLead = false,
     this.otherSpecify,
-  });
+    this.photo,
+    List<File>? extraPhotos,
+  }) : extraPhotos = extraPhotos ?? [];
 }
 
 class FacetData {
