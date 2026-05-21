@@ -18,8 +18,10 @@ class CommercialHvacMechanicalRooftop extends StatefulWidget {
     required void Function(File) onSaved,
   }) takePhoto;
 
-  final String buildingName;
+   final String buildingName;
   final String roofName;
+  final bool showHvac;
+  final bool showMechanical;
 
   const CommercialHvacMechanicalRooftop({
     super.key,
@@ -29,6 +31,8 @@ class CommercialHvacMechanicalRooftop extends StatefulWidget {
     required this.takePhoto,
     required this.buildingName,
     required this.roofName,
+    this.showHvac = true,
+    this.showMechanical = true,
   });
 
   @override
@@ -56,7 +60,7 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
       roofName: widget.roofName,
       photoLabel: 'HVAC ${index + 1} - Main Photo',
       onSaved: (file) {
-        setState(() => widget.hvacItems[index].photo = file);
+       setState(() => widget.hvacItems[index].photo = file);
         widget.onChanged();
       },
     );
@@ -68,7 +72,7 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
       roofName: widget.roofName,
       photoLabel: 'HVAC ${index + 1} - Extra Photo',
       onSaved: (file) {
-        setState(() => widget.hvacItems[index].extraPhotos.add(file));
+              setState(() => widget.hvacItems[index].extraPhotos.add(file));
         widget.onChanged();
       },
     );
@@ -117,10 +121,12 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (widget.showHvac) ...[
         const Text(
           'HVAC rooftop',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF101230)),
         ),
+
         const SizedBox(height: 12),
 
         ...widget.hvacItems.asMap().entries.map((entry) {
@@ -152,22 +158,22 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
 
                   const SizedBox(height: 8),
 
-                  DropdownButtonFormField<String>(
-                    value: item.type,
-                    decoration: const InputDecoration(labelText: 'Type', border: OutlineInputBorder()),
-                    items: commercialHvacTypes
-                        .map((t) => DropdownMenuItem(value: t, child: Text(t)))
-                        .toList(),
-                    onChanged: (val) {
-                      setState(() {
-                        item.type = val;
-                        if (val != 'Other') {
-                          item.otherSpecify = null;
-                        }
-                      });
-                      widget.onChanged();
-                    },
-                  ),
+                 DropdownButtonFormField<String>(
+            initialValue: item.type,
+              decoration: const InputDecoration(labelText: 'Type', border: OutlineInputBorder()),
+            items: commercialHvacTypes
+            .map((t) => DropdownMenuItem(value: t,child: Text(t),))
+      .toList(),
+         onChanged: (val) {
+               setState(() {
+              item.type = val;
+              if (val != 'Other') {
+               item.otherSpecify = null;
+               }
+              });
+               widget.onChanged();
+              },
+                ),
 
                   if (item.type == 'Other') ...[
                     const SizedBox(height: 12),
@@ -180,9 +186,9 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
                     ),
                   ],
 
-                  const SizedBox(height: 12),
+                     const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: item.action,
+                    initialValue: item.action,
                     decoration: const InputDecoration(labelText: 'Action', border: OutlineInputBorder()),
                     items: const [
                       DropdownMenuItem(value: 'No action required', child: Text('No action required')),
@@ -199,7 +205,7 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
 
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: item.capacityText,
+                    initialValue: item.capacityText,
                     decoration: const InputDecoration(labelText: 'Capacity', border: OutlineInputBorder()),
                     items: commercialHvacCapacityOptions
                         .map((c) => DropdownMenuItem(value: c, child: Text(c)))
@@ -311,10 +317,12 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
-            ),
+ ),
           ),
         ),
+        ],
 
+        if (widget.showMechanical) ...[
         const SizedBox(height: 20),
         const Text(
           'Mechanical rooftop equipment',
@@ -352,7 +360,7 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
                   const SizedBox(height: 8),
 
                   DropdownButtonFormField<String>(
-                    value: item.type,
+                    initialValue: item.type,
                     decoration: const InputDecoration(labelText: 'Type', border: OutlineInputBorder()),
                     items: commercialMechanicalTypes
                         .map((t) => DropdownMenuItem(value: t, child: Text(t)))
@@ -387,7 +395,7 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
                   if (item.type == 'Centrifugal Filtered Supply Fans') ...[
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: item.subtype,
+                      initialValue: item.subtype,
                       decoration: const InputDecoration(labelText: 'Type', border: OutlineInputBorder()),
                       items: commercialCentrifugalFanSubtypes
                           .map((t) => DropdownMenuItem(value: t, child: Text(t)))
@@ -402,7 +410,7 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
                         widget.onChanged();
                       },
                     ),
-                    if (item.subtype == 'Other') ...[
+                      if (item.subtype == 'Other') ...[
                       const SizedBox(height: 12),
                       TextField(
                         decoration: const InputDecoration(labelText: 'Specify type', border: OutlineInputBorder()),
@@ -505,7 +513,7 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
           );
         }),
 
-        Align(
+       Align(
           alignment: Alignment.centerLeft,
           child: ElevatedButton.icon(
             onPressed: _addMechanical,
@@ -523,10 +531,13 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
-            ),
+                  ),
           ),
         ),
+        ],
       ],
     );
   }
 }
+
+
