@@ -78,6 +78,7 @@ class PdfService {
                     _buildDataRow("    Roof ${j + 1} Label", roof.roofLabel?? "N/A"), 
                     _buildDataRow("    Roof ${j + 1} Cover Type", roof.roofType ?? "N/A"),
                     _buildDataRow("    Roof ${j + 1} Subtype", roof.roofSubType ?? "N/A"),
+                     ..._buildCommercialRoofDetails(roof),
                     pw.SizedBox(height: 3),
                   ],
                 );
@@ -106,6 +107,40 @@ for (var building in report.commercialBuildings) {
         file: roof.coreSamplePhoto!,
         label: '${building.name ?? 'Building'} - ${roof.roofLabel ?? 'Roof'} - Core Sample',
       ));
+    }
+    if (roof.valleyMetalPhoto != null) {
+      commercialPhotos.add(PhotoItem(
+        file: roof.valleyMetalPhoto!,
+        label: '${building.name ?? 'Building'} - ${roof.roofLabel ?? 'Roof'} - Valley Metal',
+      ));
+    }
+    for (var flashing in roof.shingleFlashings) {
+      if (flashing.photo != null) {
+        commercialPhotos.add(PhotoItem(
+          file: flashing.photo!,
+          label: '${building.name ?? 'Building'} - ${roof.roofLabel ?? 'Roof'} - Flashing: ${_describeFlashing(flashing)}',
+        ));
+      }
+      for (var extraPhoto in flashing.extraPhotos) {
+        commercialPhotos.add(PhotoItem(
+          file: extraPhoto,
+          label: '${building.name ?? 'Building'} - ${roof.roofLabel ?? 'Roof'} - Flashing extra: ${_describeFlashing(flashing)}',
+        ));
+      }
+    }
+    for (var vent in roof.shingleVents) {
+      if (vent.photo != null) {
+        commercialPhotos.add(PhotoItem(
+          file: vent.photo!,
+          label: '${building.name ?? 'Building'} - ${roof.roofLabel ?? 'Roof'} - Vent: ${_describeVent(vent)}',
+        ));
+      }
+      for (var extraPhoto in vent.extraPhotos) {
+        commercialPhotos.add(PhotoItem(
+          file: extraPhoto,
+          label: '${building.name ?? 'Building'} - ${roof.roofLabel ?? 'Roof'} - Vent extra: ${_describeVent(vent)}',
+        ));
+      }
     }
 for (var flashing in roof.tpoFlashings) {
   if (flashing.photo != null) {
@@ -511,7 +546,102 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
     await techFile.writeAsBytes(await pdfTech.save());
     await photoFile.writeAsBytes(await pdfPhotos.save());
 
-    return {'tech': techFile, 'photos': photoFile};
+   return {'tech': techFile, 'photos': photoFile};
+    }
+
+    static List<pw.Widget> _buildCommercialRoofDetails(CommercialRoofSectionData roof) {
+      final widgets = <pw.Widget>[];
+
+      if (roof.roofType == 'Shingles') {
+        widgets.addAll([
+          _buildDataRow("    Pitch", roof.pitch ?? "N/A"),
+          _buildDataRow(
+            "    Multiple layers",
+            roof.hasMultipleLayers == true
+                ? "Yes (${roof.numberOfLayers ?? 'N/A'})"
+                : "No",
+          ),
+          _buildDataRow("    Starter row installed", roof.starterRowInstalled ? "Yes" : "No"),
+          if (roof.starterRowInstalled) ...[
+            _buildDataRow("    Starter row at eave", roof.starterEaveInstalled ? "Yes" : "No"),
+            _buildDataRow("    Starter row at rake", roof.starterRakeInstalled ? "Yes" : "No"),
+          ],
+          _buildDataRow(
+            "    Drip edge",
+            roof.hasDripEdge ? "Yes (${roof.dripEdgeType ?? 'Type N/A'})" : "No",
+          ),
+          _buildDataRow("    Ice & Water Barrier", roof.iceAndWaterBarrierInstalled ? "Yes" : "No"),
+          _buildDataRow("    Has ridge", roof.hasRidge ? "Yes" : "No"),
+          if (roof.hasRidge)
+            _buildDataRow(
+              "    Ridge vent",
+              roof.hasRidgeVent ? "Yes (${roof.ridgeVentType ?? 'Type N/A'})" : "No",
+            ),
+          _buildDataRow(
+            "    Has valley",
+            roof.hasValleyMetal ? "Yes (${roof.valleyMetalType ?? 'Type N/A'})" : "No",
+          ),
+          _buildDataRow(
+            "    Roof deck replacement",
+            roof.deckChangeRequired
+                ? (roof.deckFullReplacementRequired
+                    ? "Full replacement"
+                    : "Partial (${roof.deckPartialReplacementSqft ?? 'N/A'} SF)")
+                : "No",
+          ),
+          _buildDataRow(
+            "    Flashings",
+            roof.shingleFlashings.isEmpty
+                ? "None recorded"
+                : roof.shingleFlashings.map(_describeFlashing).join("; "),
+          ),
+          _buildDataRow(
+            "    Vents",
+            roof.shingleVents.isEmpty
+                ? "None recorded"
+                : roof.shingleVents.map(_describeVent).join("; "),
+          ),
+          _buildDataRow("    HVAC equipment", roof.hvacUnits.isEmpty ? "None recorded" : roof.hvacUnits.length.toString()),
+          _buildDataRow("    Mechanical equipment", roof.mechanicalUnits.isEmpty ? "None recorded" : roof.mechanicalUnits.length.toString()),
+        ]);
+      }
+
+      return widgets;
+    }
+
+    static String _describeFlashing(FlashingData flashing) {
+      final base = flashing.type == 'Other'
+          ? 'Other: ${flashing.otherSpecify ?? ''}'
+          : flashing.type;
+      final parts = <String>[];
+      if (flashing.size != null && flashing.size!.trim().isNotEmpty) {
+        parts.add(flashing.size!);
+      }
+      if (flashing.material != null && flashing.material!.trim().isNotEmpty) {
+        parts.add(flashing.material!);
+      }
+      if (flashing.finish != null && flashing.finish!.trim().isNotEmpty) {
+        parts.add(flashing.finish!);
+      }
+      if (flashing.grade != null && flashing.grade!.trim().isNotEmpty) {
+        parts.add(flashing.grade!);
+      }
+      final action = flashing.shouldBeChanged ? 'change' : 'no change';
+      return parts.isEmpty ? '$base ($action)' : '$base (${parts.join(', ')}, $action)';
+    }
+
+    static String _describeVent(VentData vent) {
+      final base = vent.type == 'Other'
+          ? 'Other: ${vent.otherSpecify ?? ''}'
+          : vent.type;
+      final extras = <String>[];
+      if (vent.count != null && vent.count!.trim().isNotEmpty) {
+        extras.add('x${vent.count}');
+      }
+      if (vent.includeSplitBoot) extras.add('Split boot');
+      if (vent.includeLead) extras.add('Lead');
+      extras.add(vent.shouldBeChanged ? 'change' : 'no change');
+      return extras.isEmpty ? base : '$base (${extras.join(', ')})';
     }
 
     static pw.Widget _buildHeader(String title) {
