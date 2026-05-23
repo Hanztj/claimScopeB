@@ -83,6 +83,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
     bool isGlobal,
     int? ventIndex,
     int? flashingIndex,
+    int? otherElementIndex,
   }) takePhoto;
   final Future<void> Function(String label) takeExtraPhotoForLabel;
 
@@ -158,17 +159,15 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
     required this.buildDropdown,
   });
 
-  bool get _isFlatRoof {
-    return {
-      'TPO',
-      'EPDM',
-      'Modified Bitumen',
-      'Roll Roofing',
-    }.contains(roofCoverType);
-  }
-
   @override
   Widget build(BuildContext context) {
+    
+         final bool isHeavyRoof = roofCoverType != null && (
+      roofCoverType!.toLowerCase().trim().contains('tile') || 
+      roofCoverType!.toLowerCase().trim().contains('slate') || 
+      roofCoverType!.toLowerCase().trim().contains('shake')
+    );
+
     if (roofCoverType == null) return const SizedBox.shrink();
 
     return Column(
@@ -242,7 +241,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
             child: Image.file(currentFacetOverviewPhoto!, height: 100),
           ),
 
-        if (!_isFlatRoof)
+        if (!isHeavyRoof)
           CheckboxListTile(
             title: const Text('Is there Ridge Vent?'),
             value: currentHasRidgeVent,
@@ -251,7 +250,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
             }),
           ),
 
-        if (!_isFlatRoof && currentHasRidgeVent)
+        if (!isHeavyRoof && currentHasRidgeVent)
           Column(
             children: [
               buildDropdown(
@@ -280,7 +279,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
             ],
           ),
 
-        if (roofCoverType == 'Shingles')
+        if (roofCoverType == 'Shingles' )
           CheckboxListTile(
             title: const Text('ATR Performed?'),
             value: currentAtrPerformed,
@@ -563,7 +562,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
 
         const SizedBox(height: 20),
         const Text(
-          'Other Elements on the Facet',
+          'Other elements on the Facet',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
