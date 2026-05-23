@@ -72,10 +72,18 @@ class ResidentialRoofAccessoriesHub extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    final bool isHeavyRoof = roofCoverType != null && (
+      roofCoverType!.toLowerCase().trim().contains('tile') || 
+      roofCoverType!.toLowerCase().trim().contains('slate') || 
+      roofCoverType!.toLowerCase().trim().contains('shake')
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Starter Row Questions (GLOBAL)
+          if (!isHeavyRoof && starterRowInstalled)
         CheckboxListTile(
           title: const Text('Starter Row Installed?'),
           value: starterRowInstalled,
@@ -90,7 +98,7 @@ class ResidentialRoofAccessoriesHub extends StatelessWidget {
           },
         ),
 
-        if (starterRowInstalled)
+        if (!isHeavyRoof && starterRowInstalled)
           Column(
             children: [
               CheckboxListTile(
@@ -150,8 +158,8 @@ class ResidentialRoofAccessoriesHub extends StatelessWidget {
             ],
           ),
 
-        // Drip Edge (currently only used for Shingles)
-        if (!isCommercial && ['Shingles'].contains(roofCoverType))
+      // Modificado: Ahora se muestra si es Shingles O si es HeavyRoof
+      if (!isCommercial && (['Shingles'].contains(roofCoverType) || isHeavyRoof))
           CheckboxListTile(
             title: const Text('Drip Edge Installed?'),
             value: hasDripEdge,
@@ -165,7 +173,7 @@ class ResidentialRoofAccessoriesHub extends StatelessWidget {
             },
           ),
 
-        if (!isCommercial && ['Shingles'].contains(roofCoverType) && hasDripEdge)
+        if (!isCommercial && (['Shingles'].contains(roofCoverType) || isHeavyRoof) && hasDripEdge)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -225,4 +233,3 @@ class ResidentialRoofAccessoriesHub extends StatelessWidget {
     );
   }
 }
-
