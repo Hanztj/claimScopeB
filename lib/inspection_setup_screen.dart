@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:claimscope_clean/roof_inspection_form.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:claimscope_clean/Services/auth_plan_service.dart';
-import 'package:claimscope_clean/Services/stripe_service.dart';
+import 'package:claimscope_clean/services/auth_plan_service.dart';
+import 'package:claimscope_clean/services/stripe_service.dart';
 import 'package:claimscope_clean/screens/my_reports_screen.dart';
 
 import 'inspection_report_model.dart';
