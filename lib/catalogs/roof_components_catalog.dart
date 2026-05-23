@@ -36,9 +36,6 @@ const Map<String, List<String>> ventTypesByRoofType = {
   'Wood Shake': ventTypesShingles,
   'Slate Roof': ventTypesShingles,
   'Metal': ventTypesShingles,
-  'TPO': ventTypesShingles,
-  'Modified Bitumen': ventTypesShingles,
-  'EPDM': ventTypesShingles,
   'Roll Roofing': ventTypesShingles,
   'Other': ventTypesShingles,
 };
@@ -49,9 +46,6 @@ const Map<String, List<String>> flashingTypesByRoofType = {
   'Wood Shake': flashingTypesShingles,
   'Slate Roof': flashingTypesShingles,
   'Metal': flashingTypesShingles,
-  'TPO': flashingTypesShingles,
-  'Modified Bitumen': flashingTypesShingles,
-  'EPDM': flashingTypesShingles,
   'Roll Roofing': flashingTypesShingles,
   'Other': flashingTypesShingles,
 };
@@ -65,4 +59,3 @@ List<String> flashingTypesForRoofType(String? roofType) {
   if (roofType == null) return const [];
   return flashingTypesByRoofType[roofType] ?? flashingTypesShingles;
 }
-
