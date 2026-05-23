@@ -30,6 +30,8 @@ class InspectionReport {
   bool inspectElevations = false;
   bool inspectInterior = false;
   String interiorScope = '';
+  String? battenSystemNeedsReplacement;
+  String? sheathingRequired;
 
   // ROOF FORM (residential legacy)
   String? roofCoverType;
@@ -64,6 +66,8 @@ class InspectionReport {
   String? sheathingPartialReplacementSqft;
   String? sheathingType;
   String? sheathingSize;
+  double? squareFootageToReplace;
+
 
   // REPORT CONTENT
   final List<PhotoItem> photoReportItems = [];
