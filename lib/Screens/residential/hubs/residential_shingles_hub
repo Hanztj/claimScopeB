@@ -93,7 +93,7 @@ class ResidentialShinglesHubForm extends StatelessWidget {
           TextFormField(
             controller: partialReplacementSqftController,
             decoration: const InputDecoration(
-              labelText: 'How many SF of shingles require replacement?',
+              labelText: 'How many SF roof cover require replacement?',
             ),
             keyboardType: TextInputType.number,
             onSaved: onPartialReplacementSqftSaved,
@@ -167,4 +167,3 @@ class ResidentialShinglesHubForm extends StatelessWidget {
     );
   }
 }
-
