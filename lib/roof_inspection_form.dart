@@ -1,20 +1,19 @@
+import 'package:claimscope_clean/screens/residential/hubs/residential_tile_hub.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:claimscope_clean/services/stripe_service.dart';
-import 'package:claimscope_clean/Services/pdf_service.dart';
+import 'package:claimscope_clean/services/pdf_service.dart';
 //firebase imports here
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:claimscope_clean/Services/email_service.dart';
+import 'package:claimscope_clean/services/email_service.dart';
 import 'package:claimscope_clean/inspection_report_model.dart';
-//ignore unused imports for now, will be used in the future when implementing the functions
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:claimscope_clean/screens/my_reports_screen.dart';
  // Para ArchiveFile y ZipEncoder
-import 'package:path_provider/path_provider.dart'; // Para getApplicationDocumentsDirectory
 import 'package:claimscope_clean/utils/labeled_photos_zip.dart';
 import 'package:claimscope_clean/catalogs/roof_catalog.dart';
 import 'package:claimscope_clean/catalogs/roof_components_catalog.dart';
@@ -22,8 +21,7 @@ import 'package:claimscope_clean/screens/residential/hubs/residential_shingles_h
 import 'package:claimscope_clean/screens/residential/hubs/residential_roof_accessories_hub.dart';
 import 'package:claimscope_clean/screens/residential/hubs/residential_facet_inspection_hub.dart';
 import 'package:claimscope_clean/catalogs/flashing_catalog.dart';
-import '../Screens/widgets/submission_options_dialog.dart';  
-
+import 'screens/widgets/submission_options_dialog.dart';  
 
  enum FacetOrientation {
   north,
@@ -51,7 +49,7 @@ import '../Screens/widgets/submission_options_dialog.dart';
                     
  // Añadir dentro de class _RoofInspectionFormState extends State<RoofInspectionForm> {
 
- Future<void> _showSubmissionOptions(File techPdf, File photoPdf) {
+Future<void> _showSubmissionOptions(File techPdf, File photoPdf) {
   return showSubmissionOptions(
     context: context,
     techPdf: techPdf,
@@ -61,7 +59,7 @@ import '../Screens/widgets/submission_options_dialog.dart';
     onSendToMyEmail: _sendReportViaEmail,
     onSendToCustomEmail: _sendReportToCustomEmail,
     onStoreInCloud: _storeReportInCloud,
-    onGenerateLabeledZip: _generateLabeledPhotosZip,
+    onGenerateLabeledZip: () => generateLabeledPhotosZip(widget.report),
   );
 }
                  
@@ -127,7 +125,6 @@ import '../Screens/widgets/submission_options_dialog.dart';
   );
  } 
 
-
  // Function helper email 
   bool _isProbablyValidEmail(String value) {
   final email = value.trim();
@@ -144,45 +141,6 @@ import '../Screens/widgets/submission_options_dialog.dart';
 
   return true;
 }
-
-// here was te fucntions _sanitizedPhotoBaseName and _generateLabeledPhotosZip, moved to utils/labeled_photos_zip.dart
-String _sanitizeFilename(String input) {
-  var s = input.trim();
-  if (s.isEmpty) return 'UNKNOWN';
-  s = s.replaceAll(RegExp(r'[\/\\\:\*\?\"\<\>\|]'), '');
-  s = s.replaceAll(RegExp(r'\s+'), ' ').trim();
-  return s.isEmpty ? 'UNKNOWN' : s;
-}
-
-Future<File> _generateLabeledPhotosZip() async {
-  // Excluir imágenes de galería (se agregan como label 'User Image')
-  final items = widget.report.photoReportItems.where((p) {
-    return p.label.trim() != 'User Image';
-  }).toList();
-
-  final archive = buildLabeledPhotosArchive(items);
-  final zipBytes = encodeZipBytes(archive);
-
-  final claim = widget.report.claimNumber.trim().isEmpty
-      ? 'NOCLAIM'
-      : _sanitizeFilename(widget.report.claimNumber);
-
-  final insured = widget.report.clientName.trim().isEmpty
-      ? 'UNKNOWN'
-      : _sanitizeFilename(widget.report.clientName);
-
-  final dir = await getApplicationDocumentsDirectory();
-  final filename = '$claim - $insured - Inspection Photos (ZIP).zip';
-
-  final zipFile = await writeZipToFile(
-    zipBytes: zipBytes,
-    outputDir: dir,
-    filename: filename,
-  );
-
-  return zipFile;
-}
-
  // Solo Premium+Extra : preguntar si quiere almacenar en la nube (sin cobro HF)
 
 Future<bool> _askStoreReportInCloud() async {
@@ -513,8 +471,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
     ),
   );
   }
-         
-   // Input variables for main form
+
     // Input variables for main form
    String? roofCoverType;
    String? roofSubType;
@@ -539,7 +496,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
 
   bool fullRoofReplacementRequired = false;
   String? partialReplacementSqft;
-
+  String? battenSystemNeedsReplacement;
   bool sheathingRequiredToBeChanged = false;
   bool sheathingFullReplacementRequired = false;
   String? sheathingPartialReplacementSqft;
@@ -808,6 +765,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
     source: ImageSource.camera,
     maxWidth: 1024,
     imageQuality: 80,
+    preferredCameraDevice: CameraDevice.rear,
   );
 
   if (pickedFile == null) return;
@@ -932,7 +890,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
       return;
     }
 
-if (sheathingRequiredToBeChanged) {
+    if (sheathingRequiredToBeChanged) {
 
 final partialSheathingText =
           _sheathingPartialSqftController.text.trim();
@@ -971,7 +929,7 @@ final partialSheathingText =
 }
 
   }
-    
+  
   final isValid = _formKey.currentState!.validate();
    debugPrint('Roof form validate() = $isValid');
 
@@ -1418,8 +1376,8 @@ _formKey.currentState!.save();
                 }),
 
 
- if (roofCoverType == 'Shingles')
-                ResidentialShinglesHubForm(
+ if (roofCoverType == 'Shingles' || (roofCoverType == 'Other'))
+                 ResidentialShinglesHubForm(
                   setState: setState,
                   fullRoofReplacementRequired: fullRoofReplacementRequired,
                   onFullRoofReplacementRequiredChanged: (val) {
@@ -1451,7 +1409,36 @@ _formKey.currentState!.save();
                   },
                   buildDropdown: buildDropdown,
                 ),
-              // TextField for 'Other' Metal Subtype
+
+// ✅ CONDICIÓN MEJORADA: Inmune a mayúsculas, minúsculas y espacios fantasmas a los lados
+if (roofCoverType != null && (
+    roofCoverType!.toLowerCase().trim().contains('tile') || 
+    roofCoverType!.toLowerCase().trim().contains('slate') || 
+    roofCoverType!.toLowerCase().trim().contains('shake')
+   ))
+  ResidentialTileHubForm(
+    setState: setState,
+    roofCoverType: roofCoverType ?? 'Tile',
+    fullRoofReplacementRequired: fullRoofReplacementRequired,
+    onFullRoofReplacementRequiredChanged: (val) => setState(() => fullRoofReplacementRequired = val),
+    partialReplacementSqftController: _partialReplacementSqftController,
+    onPartialReplacementSqftSaved: (val) => setState(() => partialReplacementSqft = val),
+    battenSystemNeedsReplacement: battenSystemNeedsReplacement,
+    onBattenSystemNeedsReplacementChanged: (val) => setState(() => battenSystemNeedsReplacement = val),
+    sheathingRequiredToBeChanged: sheathingRequiredToBeChanged,
+    onSheathingRequiredToBeChangedChanged: (val) => setState(() => sheathingRequiredToBeChanged = val),
+    sheathingFullReplacementRequired: sheathingFullReplacementRequired,
+    onSheathingFullReplacementRequiredChanged: (val) => setState(() => sheathingFullReplacementRequired = val),
+    sheathingPartialSqftController: _sheathingPartialSqftController,
+    onSheathingPartialReplacementSqftSaved: (val) => setState(() => sheathingPartialReplacementSqft = val),
+    sheathingType: sheathingType,
+    onSheathingTypeChanged: (val) => setState(() => sheathingType = val),
+    sheathingSize: sheathingSize,
+    onSheathingSizeChanged: (val) => setState(() => sheathingSize = val),
+    buildDropdown: buildDropdown,
+  ),
+
+                              // TextField for 'Other' Metal Subtype
               if (roofCoverType == 'Metal' && roofSubType == 'Other')
                 TextFormField(
                   controller: otherMetalSubTypeController,
@@ -1478,7 +1465,7 @@ _formKey.currentState!.save();
                 ),
 
               // How many Layers Installed (Conditional)
-              if (['Shingles', 'Modified Bitumen', 'Roll Roofing'].contains(roofCoverType))
+              if (['Shingles'].contains(roofCoverType))
       TextFormField(
   decoration: InputDecoration(
     label: _requiredLabel('How Many Layers Installed', requiredField: true),
@@ -1586,7 +1573,7 @@ _formKey.currentState!.save();
               ),
 
               // Gravel ballast present checkbox (only for specific roof types)
-              if (['Modified Bitumen', 'EPDM', 'Roll Roofing'].contains(roofCoverType))
+              if (['Roll Roofing'].contains(roofCoverType))
                 CheckboxListTile(
                   title: const Text('Gravel ballast present?'),
                   value: gravelBallastPresent,
@@ -1605,9 +1592,7 @@ _formKey.currentState!.save();
                   roofCoverType == 'Tile roofing' ||
                   roofCoverType == 'Wood Shake' ||
                   roofCoverType == 'Slate Roof' ||
-                  roofCoverType == 'TPO' ||
-                  roofCoverType == 'Modified Bitumen' ||
-                  roofCoverType == 'EPDM' ||
+                  roofCoverType == 'Other' ||
                   roofCoverType == 'Roll Roofing')
                 ResidentialFacetInspectionHub(
                   setState: setState,
