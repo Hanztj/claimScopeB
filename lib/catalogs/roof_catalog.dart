@@ -1,12 +1,12 @@
 const List<String> roofTypesCommercial = [
-  'Shingles',
-  'Metal',
-  'Tile roofing',
-  'Wood Shake',
-  'Slate Roof',
   'TPO',
   'Modified Bitumen',
   'EPDM',
+  'Metal',
+  'Shingles',
+  'Tile roofing',
+  'Wood Shake',
+  'Slate Roof',
   'Roll Roofing',
   'Other',
 ];
@@ -17,11 +17,10 @@ const List<String> roofTypesAll = roofTypesCommercial;
 // Residential flow excludes TPO/EPDM; Roll Roofing and Modified Bitumen can still appear.
 const List<String> roofTypesResidential = [
   'Shingles',
-  'Metal',
   'Tile roofing',
+  'Metal',
   'Wood Shake',
   'Slate Roof',
-  'Modified Bitumen',
   'Roll Roofing',
   'Other',
 ];
