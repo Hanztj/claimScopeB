@@ -32,6 +32,8 @@ const Map<String, List<String>> roofSubtypesByType = {
     'Corrugated',
     'Ribbed',
     'Wall/Roof Panel corrugated',
+    'Aluminum shingles panel - Mill finish',  
+    'Aluminum shingles panel - Color finish',
     'Other',
   ],
   'Tile roofing': ['Concrete', 'Clay'],
