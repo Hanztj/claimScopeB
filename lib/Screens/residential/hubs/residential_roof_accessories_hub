@@ -200,7 +200,7 @@ class ResidentialRoofAccessoriesHub extends StatelessWidget {
           ),
 
         // Ice & Water Barrier (currently only used for Shingles)
-        if (!isCommercial && ['Shingles'].contains(roofCoverType))
+        if (!isCommercial && (['Shingles'].contains(roofCoverType)|| isHeavyRoof))
           CheckboxListTile(
             title: const Text('Ice & Water Barrier Installed?'),
             value: iceAndWaterBarrierInstalled,
@@ -211,7 +211,7 @@ class ResidentialRoofAccessoriesHub extends StatelessWidget {
             },
           ),
 
-        if (!isCommercial && ['Shingles'].contains(roofCoverType) && iceAndWaterBarrierInstalled)
+        if (!isCommercial && (['Shingles'].contains(roofCoverType) || isHeavyRoof) && iceAndWaterBarrierInstalled)
           Column(
             children: [
               ElevatedButton(
