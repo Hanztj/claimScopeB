@@ -241,7 +241,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
             child: Image.file(currentFacetOverviewPhoto!, height: 100),
           ),
 
-        if (!isHeavyRoof)
+        if (!isHeavyRoof && roofCoverType?.toLowerCase().trim() != 'metal') 
           CheckboxListTile(
             title: const Text('Is there Ridge Vent?'),
             value: currentHasRidgeVent,
@@ -250,7 +250,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
             }),
           ),
 
-        if (!isHeavyRoof && currentHasRidgeVent)
+        if (!isHeavyRoof && roofCoverType?.toLowerCase().trim() != 'metal' && currentHasRidgeVent)
           Column(
             children: [
               buildDropdown(
