@@ -19,9 +19,11 @@ import 'package:claimscope_clean/catalogs/roof_catalog.dart';
 import 'package:claimscope_clean/catalogs/roof_components_catalog.dart';
 import 'package:claimscope_clean/screens/residential/hubs/residential_shingles_hub.dart';
 import 'package:claimscope_clean/screens/residential/hubs/residential_roof_accessories_hub.dart';
+import 'package:claimscope_clean/screens/residential/hubs/residential_metal_hub.dart';
 import 'package:claimscope_clean/screens/residential/hubs/residential_facet_inspection_hub.dart';
 import 'package:claimscope_clean/catalogs/flashing_catalog.dart';
 import 'screens/widgets/submission_options_dialog.dart';  
+
 
  enum FacetOrientation {
   north,
@@ -502,6 +504,29 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
   String? sheathingPartialReplacementSqft;
   String? sheathingType;
   String? sheathingSize;
+
+  //Input variables for metal hub (además de roofCoverType y roofSubType)
+  bool? hasDeck;
+bool? deckRequiresReplacement;
+bool? deckFullReplacementRequired;
+
+String? roofSupportBase;
+String? howManySFDeckRequireReplacementVisible;
+
+String? plywoodDeck;
+String? osbdeck;
+String? spacedWoodPlankDeck;
+
+String? deckSize;
+
+bool? iceWaterBarrierInstalled;
+
+String? hightemp;
+String? doubleFelt;
+
+String? ordinanceandlawapproach;
+String? biditemblank;
+String? noAction;
 
   final TextEditingController _partialReplacementSqftController =
       TextEditingController();
@@ -1410,7 +1435,7 @@ _formKey.currentState!.save();
                   buildDropdown: buildDropdown,
                 ),
 
-// ✅ CONDICIÓN MEJORADA: Inmune a mayúsculas, minúsculas y espacios fantasmas a los lados
+// ✅ CONDICIÓN MEJORADA: Inmune a mayúsculas, minúsculas y espacios fantasmas a los lados heavy roof's
 if (roofCoverType != null && (
     roofCoverType!.toLowerCase().trim().contains('tile') || 
     roofCoverType!.toLowerCase().trim().contains('slate') || 
@@ -1435,6 +1460,84 @@ if (roofCoverType != null && (
     onSheathingTypeChanged: (val) => setState(() => sheathingType = val),
     sheathingSize: sheathingSize,
     onSheathingSizeChanged: (val) => setState(() => sheathingSize = val),
+    buildDropdown: buildDropdown,
+  ),
+
+ if (roofCoverType != null &&
+    roofCoverType!.toLowerCase().trim().contains('metal'))
+  ResidentialMetalHubForm(
+    setState: setState,
+    roofCoverType: roofCoverType,
+
+    // Deck
+    hasDeck: hasDeck,
+    onHasDeckChanged: (val) =>
+        setState(() => hasDeck = val),
+
+    deckRequiresReplacement: deckRequiresReplacement,
+    onDeckRequiresReplacementChanged: (val) =>
+        setState(() => deckRequiresReplacement = val),
+
+    deckFullReplacementRequired: deckFullReplacementRequired,
+    onDeckFullReplacementRequiredChanged: (val) =>
+        setState(() => deckFullReplacementRequired = val),
+
+    roofSupportBase: roofSupportBase,
+    onRoofSupportBaseChanged: (val) =>
+        setState(() => roofSupportBase = val),
+
+    howManySFDeckRequireReplacementVisible:
+        howManySFDeckRequireReplacementVisible,
+    onHowManySFDeckRequireReplacementChanged: (val) =>
+        setState(() => howManySFDeckRequireReplacementVisible = val),
+
+    plywoodDeck: plywoodDeck,
+    osbdeck: osbdeck,
+    spacedWoodPlankDeck: spacedWoodPlankDeck,
+
+    deckSize: deckSize,
+    onDeckSizeChanged: (val) =>
+        setState(() => deckSize = val),
+
+    // Ice & Water
+    iceWaterBarrierInstalled: iceWaterBarrierInstalled,
+    onIceWaterBarrierInstalledChanged: (val) =>
+        setState(() => iceWaterBarrierInstalled = val),
+
+    onIceWaterBarrierOptionChanged: (val) => setState(() {
+      if (val == 'High-Temp') {
+        hightemp = val;
+        doubleFelt = null;
+      } else if (val == 'Double felt') {
+        doubleFelt = val;
+        hightemp = null;
+      }
+    }),
+
+    hightemp: hightemp,
+    doubleFelt: doubleFelt,
+
+    // No IWB approach
+    ordinanceandlawapproach: ordinanceandlawapproach,
+    biditemblank: biditemblank,
+    noAction: noAction,
+    onNoIceWaterBarrierApproachChanged: (val) => setState(() {
+      // limpia los tres y asigna el seleccionado
+      ordinanceandlawapproach = null;
+      biditemblank = null;
+      noAction = null;
+      if (val == 'Ordinance & Law approach') {
+        ordinanceandlawapproach = val;
+      } else if (val == 'Bid Item blank') {
+        biditemblank = val;
+      } else if (val == 'No action') {
+        noAction = val;
+      }
+    }),
+
+    // Shared utils
+    takePhoto: _takePhoto,
+    takeExtraPhotoForLabel: _takeExtraPhotoForLabel,
     buildDropdown: buildDropdown,
   ),
 
@@ -1592,6 +1695,7 @@ if (roofCoverType != null && (
                   roofCoverType == 'Tile roofing' ||
                   roofCoverType == 'Wood Shake' ||
                   roofCoverType == 'Slate Roof' ||
+                  roofCoverType == 'Metal' ||
                   roofCoverType == 'Other' ||
                   roofCoverType == 'Roll Roofing')
                 ResidentialFacetInspectionHub(
@@ -1804,10 +1908,11 @@ Widget _requiredLabel(String text, {required bool requiredField}) {
 return DropdownButtonFormField<String>(
   initialValue: value,
   onChanged: onChanged,
+  isExpanded: true,
       decoration: InputDecoration(
         label: _requiredLabel(label, requiredField: requiredField),
       ),
-      validator: requiredField
+      validator: requiredField  
           ? (v) => (v == null || v.isEmpty) ? 'Required' : null
           : null,
       items: options
