@@ -21,6 +21,7 @@ import 'package:claimscope_clean/screens/residential/hubs/residential_shingles_h
 import 'package:claimscope_clean/screens/residential/hubs/residential_roof_accessories_hub.dart';
 import 'package:claimscope_clean/screens/residential/hubs/residential_metal_hub.dart';
 import 'package:claimscope_clean/screens/residential/hubs/residential_facet_inspection_hub.dart';
+import 'package:claimscope_clean/screens/residential/hubs/residential_roll_roofing_hub.dart';
 import 'package:claimscope_clean/catalogs/flashing_catalog.dart';
 import 'screens/widgets/submission_options_dialog.dart';  
 
@@ -527,6 +528,27 @@ String? doubleFelt;
 String? ordinanceandlawapproach;
 String? biditemblank;
 String? noAction;
+
+// Input variables para roll roofing hub (además de roofCoverType y roofSubType)
+
+  // ===== Residential Roll Roofing =====
+
+  String? rollType;
+  String? rollExposure;
+  String? numberOfPlies;
+
+  String? fasteningMethod;
+
+  bool? fastenerPullTestPerformed = false;
+  String? fastenerPullTestResult;
+
+  String? underlaymentType;
+
+  String? insulationType;
+  String? insulationSize;
+
+  bool? dripEdgeInstalled;
+
 
   final TextEditingController _partialReplacementSqftController =
       TextEditingController();
@@ -1564,8 +1586,114 @@ if (roofCoverType != null && (
                   controller: otherGaugeController,
                   decoration: const InputDecoration(labelText: 'Specify Other Gauge'),
                   validator: (v) => v!.isEmpty ? 'Required' : null,
-                  
-                ),
+                  ),
+
+                 if (roofCoverType != null &&
+    roofCoverType!.toLowerCase().trim().contains('roll'))
+  ResidentialRollRoofingHubForm(
+    setState: setState,
+    roofCoverType: roofCoverType,
+
+    // Roll Type
+    rollType: rollType,
+    onRollTypeChanged: (val) =>
+        setState(() => rollType = val),
+
+    rollExposure: rollExposure,
+    onRollExposureChanged: (val) =>
+        setState(() => rollExposure = val),
+
+    numberOfPlies: numberOfPlies,
+    onNumberOfPliesChanged: (val) =>
+        setState(() => numberOfPlies = val),
+
+    // Fastening
+    fasteningMethod: fasteningMethod,
+    onFasteningMethodChanged: (val) =>
+        setState(() => fasteningMethod = val),
+
+    fastenerPullTestPerformed:
+        fastenerPullTestPerformed,
+
+    onFastenerPullTestPerformedChanged: (val) =>
+        setState(() =>
+            fastenerPullTestPerformed = val),
+
+    fastenerPullTestResult:
+        fastenerPullTestResult,
+
+    onFastenerPullTestResultChanged: (val) =>
+        setState(() =>
+            fastenerPullTestResult = val),
+
+    // Underlayment
+    underlaymentType: underlaymentType,
+    onUnderlaymentTypeChanged: (val) =>
+        setState(() =>
+            underlaymentType = val),
+
+    // Insulation
+    insulationType: insulationType,
+    onInsulationTypeChanged: (val) =>
+        setState(() =>
+            insulationType = val),
+
+    insulationSize: insulationSize,
+    onInsulationSizeChanged: (val) =>
+        setState(() =>
+            insulationSize = val),
+
+    // Deck
+    deckRequiresReplacement:
+        deckRequiresReplacement,
+
+    onDeckRequiresReplacementChanged: (val) =>
+        setState(() =>
+            deckRequiresReplacement = val),
+
+    deckFullReplacementRequired:
+        deckFullReplacementRequired,
+
+    onDeckFullReplacementRequiredChanged:
+        (val) => setState(() =>
+            deckFullReplacementRequired = val),
+
+    howManySFDeckRequireReplacementVisible:
+        howManySFDeckRequireReplacementVisible,
+
+    onHowManySFDeckRequireReplacementChanged:
+        (val) => setState(() =>
+            howManySFDeckRequireReplacementVisible =
+                val),
+
+    // Ice & Water
+    iceWaterBarrierInstalled:
+        iceWaterBarrierInstalled,
+
+    onIceWaterBarrierInstalledChanged:
+        (val) => setState(() =>
+            iceWaterBarrierInstalled = val),
+
+    // Drip Edge
+    dripEdgeInstalled: dripEdgeInstalled,
+
+    onDripEdgeInstalledChanged: (val) =>
+        setState(() =>
+            dripEdgeInstalled = val),
+
+    dripEdgeType: dripEdgeType,
+
+    onDripEdgeTypeChanged: (val) =>
+        setState(() =>
+            dripEdgeType = val),
+
+    // Shared utils
+    takePhoto: _takePhoto,
+    takeExtraPhotoForLabel:
+        _takeExtraPhotoForLabel,
+
+    buildDropdown: buildDropdown,
+  ),
 
               // How many Layers Installed (Conditional)
               if (['Shingles'].contains(roofCoverType))
