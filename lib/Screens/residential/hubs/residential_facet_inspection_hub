@@ -75,6 +75,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
 
   final VoidCallback addNextFacet;
   final VoidCallback submitForm;
+  final bool isSingleRoofSection;
 
   final Future<void> Function(
     String label, {
@@ -154,6 +155,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
     required this.onRemoveGalleryImage,
     required this.addNextFacet,
     required this.submitForm,
+    this.isSingleRoofSection = false,
     required this.takePhoto,
     required this.takeExtraPhotoForLabel,
     required this.buildDropdown,
@@ -173,75 +175,72 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Facet Inspection',
-          style: TextStyle(
+        Text(
+          isSingleRoofSection ? 'Roof Section Inspection' : 'Facet Inspection',
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: Colors.black,
           ),
         ),
         const Divider(),
-
-        if (facets.length > 1)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              ElevatedButton(
-                onPressed: currentFacetIndex > 0 ? onPreviousFacet : null,
-                child: const Text('Previous Facet'),
-              ),
-              Text('Facet ${currentFacetIndex + 1} of ${facets.length}'),
-              ElevatedButton(
-                onPressed:
-                    currentFacetIndex < facets.length - 1 ? onNextFacet : null,
-                child: const Text('Next Facet'),
-              ),
-            ],
+        if (!isSingleRoofSection) ...[
+          if (facets.length > 1)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ElevatedButton(
+                  onPressed: currentFacetIndex > 0 ? onPreviousFacet : null,
+                  child: const Text('Previous Facet'),
+                ),
+                Text('Facet ${currentFacetIndex + 1} of ${facets.length}'),
+                ElevatedButton(
+                  onPressed:
+                      currentFacetIndex < facets.length - 1 ? onNextFacet : null,
+                  child: const Text('Next Facet'),
+                ),
+              ],
+            ),
+          const SizedBox(height: 10),
+          Text(
+            'Current Facet: ${currentFacetNameController.text}',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
-        const SizedBox(height: 10),
-
-        Text(
-          'Current Facet: ${currentFacetNameController.text}',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-
-        buildDropdown(
-          'Facet Orientation',
-          facetOrientationOptions,
-          currentFacetOrientationName,
-          (val) => setState(() => onFacetOrientationChanged(val)),
-          requiredField: true,
-        ),
-
-        TextFormField(
-          controller: currentFacetNameController,
-          decoration: const InputDecoration(labelText: 'Facet Name'),
-          validator: (v) => v!.isEmpty ? 'Required' : null,
-          onSaved: (val) => facets[currentFacetIndex]['facetName'] = val,
-        ),
-
-        TextFormField(
-          controller: currentPitchFacetController,
-          decoration: const InputDecoration(labelText: 'Pitch of Facet'),
-          onSaved: (val) => facets[currentFacetIndex]['pitchFacetValue'] = val,
-        ),
-
-        ElevatedButton(
-          onPressed: () => takePhoto(
-            'Facet Overview Photo',
-            isFacetPhoto: true,
-            facetIndex: currentFacetIndex,
+          buildDropdown(
+            'Facet Orientation',
+            facetOrientationOptions,
+            currentFacetOrientationName,
+            (val) => setState(() => onFacetOrientationChanged(val)),
+            requiredField: true,
           ),
-          child: const Text("Take Facet Overview Photo"),
-        ),
-        if (currentFacetOverviewPhoto != null)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: Image.file(currentFacetOverviewPhoto!, height: 100),
+          TextFormField(
+            controller: currentFacetNameController,
+            decoration: const InputDecoration(labelText: 'Facet Name'),
+            validator: (v) => v!.isEmpty ? 'Required' : null,
+            onSaved: (val) => facets[currentFacetIndex]['facetName'] = val,
           ),
-
-        if (!isHeavyRoof && roofCoverType?.toLowerCase().trim() != 'metal') 
+          TextFormField(
+            controller: currentPitchFacetController,
+            decoration: const InputDecoration(labelText: 'Pitch of Facet'),
+            onSaved: (val) => facets[currentFacetIndex]['pitchFacetValue'] = val,
+          ),
+          ElevatedButton(
+            onPressed: () => takePhoto(
+              'Facet Overview Photo',
+              isFacetPhoto: true,
+              facetIndex: currentFacetIndex,
+            ),
+            child: const Text("Take Facet Overview Photo"),
+          ),
+          if (currentFacetOverviewPhoto != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Image.file(currentFacetOverviewPhoto!, height: 100),
+            ),
+        ],
+        if (!isSingleRoofSection &&
+            !isHeavyRoof &&
+            roofCoverType?.toLowerCase().trim() != 'metal')
           CheckboxListTile(
             title: const Text('Is there Ridge Vent?'),
             value: currentHasRidgeVent,
@@ -249,8 +248,10 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
               onCurrentHasRidgeVentChanged(val ?? false);
             }),
           ),
-
-        if (!isHeavyRoof && roofCoverType?.toLowerCase().trim() != 'metal' && currentHasRidgeVent)
+        if (!isSingleRoofSection &&
+            !isHeavyRoof &&
+            roofCoverType?.toLowerCase().trim() != 'metal' &&
+            currentHasRidgeVent)
           Column(
             children: [
               buildDropdown(
@@ -278,8 +279,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
                 ),
             ],
           ),
-
-        if (roofCoverType == 'Shingles' )
+        if (!isSingleRoofSection && roofCoverType == 'Shingles')
           CheckboxListTile(
             title: const Text('ATR Performed?'),
             value: currentAtrPerformed,
@@ -288,9 +288,11 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
             }),
           ),
 
-        if (roofCoverType == 'Shingles' && currentAtrPerformed)
+        if (!isSingleRoofSection &&
+            roofCoverType == 'Shingles' &&
+            currentAtrPerformed)
           Column(
-            children: [
+            children: [ 
               buildDropdown(
                 'ATR Result',
                 atrResults,
@@ -317,15 +319,15 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
             ],
           ),
 
-        CheckboxListTile(
-          title: const Text('Has Valley Metal?'),
-          value: currentHasValleyMetal,
-          onChanged: (val) => setState(() {
-            onCurrentHasValleyMetalChanged(val ?? false);
-          }),
-        ),
-
-        if (currentHasValleyMetal)
+        if (!isSingleRoofSection)
+          CheckboxListTile(
+            title: const Text('Has Valley Metal?'),
+            value: currentHasValleyMetal,
+            onChanged: (val) => setState(() {
+              onCurrentHasValleyMetalChanged(val ?? false);
+            }),
+          ),
+        if (!isSingleRoofSection && currentHasValleyMetal)
           Column(
             children: [
               buildDropdown(
@@ -356,9 +358,9 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
           ),
 
         const SizedBox(height: 20),
-        const Text(
-          'Flashings on Facet',
-          style: TextStyle(
+        Text(
+          isSingleRoofSection ? 'Flashings' : 'Flashings on Facet',
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: Colors.black,
@@ -451,9 +453,9 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
         ),
 
         const SizedBox(height: 20),
-        const Text(
-          'Vents on Facet',
-          style: TextStyle(
+        Text(
+          isSingleRoofSection ? 'Vents' : 'Vents on Facet',
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: Colors.black,
@@ -561,9 +563,9 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
         ),
 
         const SizedBox(height: 20),
-        const Text(
-          'Other elements on the Facet',
-          style: TextStyle(
+        Text(
+          isSingleRoofSection ? 'Other elements on the Roof' : 'Other elements on the Facet',
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: Colors.black,
@@ -690,14 +692,19 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
         ElevatedButton.icon(
           onPressed: onTakeAdditionalFacetPhoto,
           icon: const Icon(Icons.add_a_photo),
-          label: const Text('Take additional photo of this facet'),
+          label: Text(
+            isSingleRoofSection
+                ? 'Take additional roof photo'
+                : 'Take additional photo of this facet',
+          ),
         ),
         const SizedBox(height: 20),
-
         const SizedBox(height: 20),
-        const Text(
-          'Additional comment on this facet',
-          style: TextStyle(
+        Text(
+          isSingleRoofSection
+              ? 'Additional comments'
+              : 'Additional comment on this facet',
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: Colors.black,
@@ -714,13 +721,14 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
         ),
         const SizedBox(height: 20),
 
-        CheckboxListTile(
-          title: const Text('This is the Last Facet'),
-          value: isLastFacet,
-          onChanged: (val) => setState(() => onIsLastFacetChanged(val ?? false)),
-        ),
-
-        if (isLastFacet) ...[
+        if (!isSingleRoofSection)
+          CheckboxListTile(
+            title: const Text('This is the Last Facet'),
+            value: isLastFacet,
+            onChanged: (val) =>
+                setState(() => onIsLastFacetChanged(val ?? false)),
+          ),
+        if (isSingleRoofSection || isLastFacet) ...[
           const SizedBox(height: 20),
           const Text(
             'Photo Report - Additional Images',
@@ -781,12 +789,12 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            if (!isLastFacet)
+            if (!isSingleRoofSection && !isLastFacet)
               ElevatedButton(
                 onPressed: addNextFacet,
                 child: const Text('Add Next Facet'),
               ),
-            if (isLastFacet)
+            if (isSingleRoofSection || isLastFacet)
               ElevatedButton(
                 onPressed: submitForm,
                 child: const Text(
