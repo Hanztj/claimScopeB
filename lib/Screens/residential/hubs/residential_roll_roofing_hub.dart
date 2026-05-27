@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
-
 class ResidentialRollRoofingHubForm extends StatelessWidget {
   final void Function(VoidCallback fn) setState;
 
   final String? roofCoverType;
 
   // Roll Roofing
-  final String? rollType;
-  final void Function(String? value) onRollTypeChanged;
-
-  final String? rollExposure;
+final String? rollExposure;
   final void Function(String? value) onRollExposureChanged;
 
   final String? numberOfPlies;
@@ -96,9 +92,6 @@ class ResidentialRollRoofingHubForm extends StatelessWidget {
     required this.roofCoverType,
 
     // Roll type
-    required this.rollType,
-    required this.onRollTypeChanged,
-
     required this.rollExposure,
     required this.onRollExposureChanged,
 
@@ -183,16 +176,15 @@ class ResidentialRollRoofingHubForm extends StatelessWidget {
 
         const SizedBox(height: 12),
 
-        // Roll Type
-        buildDropdown(
-          'Roll Type',
-          const [
-            'Smooth Surface',
-            'Granulated',
-          ],
-          rollType,
-          onRollTypeChanged,
-          requiredField: true,
+        ElevatedButton.icon(
+          onPressed: () async {
+            await takePhoto(
+              'Roof Overview Photo',
+              isGlobal: true,
+            );
+          },
+          icon: const Icon(Icons.camera_alt),
+          label: const Text('Take Roof Overview Photo'),
         ),
 
         const SizedBox(height: 12),
@@ -201,7 +193,8 @@ class ResidentialRollRoofingHubForm extends StatelessWidget {
         buildDropdown(
           'Exposure',
           const [
-            '30-32 in – 50% overlap',
+            '30 - 32 in',
+            '50% overlap',
           ],
           rollExposure,
           onRollExposureChanged,
@@ -277,6 +270,11 @@ class ResidentialRollRoofingHubForm extends StatelessWidget {
               label: const Text(
                 'Take Fastener Pull Test Photo',
               ),
+            ),
+            TextButton(
+              onPressed: () =>
+                  takeExtraPhotoForLabel('Fastener Pull Test extra photo'),
+              child: const Text('Add extra Fastener Pull Test photo'),
             ),
           ],
         ],
@@ -376,16 +374,6 @@ class ResidentialRollRoofingHubForm extends StatelessWidget {
           ],
         ],
 
-        const SizedBox(height: 20),
-
-        const Text(
-          'Global',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-
         const SizedBox(height: 12),
 
         // Ice & Water
@@ -405,7 +393,7 @@ class ResidentialRollRoofingHubForm extends StatelessWidget {
           ElevatedButton.icon(
             onPressed: () async {
               await takePhoto(
-                'Ice & Water Barrier',
+                'Ice & Water Barrier Photo',
                 isGlobal: true,
               );
             },
@@ -414,8 +402,12 @@ class ResidentialRollRoofingHubForm extends StatelessWidget {
               'Take Ice & Water Barrier Photo',
             ),
           ),
+          TextButton(
+            onPressed: () =>
+                takeExtraPhotoForLabel('Ice & Water Barrier extra photo'),
+            child: const Text('Add extra Ice & Water Barrier photo'),
+          ),
         ],
-
         const SizedBox(height: 12),
 
         // Drip Edge
@@ -446,7 +438,7 @@ class ResidentialRollRoofingHubForm extends StatelessWidget {
           ElevatedButton.icon(
             onPressed: () async {
               await takePhoto(
-                'Drip Edge',
+                'Drip Edge Photo',
                 isGlobal: true,
               );
             },
@@ -454,6 +446,10 @@ class ResidentialRollRoofingHubForm extends StatelessWidget {
             label: const Text(
               'Take Drip Edge Photo',
             ),
+          ),
+          TextButton(
+            onPressed: () => takeExtraPhotoForLabel('Drip Edge extra photo'),
+            child: const Text('Add extra Drip Edge photo'),
           ),
         ],
       ],
