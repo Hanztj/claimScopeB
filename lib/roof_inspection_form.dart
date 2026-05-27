@@ -533,7 +533,6 @@ String? noAction;
 
   // ===== Residential Roll Roofing =====
 
-  String? rollType;
   String? rollExposure;
   String? numberOfPlies;
 
@@ -617,13 +616,17 @@ String? noAction;
       '${orientation.name.substring(1)}-${existingFacetsOfOrientation + 1}';
          }
     
-      String? _validateCurrentFacetBeforeAdvance() {
-    if (_currentFacetOrientation == FacetOrientation.none) {
-      return 'Select the facet orientation before continuing.';
-    }
+      String? _validateCurrentFacetBeforeAdvance({
+    bool requireFacetDetails = true,
+  }) {
+    if (requireFacetDetails) {
+      if (_currentFacetOrientation == FacetOrientation.none) {
+        return 'Select the facet orientation before continuing.';
+      }
 
-    if (_currentFacetOverviewPhoto == null) {
-      return 'Take the main overview photo for this facet before continuing.';
+      if (_currentFacetOverviewPhoto == null) {
+        return 'Take the main overview photo for this facet before continuing.';
+      }
     }
 
     for (var i = 0; i < _currentFacetFlashingsData.length; i++) {
@@ -694,6 +697,36 @@ String? noAction;
     }
 
     return null;
+  }
+
+  void _attemptSubmitSingleRoofSection() {
+    final validationError = _validateCurrentFacetBeforeAdvance(
+      requireFacetDetails: false,
+    );
+    if (validationError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(validationError),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    _currentFacetNameController.text = 'Roof Section';
+    _currentFacetOrientation = FacetOrientation.none;
+    _currentPitchFacetController.clear();
+    _currentHasRidgeVent = false;
+    _currentRidgeVentType = null;
+    _currentRidgeVentPhoto = null;
+    _currentAtrPerformed = false;
+    _currentAtrResult = null;
+    _currentAtrPhoto = null;
+    _currentHasValleyMetal = false;
+    _currentValleyMetalType = null;
+    _currentValleyMetalPhoto = null;
+
+    submitForm();
   }
 
   void _attemptAddNextFacet() {
@@ -1296,6 +1329,7 @@ _formKey.currentState!.save();
       'Valley metal copper',
       'Valley metal painted'
     ];
+    final bool isRollRoofing = roofCoverType == 'Roll Roofing';
     
 
   final isBasico = widget.plan != 'premium'; // muestra Upgrade para free/básico
@@ -1594,12 +1628,7 @@ if (roofCoverType != null && (
     setState: setState,
     roofCoverType: roofCoverType,
 
-    // Roll Type
-    rollType: rollType,
-    onRollTypeChanged: (val) =>
-        setState(() => rollType = val),
-
-    rollExposure: rollExposure,
+rollExposure: rollExposure,
     onRollExposureChanged: (val) =>
         setState(() => rollExposure = val),
 
@@ -1825,7 +1854,7 @@ if (roofCoverType != null && (
                   roofCoverType == 'Slate Roof' ||
                   roofCoverType == 'Metal' ||
                   roofCoverType == 'Other' ||
-                  roofCoverType == 'Roll Roofing')
+                  isRollRoofing)
                 ResidentialFacetInspectionHub(
                   setState: setState,
                   roofCoverType: roofCoverType,
@@ -1957,6 +1986,10 @@ if (roofCoverType != null && (
                     _currentOtherElementSpecifyControllers.add(e['otherSpecifyController']);
                   },
                   onTakeAdditionalFacetPhoto: () {
+                    if (isRollRoofing) {
+                      _takeExtraPhotoForLabel('Roll Roofing - additional photo');
+                      return;
+                    }
                     final facetName = _currentFacetNameController.text.isNotEmpty
                         ? _currentFacetNameController.text
                         : 'Unnamed facet';
@@ -1979,7 +2012,10 @@ if (roofCoverType != null && (
                     );
                   },
                   addNextFacet: _attemptAddNextFacet,
-                  submitForm: submitForm,
+                  submitForm: isRollRoofing
+                      ? _attemptSubmitSingleRoofSection
+                      : submitForm,
+                  isSingleRoofSection: isRollRoofing,
                   takePhoto: _takePhoto,
                   takeExtraPhotoForLabel: _takeExtraPhotoForLabel,
                   buildDropdown: buildDropdown,
