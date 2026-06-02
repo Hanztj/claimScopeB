@@ -753,16 +753,26 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
               });
             },
           ),
-          if (subtypes.isNotEmpty) ...[
+   if (subtypes.isNotEmpty) ...[
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
+              isExpanded: true, // 👈 SOLUCIÓN 1: Obliga al Dropdown a ocupar el ancho disponible de forma segura
               initialValue: roof.roofSubType,
               decoration: const InputDecoration(
                 labelText: 'Subtype',
                 border: OutlineInputBorder(),
               ),
               items: subtypes
-                  .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                  .map((t) => DropdownMenuItem(
+                        value: t, 
+                        child: Expanded( // 👈 SOLUCIÓN 2: Envuelve el texto para que no empuje el icono del dropdown
+                          child: Text(
+                            t,
+                            overflow: TextOverflow.ellipsis, // Pone puntos suspensivos (...) si el texto no cabe
+                            maxLines: 1, // Evita que se salte a dos líneas rompiendo la altura del item
+                          ),
+                        ),
+                      ))
                   .toList(),
               onChanged: (val) {
                 setState(() {
