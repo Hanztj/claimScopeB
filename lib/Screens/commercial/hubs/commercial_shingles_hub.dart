@@ -500,12 +500,26 @@ class CommercialShinglesHubForm extends StatelessWidget {
         ],
 
         const SizedBox(height: 12),
-        DropdownButtonFormField<bool>(
-          initialValue: roof.hasMultipleFacets,
-          decoration: const InputDecoration(
-            labelText: 'Is there more than one facet?',
-            border: OutlineInputBorder(),
-          ),
+        Align(
+           alignment: Alignment.centerLeft,
+           child: Padding(
+           padding: const EdgeInsets.only(bottom: 6, left: 12), // 💡 Subí a 12 para alinearlo con el borde interno del OutlineInputBorder
+           child: Text(
+           'Is there more than one facet?',
+            style: TextStyle(
+            fontSize: 16, 
+            color: const Color.fromARGB(255, 1, 1, 1), // ✅ Sintaxis correcta para tu color 686868
+      ),
+    ),
+  ),
+),
+
+DropdownButtonFormField<bool>(
+  initialValue: roof.hasMultipleFacets,
+  decoration: const InputDecoration(
+    border: OutlineInputBorder(),
+    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+  ),
           items: const [
             DropdownMenuItem(value: false, child: Text('No')),
             DropdownMenuItem(value: true, child: Text('Yes')),

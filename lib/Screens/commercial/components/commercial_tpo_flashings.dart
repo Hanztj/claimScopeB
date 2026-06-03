@@ -59,15 +59,14 @@ class _CommercialTpoFlashingsState extends State<CommercialTpoFlashings> {
   }
 
   Future<void> _addExtraPhoto(int index) async {
-    await widget.takePhoto(
+     await widget.takePhoto(
       buildingName: widget.buildingName,
       roofName: widget.roofName,
       photoLabel: 'Flashing ${index + 1} - Extra Photo',
       onSaved: (file) {
         setState(() => widget.flashings[index].extraPhotos.add(file));
         widget.onChanged();
-      },
-    );
+      },);
   }
 
   @override
@@ -86,6 +85,7 @@ class _CommercialTpoFlashingsState extends State<CommercialTpoFlashings> {
           final index = entry.key;
           final flashing = entry.value;
           final typeConfig = commercialTpoFlashingConfigForType(flashing.type);
+
           final typeOptions = typeConfig.options;
 
           return Card(
@@ -114,14 +114,14 @@ class _CommercialTpoFlashingsState extends State<CommercialTpoFlashings> {
                   const SizedBox(height: 8),
 
                   DropdownButtonFormField<String>(
-                    value: flashing.type,
+                    initialValue: flashing.type,
                     decoration: const InputDecoration(labelText: 'Type', border: OutlineInputBorder()),
-                    items: tpoFlashingTypes
+                     items: tpoFlashingTypes
                         .map((t) => DropdownMenuItem(value: t, child: Text(t)))
                         .toList(),
                     onChanged: (val) {
                       if (val != null) {
-                        setState(() {
+                                                setState(() {
                           flashing.type = val;
                           flashing.size = null;
                           flashing.material = null;
@@ -140,7 +140,7 @@ class _CommercialTpoFlashingsState extends State<CommercialTpoFlashings> {
                   if (typeOptions.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: flashing.size,
+                      initialValue: flashing.size,
                       decoration: const InputDecoration(labelText: 'Size', border: OutlineInputBorder()),
                       items: typeOptions.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                       onChanged: (val) {
@@ -149,7 +149,7 @@ class _CommercialTpoFlashingsState extends State<CommercialTpoFlashings> {
                       },
                     ),
                   ],
-
+       
                   if (typeConfig.showLfCount) ...[
                     const SizedBox(height: 12),
                     TextField(
@@ -161,11 +161,10 @@ class _CommercialTpoFlashingsState extends State<CommercialTpoFlashings> {
                       },
                     ),
                   ],
-
-                  if (typeConfig.showFullPerimeter) ...[
+                      if (typeConfig.showFullPerimeter) ...[
                     const SizedBox(height: 12),
                     DropdownButtonFormField<bool>(
-                      value: flashing.fullPerimeter,
+                      initialValue: flashing.fullPerimeter,
                       decoration: const InputDecoration(labelText: 'Full perimeter?', border: OutlineInputBorder()),
                       items: const [
                         DropdownMenuItem(value: true, child: Text('Yes')),
@@ -197,9 +196,9 @@ class _CommercialTpoFlashingsState extends State<CommercialTpoFlashings> {
                   if (typeConfig.materialOptions.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: flashing.material,
+                      initialValue: flashing.material,
                       decoration: const InputDecoration(labelText: 'Material', border: OutlineInputBorder()),
-                      items: typeConfig.materialOptions
+                                            items: typeConfig.materialOptions
                           .map((m) => DropdownMenuItem(value: m, child: Text(m)))
                           .toList(),
                       onChanged: (val) {
@@ -208,8 +207,7 @@ class _CommercialTpoFlashingsState extends State<CommercialTpoFlashings> {
                       },
                     ),
                   ],
-
-                  if (typeConfig.showOtherSpecify) ...[
+                    if (typeConfig.showOtherSpecify) ...[
                     const SizedBox(height: 12),
                     TextField(
                       decoration: const InputDecoration(labelText: 'Specify', border: OutlineInputBorder()),
@@ -219,7 +217,6 @@ class _CommercialTpoFlashingsState extends State<CommercialTpoFlashings> {
                       },
                     ),
                   ],
-
                   if (typeConfig.showCount) ...[
                     const SizedBox(height: 12),
                     TextField(
@@ -235,7 +232,7 @@ class _CommercialTpoFlashingsState extends State<CommercialTpoFlashings> {
                   if (typeConfig.gradeOptions.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: flashing.grade,
+                      initialValue: flashing.grade,
                       decoration: const InputDecoration(labelText: 'Grade', border: OutlineInputBorder()),
                       items: typeConfig.gradeOptions
                           .map((g) => DropdownMenuItem(value: g, child: Text(g)))

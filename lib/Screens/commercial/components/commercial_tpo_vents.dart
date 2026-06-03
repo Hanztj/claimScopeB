@@ -99,7 +99,7 @@ class _CommercialTpoVentsState extends State<CommercialTpoVents> {
                     children: [
                       Text(
                         'Vent ${index + 1}',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF101230)),
+                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF101230)),
                       ),
                       const Spacer(),
                       IconButton(
@@ -112,7 +112,7 @@ class _CommercialTpoVentsState extends State<CommercialTpoVents> {
                   const SizedBox(height: 8),
 
                   DropdownButtonFormField<String>(
-                    value: vent.type,
+                    initialValue: vent.type,
                     decoration: const InputDecoration(labelText: 'Type', border: OutlineInputBorder()),
                     items: commercialVentTypes
                         .map((t) => DropdownMenuItem(value: t, child: Text(t)))
@@ -129,13 +129,13 @@ class _CommercialTpoVentsState extends State<CommercialTpoVents> {
                         });
                         widget.onChanged();
                       }
-                    },
-                  ),
+                   },
+                 ),
 
                   if (typeConfig.sizeOptions.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: vent.size,
+                      initialValue: vent.size,
                       decoration: const InputDecoration(labelText: 'Size', border: OutlineInputBorder()),
                       items: typeConfig.sizeOptions
                           .map((s) => DropdownMenuItem(value: s, child: Text(s)))
@@ -150,7 +150,7 @@ class _CommercialTpoVentsState extends State<CommercialTpoVents> {
                   if (typeConfig.throatDimensionOptions.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: vent.throatDimension,
+                    initialValue: vent.throatDimension,
                       decoration: const InputDecoration(labelText: 'Throat dimension', border: OutlineInputBorder()),
                       items: typeConfig.throatDimensionOptions
                           .map((s) => DropdownMenuItem(value: s, child: Text(s)))
@@ -181,7 +181,7 @@ class _CommercialTpoVentsState extends State<CommercialTpoVents> {
                   if (typeConfig.shapeOptions.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: vent.shape,
+                      initialValue: vent.shape,
                       decoration: const InputDecoration(labelText: 'Shape', border: OutlineInputBorder()),
                       items: typeConfig.shapeOptions
                           .map((s) => DropdownMenuItem(value: s, child: Text(s)))
@@ -190,7 +190,7 @@ class _CommercialTpoVentsState extends State<CommercialTpoVents> {
                         setState(() => vent.shape = val);
                         widget.onChanged();
                       },
-                    ),
+                   ),
                   ],
 
                   if (typeConfig.showOtherSpecify) ...[

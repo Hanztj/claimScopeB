@@ -12,6 +12,7 @@ admin.initializeApp();
 // 3. CONFIGURACIÓN Y SECRETOS
 const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
 const webhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
+const emailPass = defineSecret("EMAIL_PASS");
 
 const priceBasic = defineString("STRIPE_PRICE_BASIC", {
     default: "price_1SXPDkIV8TkU9SxHb9qzNc4R"
@@ -20,14 +21,8 @@ const pricePremium = defineString("STRIPE_PRICE_PREMIUM", {
     default: "price_1SXPEDIV8TkU9SxHEMLdOOPO"
 });
 
-// Configuración de Nodemailer (Cartero Central)
-const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-        user: "soporte.claimscope@gmail.com",
-        pass: "jbqjyvsozmwxguuv", // Tu App Password de 16 letras
-    },
-});
+// Newer configuration for nodemailer using Gmail
+
 function sanitizeAttachmentFilename(input, fallback) {
   const s = String(input || "").trim();
   if (!s) return fallback;
@@ -35,7 +30,7 @@ function sanitizeAttachmentFilename(input, fallback) {
 }
 // 4. WEBHOOK STRIPE (V2)
 exports.stripeWebhook = onRequest(
-    { secrets: [stripeSecretKey, webhookSecret] },
+    { secrets: [stripeSecretKey, webhookSecret, emailPass] },
     async (req, res) => {
         if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
@@ -49,6 +44,14 @@ exports.stripeWebhook = onRequest(
             console.error("Webhook signature failed:", err.message);
             return res.status(400).send(`Webhook Error: ${err.message}`);
         }
+
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: "soporte.claimscope@gmail.com",
+                pass: emailPass.value(), // Usa el secreto de forma segura
+            },
+        });
 
         try {
             switch (event.type) {
@@ -434,10 +437,20 @@ exports.createHfEstimatesXactimateCheckoutSession = onCall(
 );
 // 6. SEND INSPECTION EMAIL (V2 - Consolidada)
 // Esta versión usa las URLs de los archivos para no saturar la memoria
-exports.sendInspectionEmail = onCall(async (request) => {
-    if (!request.auth) {
-        throw new HttpsError("unauthenticated", "Debe iniciar sesión.");
-    }
+exports.sendInspectionEmail = onCall(
+    { secrets: [emailPass] }, // <-- 1er argumento: Objeto de configuración
+    async (request) => {      // <-- 2do argumento: Tu función async de siempre
+        if (!request.auth) {
+            throw new HttpsError("unauthenticated", "Debe iniciar sesión.");
+        }
+
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: "soporte.claimscope@gmail.com",
+                pass: emailPass.value(),
+            },
+        });
 
     const { toEmails, techPdfUrl, photoPdfUrl, techFilename, photoFilename } = request.data;
     if (!techPdfUrl || !photoPdfUrl) {

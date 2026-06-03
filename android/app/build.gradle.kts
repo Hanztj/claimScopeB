@@ -17,18 +17,17 @@ plugins {
 }
 
 android {
-    // Asegúrate de que este namespace coincida con el de tu MainActivity
     namespace = "com.example.claimscope_clean" 
     compileSdk = 36
     ndkVersion = "27.0.12077973"
 
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17 // ← Cambiado a 17
+        targetCompatibility = JavaVersion.VERSION_17 // ← Cambiado a 17
     }
 
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = JavaVersion.VERSION_17.toString() // ← Cambiado a 17
     }
 
     signingConfigs {
@@ -45,7 +44,6 @@ android {
     }
 
     defaultConfig {
-        // 💡 CONSEJO: Verifica que este ID sea el que registraste en Firebase Console
         applicationId = "com.example.claimscope" 
         minSdk = 24
         targetSdk = 36
@@ -55,7 +53,7 @@ android {
 
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = true // Activado para release
+            isMinifyEnabled = true 
             isShrinkResources = true
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

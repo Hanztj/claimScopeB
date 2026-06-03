@@ -4,6 +4,8 @@ import 'package:archive/archive.dart';
 
 import '../inspection_report_model.dart';
 import 'photo_labels.dart';
+import 'package:path_provider/path_provider.dart';
+
 
 String _sanitizePhotoBaseName(String label) {
   var s = label.trim();
@@ -70,4 +72,48 @@ Future<File> writeZipToFile({
   final out = File('${outputDir.path}/$safeName');
   await out.writeAsBytes(zipBytes, flush: true);
   return out;
+}
+String sanitizeFilename(String input) {
+  var s = input.trim();
+
+  if (s.isEmpty) return 'UNKNOWN';
+
+  s = s.replaceAll(RegExp(r'[\/\\\:\*\?\"\<\>\|]'), '');
+  s = s.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+  return s.isEmpty ? 'UNKNOWN' : s;
+}
+
+Future<File> generateLabeledPhotosZip(
+  InspectionReport report,
+) async {
+  // Excluir imágenes de galería
+  final items = report.photoReportItems.where((p) {
+    return p.label.trim() != 'User Image';
+  }).toList();
+
+  final archive = buildLabeledPhotosArchive(items);
+
+  final zipBytes = encodeZipBytes(archive);
+
+  final claim = report.claimNumber.trim().isEmpty
+      ? 'NOCLAIM'
+      : sanitizeFilename(report.claimNumber);
+
+  final insured = report.clientName.trim().isEmpty
+      ? 'UNKNOWN'
+      : sanitizeFilename(report.clientName);
+
+  final dir = await getApplicationDocumentsDirectory();
+
+  final filename =
+      '$claim - $insured - Inspection Photos (ZIP).zip';
+
+  final zipFile = await writeZipToFile(
+    zipBytes: zipBytes,
+    outputDir: dir,
+    filename: filename,
+  );
+
+  return zipFile;
 }

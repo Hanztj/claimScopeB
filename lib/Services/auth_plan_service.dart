@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 // ----------------------------------------------------------------------
 // FUNCIÓN CLAVE: Leer el Custom Claim del token
@@ -27,7 +28,7 @@ Future<String> getUserPlanStatus({bool forceRefresh = false}) async {
     return userPlan ?? 'basico'; 
     
   } catch (e) {
-    print("Error al obtener los Custom Claims: $e");
-    return 'error';
+    debugPrint('Error al obtener el plan del usuario: $e');
+    return 'basico'; // En caso de error, asumimos el plan básico.
   }
 }

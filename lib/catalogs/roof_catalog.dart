@@ -62,7 +62,7 @@ const Map<String, List<String>> roofSubtypesByType = {
     'Perimeter Adhered system > 75 mil',
     'Perimeter Adhered system > 90 mil',
   ],
-  'Roll Roofing': ['Hot mopped', 'Self-adhering'],
+ 'Roll Roofing': ['Smooth Surface', 'Granulated'],
 };
 
 List<String> subtypesForRoofType(String? roofType) {
