@@ -137,7 +137,7 @@ class CommercialFlatHubForm extends StatelessWidget {
               ),
             ),
         ],
-        if (roof.roofType == 'EPDM' || roof.roofType == 'Modified Bitumen' || roof.roofType == 'Roll Roofing') ...[
+        if (roof.roofType == 'EPDM' || roof.roofType == 'Modified Bitumen') ...[
           const SizedBox(height: 12),
           CheckboxListTile(
             title: const Text('Gravel ballast present?'),

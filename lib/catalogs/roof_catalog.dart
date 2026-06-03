@@ -5,9 +5,7 @@ const List<String> roofTypesCommercial = [
   'Metal',
   'Shingles',
   'Tile roofing',
-  'Wood Shake',
   'Slate Roof',
-  'Roll Roofing',
   'Other',
 ];
 
