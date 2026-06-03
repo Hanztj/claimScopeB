@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../../../inspection_report_model.dart';
 import '../components/commercial_hvac_mechanical_rooftop.dart';
-import '../components/commercial_tpo_flashings.dart';
-import '../components/commercial_tpo_vents.dart';
+import '../components/commercial_flashings_section.dart';
+import '../components/commercial_vents_section.dart';
 
 class CommercialFlatHubForm extends StatelessWidget {
   final CommercialRoofSectionData roof;
@@ -416,7 +416,8 @@ class CommercialFlatHubForm extends StatelessWidget {
 
          if (_supportsFlatAccessories) ...[
           const SizedBox(height: 16),
-          CommercialTpoFlashings(
+          CommercialFlashingsSection(
+            roofType: roof.roofType ?? '',
             flashings: roof.tpoFlashings,
             onChanged: sync,
             takePhoto: takeCommercialPhoto,
@@ -424,7 +425,8 @@ class CommercialFlatHubForm extends StatelessWidget {
             roofName: roofName,
           ),
                   const SizedBox(height: 16),
-          CommercialTpoVents(
+          CommercialVentsSection(
+            roofType: roof.roofType ?? '',
             vents: roof.tpoVents,
             onChanged: sync,
             takePhoto: takeCommercialPhoto,

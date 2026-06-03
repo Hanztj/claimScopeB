@@ -14,6 +14,9 @@ class CommercialVentFieldConfig {
   });
 }
 
+// ============================================================
+// LEGACY — mantener intacto.
+// ============================================================
 const List<String> commercialVentTypes = [
   'TPO Pipe jack Boot',
   'Vent Pipe High Wind Cap',
@@ -49,4 +52,34 @@ const Map<String, CommercialVentFieldConfig> commercialVentConfigByType = {
 CommercialVentFieldConfig commercialVentConfigForType(String? type) {
   if (type == null) return const CommercialVentFieldConfig();
   return commercialVentConfigByType[type] ?? const CommercialVentFieldConfig();
+}
+
+// ============================================================
+// NUEVO — API genérica por tipo de techo (Phase 1).
+// ============================================================
+const Map<String, List<String>> commercialVentTypesByRoof = {
+  'TPO': commercialVentTypes,
+  'EPDM': commercialVentTypes,
+  'Modified Bitumen': commercialVentTypes,
+};
+
+const Map<String, Map<String, CommercialVentFieldConfig>>
+    commercialVentConfigByRoof = {
+  'TPO': commercialVentConfigByType,
+  'EPDM': commercialVentConfigByType,
+  'Modified Bitumen': commercialVentConfigByType,
+};
+
+List<String> commercialVentTypesForRoof(String? roofType) {
+  if (roofType == null) return commercialVentTypes;
+  return commercialVentTypesByRoof[roofType] ?? commercialVentTypes;
+}
+
+CommercialVentFieldConfig commercialVentConfigForRoof(
+    String? roofType, String? type) {
+  if (type == null) return const CommercialVentFieldConfig();
+  final map = (roofType == null
+      ? commercialVentConfigByType
+      : commercialVentConfigByRoof[roofType] ?? commercialVentConfigByType);
+  return map[type] ?? const CommercialVentFieldConfig();
 }

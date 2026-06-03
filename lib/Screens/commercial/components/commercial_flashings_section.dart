@@ -1,12 +1,13 @@
-// lib/screens/commercial/components/commercial_tpo_vents.dart
+// lib/screens/commercial/components/commercial_flashings_section.dart
 
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:claimscope_clean/inspection_report_model.dart';
-import '../../../catalogs/commercial_vent_catalog.dart';
+import '../../../catalogs/commercial_flashing_catalog.dart';
 
-class CommercialTpoVents extends StatefulWidget {
-  final List<CommercialVentData> vents;
+class CommercialFlashingsSection extends StatefulWidget {
+  final String roofType;
+  final List<CommercialFlashingData> flashings;
   final Function() onChanged;
   final Future<void> Function({
     required String buildingName,
@@ -18,9 +19,10 @@ class CommercialTpoVents extends StatefulWidget {
   final String buildingName;
   final String roofName;
 
-  const CommercialTpoVents({
+  const CommercialFlashingsSection({
     super.key,
-    required this.vents,
+    required this.roofType,
+    required this.flashings,
     required this.onChanged,
     required this.takePhoto,
     required this.buildingName,
@@ -28,20 +30,22 @@ class CommercialTpoVents extends StatefulWidget {
   });
 
   @override
-  State<CommercialTpoVents> createState() => _CommercialTpoVentsState();
+  State<CommercialFlashingsSection> createState() => _CommercialFlashingsSectionState();
 }
 
-class _CommercialTpoVentsState extends State<CommercialTpoVents> {
-  void _addVent(String type) {
+class _CommercialFlashingsSectionState extends State<CommercialFlashingsSection> {
+  List<String> get _typeOptions => commercialFlashingTypesForRoof(widget.roofType);
+
+  void _addFlashing(String type) {
     setState(() {
-      widget.vents.add(CommercialVentData(type: type));
+      widget.flashings.add(CommercialFlashingData(type: type));
     });
     widget.onChanged();
   }
 
-  void _removeVent(int index) {
+  void _removeFlashing(int index) {
     setState(() {
-      widget.vents.removeAt(index);
+      widget.flashings.removeAt(index);
     });
     widget.onChanged();
   }
@@ -50,9 +54,9 @@ class _CommercialTpoVentsState extends State<CommercialTpoVents> {
     await widget.takePhoto(
       buildingName: widget.buildingName,
       roofName: widget.roofName,
-      photoLabel: 'Vent ${index + 1} - Main Photo',
+      photoLabel: 'Flashing ${index + 1} - Main Photo',
       onSaved: (file) {
-        setState(() => widget.vents[index].photo = file);
+        setState(() => widget.flashings[index].photo = file);
         widget.onChanged();
       },
     );
@@ -62,9 +66,9 @@ class _CommercialTpoVentsState extends State<CommercialTpoVents> {
     await widget.takePhoto(
       buildingName: widget.buildingName,
       roofName: widget.roofName,
-      photoLabel: 'Vent ${index + 1} - Extra Photo',
+      photoLabel: 'Flashing ${index + 1} - Extra Photo',
       onSaved: (file) {
-        setState(() => widget.vents[index].extraPhotos.add(file));
+        setState(() => widget.flashings[index].extraPhotos.add(file));
         widget.onChanged();
       },
     );
@@ -76,15 +80,18 @@ class _CommercialTpoVentsState extends State<CommercialTpoVents> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Vents',
+          'Flashings',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF101230)),
         ),
         const SizedBox(height: 12),
 
-        ...widget.vents.asMap().entries.map((entry) {
+        ...widget.flashings.asMap().entries.map((entry) {
           final index = entry.key;
-          final vent = entry.value;
-          final typeConfig = commercialVentConfigForType(vent.type);
+          final flashing = entry.value;
+          final typeConfig =
+              commercialFlashingConfigForRoof(widget.roofType, flashing.type);
+
+          final typeOptions = typeConfig.options;
 
           return Card(
             margin: const EdgeInsets.only(bottom: 16),
@@ -98,13 +105,13 @@ class _CommercialTpoVentsState extends State<CommercialTpoVents> {
                   Row(
                     children: [
                       Text(
-                        'Vent ${index + 1}',
-                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF101230)),
+                        'Flashing ${index + 1}',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF101230)),
                       ),
                       const Spacer(),
                       IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _removeVent(index),
+                        onPressed: () => _removeFlashing(index),
                       ),
                     ],
                   ),
@@ -112,111 +119,139 @@ class _CommercialTpoVentsState extends State<CommercialTpoVents> {
                   const SizedBox(height: 8),
 
                   DropdownButtonFormField<String>(
-                    initialValue: vent.type,
+                    isExpanded: true,
+                    initialValue: flashing.type,
                     decoration: const InputDecoration(labelText: 'Type', border: OutlineInputBorder()),
-                    items: commercialVentTypes
-                        .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                    items: _typeOptions
+                        .map((t) => DropdownMenuItem(value: t, child: Text(t, overflow: TextOverflow.ellipsis)))
                         .toList(),
                     onChanged: (val) {
                       if (val != null) {
                         setState(() {
-                          vent.type = val;
-                          vent.size = null;
-                          vent.throatDimension = null;
-                          vent.throatDimensionOtherSpecify = null;
-                          vent.shape = null;
-                          vent.otherSpecify = null;
+                          flashing.type = val;
+                          flashing.size = null;
+                          flashing.material = null;
+                          flashing.grade = null;
+                          flashing.lfCount = null;
+                          flashing.count = null;
+                          flashing.fullPerimeter = null;
+                          flashing.otherSpecify = null;
                         });
                         widget.onChanged();
                       }
-                   },
-                 ),
+                    },
+                  ),
 
-                  if (typeConfig.sizeOptions.isNotEmpty) ...[
+                  if (typeOptions.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      initialValue: vent.size,
+                      initialValue: flashing.size,
                       decoration: const InputDecoration(labelText: 'Size', border: OutlineInputBorder()),
-                      items: typeConfig.sizeOptions
-                          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                          .toList(),
+                      items: typeOptions.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                       onChanged: (val) {
-                        setState(() => vent.size = val);
+                        setState(() => flashing.size = val);
                         widget.onChanged();
                       },
                     ),
                   ],
 
-                  if (typeConfig.throatDimensionOptions.isNotEmpty) ...[
+                  if (typeConfig.showLfCount) ...[
                     const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                    initialValue: vent.throatDimension,
-                      decoration: const InputDecoration(labelText: 'Throat dimension', border: OutlineInputBorder()),
-                      items: typeConfig.throatDimensionOptions
-                          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                          .toList(),
+                    TextField(
+                      decoration: const InputDecoration(labelText: 'How many LF', border: OutlineInputBorder()),
+                      keyboardType: TextInputType.number,
+                      onChanged: (val) {
+                        flashing.lfCount = val;
+                        widget.onChanged();
+                      },
+                    ),
+                  ],
+                  if (typeConfig.showFullPerimeter) ...[
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<bool>(
+                      initialValue: flashing.fullPerimeter,
+                      decoration: const InputDecoration(labelText: 'Full perimeter?', border: OutlineInputBorder()),
+                      items: const [
+                        DropdownMenuItem(value: true, child: Text('Yes')),
+                        DropdownMenuItem(value: false, child: Text('No')),
+                      ],
                       onChanged: (val) {
                         setState(() {
-                          vent.throatDimension = val;
-                          if (val != 'Other') {
-                            vent.throatDimensionOtherSpecify = null;
+                          flashing.fullPerimeter = val;
+                          if (val == true) {
+                            flashing.lfCount = null;
                           }
                         });
                         widget.onChanged();
                       },
                     ),
+                    if (flashing.fullPerimeter == false) ...[
+                      const SizedBox(height: 12),
+                      TextField(
+                        decoration: const InputDecoration(labelText: 'How many LF', border: OutlineInputBorder()),
+                        keyboardType: TextInputType.number,
+                        onChanged: (val) {
+                          flashing.lfCount = val;
+                          widget.onChanged();
+                        },
+                      ),
+                    ],
                   ],
 
-                  if (typeConfig.showThroatDimensionOtherSpecify && vent.throatDimension == 'Other') ...[
+                  if (typeConfig.materialOptions.isNotEmpty) ...[
                     const SizedBox(height: 12),
-                    TextField(
-                      decoration: const InputDecoration(labelText: 'Specify throat dimension', border: OutlineInputBorder()),
+                    DropdownButtonFormField<String>(
+                      initialValue: flashing.material,
+                      decoration: const InputDecoration(labelText: 'Material', border: OutlineInputBorder()),
+                      items: typeConfig.materialOptions
+                          .map((m) => DropdownMenuItem(value: m, child: Text(m)))
+                          .toList(),
                       onChanged: (val) {
-                        vent.throatDimensionOtherSpecify = val;
+                        setState(() => flashing.material = val);
                         widget.onChanged();
                       },
                     ),
                   ],
-
-                  if (typeConfig.shapeOptions.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      initialValue: vent.shape,
-                      decoration: const InputDecoration(labelText: 'Shape', border: OutlineInputBorder()),
-                      items: typeConfig.shapeOptions
-                          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                          .toList(),
-                      onChanged: (val) {
-                        setState(() => vent.shape = val);
-                        widget.onChanged();
-                      },
-                   ),
-                  ],
-
                   if (typeConfig.showOtherSpecify) ...[
                     const SizedBox(height: 12),
                     TextField(
                       decoration: const InputDecoration(labelText: 'Specify', border: OutlineInputBorder()),
                       onChanged: (val) {
-                        vent.otherSpecify = val;
+                        flashing.otherSpecify = val;
+                        widget.onChanged();
+                      },
+                    ),
+                  ],
+                  if (typeConfig.showCount) ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      decoration: const InputDecoration(labelText: 'How many', border: OutlineInputBorder()),
+                      keyboardType: TextInputType.number,
+                      onChanged: (val) {
+                        flashing.count = val;
                         widget.onChanged();
                       },
                     ),
                   ],
 
-                  const SizedBox(height: 12),
-                  TextField(
-                    decoration: const InputDecoration(labelText: 'How many', border: OutlineInputBorder()),
-                    keyboardType: TextInputType.number,
-                    onChanged: (val) {
-                      vent.count = val;
-                      widget.onChanged();
-                    },
-                  ),
+                  if (typeConfig.gradeOptions.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: flashing.grade,
+                      decoration: const InputDecoration(labelText: 'Grade', border: OutlineInputBorder()),
+                      items: typeConfig.gradeOptions
+                          .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                          .toList(),
+                      onChanged: (val) {
+                        setState(() => flashing.grade = val);
+                        widget.onChanged();
+                      },
+                    ),
+                  ],
 
                   const SizedBox(height: 16),
 
-                  if (vent.photo == null)
+                  if (flashing.photo == null)
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -226,7 +261,7 @@ class _CommercialTpoVentsState extends State<CommercialTpoVents> {
                           foregroundColor: const Color(0xFF101230),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        child: const Text('Take Vent Photo (Required)'),
+                        child: const Text('Take Flashing Photo (Required)'),
                       ),
                     )
                   else
@@ -234,7 +269,7 @@ class _CommercialTpoVentsState extends State<CommercialTpoVents> {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.file(vent.photo!, height: 160, width: double.infinity, fit: BoxFit.cover),
+                          child: Image.file(flashing.photo!, height: 160, width: double.infinity, fit: BoxFit.cover),
                         ),
                         const SizedBox(height: 8),
                         TextButton(
@@ -249,18 +284,18 @@ class _CommercialTpoVentsState extends State<CommercialTpoVents> {
                   TextButton.icon(
                     onPressed: () => _addExtraPhoto(index),
                     icon: const Icon(Icons.add_a_photo, size: 20),
-                    label: const Text('Add extra Vent photo'),
+                    label: const Text('Add extra flashing photo'),
                     style: TextButton.styleFrom(
                       foregroundColor: const Color(0xFF101230),
                       textStyle: const TextStyle(fontSize: 15),
                     ),
                   ),
 
-                  if (vent.extraPhotos.isNotEmpty)
+                  if (flashing.extraPhotos.isNotEmpty)
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: vent.extraPhotos
+                      children: flashing.extraPhotos
                           .map((f) => ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
                                 child: Image.file(f, height: 90),
@@ -276,9 +311,9 @@ class _CommercialTpoVentsState extends State<CommercialTpoVents> {
         Align(
           alignment: Alignment.centerLeft,
           child: ElevatedButton.icon(
-            onPressed: () => _showAddVentDialog(),
+            onPressed: () => _showAddFlashingDialog(),
             icon: const Icon(Icons.add, size: 18),
-            label: const Text('Add Vent'),
+            label: const Text('Add Flashing'),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFFA7F21),
               foregroundColor: const Color(0xFF101230),
@@ -298,22 +333,22 @@ class _CommercialTpoVentsState extends State<CommercialTpoVents> {
     );
   }
 
-  void _showAddVentDialog() {
+  void _showAddFlashingDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text('Choose Vent Type'),
+        title: const Text('Choose Flashing Type'),
         content: SizedBox(
           width: double.maxFinite,
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: commercialVentTypes.map((type) {
+            children: _typeOptions.map((type) {
               return ListTile(
                 title: Text(type),
                 onTap: () {
                   Navigator.pop(context);
-                  _addVent(type);
+                  _addFlashing(type);
                 },
               );
             }).toList(),

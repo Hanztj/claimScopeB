@@ -20,6 +20,9 @@ class CommercialFlashingFieldConfig {
   });
 }
 
+// ============================================================
+// LEGACY (TPO) — mantener intacto, lo siguen usando archivos antiguos.
+// ============================================================
 const List<String> tpoFlashingTypes = [
   'Parapet Wall',
   'Curb flashing',
@@ -71,4 +74,37 @@ const Map<String, CommercialFlashingFieldConfig> tpoFlashingConfigByType = {
 CommercialFlashingFieldConfig commercialTpoFlashingConfigForType(String? type) {
   if (type == null) return const CommercialFlashingFieldConfig();
   return tpoFlashingConfigByType[type] ?? const CommercialFlashingFieldConfig();
+}
+
+// ============================================================
+// NUEVO — API genérica por tipo de techo (Phase 1).
+// TPO / EPDM / Modified Bitumen comparten el mismo set actual.
+// Para agregar Tile / Slate en próximas fases: añadir una entrada
+// nueva en ambos mapas. Si el roofType no está mapeado, cae a TPO.
+// ============================================================
+const Map<String, List<String>> commercialFlashingTypesByRoof = {
+  'TPO': tpoFlashingTypes,
+  'EPDM': tpoFlashingTypes,
+  'Modified Bitumen': tpoFlashingTypes,
+};
+
+const Map<String, Map<String, CommercialFlashingFieldConfig>>
+    commercialFlashingConfigByRoof = {
+  'TPO': tpoFlashingConfigByType,
+  'EPDM': tpoFlashingConfigByType,
+  'Modified Bitumen': tpoFlashingConfigByType,
+};
+
+List<String> commercialFlashingTypesForRoof(String? roofType) {
+  if (roofType == null) return tpoFlashingTypes;
+  return commercialFlashingTypesByRoof[roofType] ?? tpoFlashingTypes;
+}
+
+CommercialFlashingFieldConfig commercialFlashingConfigForRoof(
+    String? roofType, String? type) {
+  if (type == null) return const CommercialFlashingFieldConfig();
+  final map = (roofType == null
+      ? tpoFlashingConfigByType
+      : commercialFlashingConfigByRoof[roofType] ?? tpoFlashingConfigByType);
+  return map[type] ?? const CommercialFlashingFieldConfig();
 }

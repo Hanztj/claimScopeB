@@ -763,17 +763,15 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
                 border: OutlineInputBorder(),
               ),
               items: subtypes
-                  .map((t) => DropdownMenuItem(
-                        value: t, 
-                        child: Expanded( // 👈 SOLUCIÓN 2: Envuelve el texto para que no empuje el icono del dropdown
-                          child: Text(
-                            t,
-                            overflow: TextOverflow.ellipsis, // Pone puntos suspensivos (...) si el texto no cabe
-                            maxLines: 1, // Evita que se salte a dos líneas rompiendo la altura del item
-                          ),
-                        ),
-                      ))
-                  .toList(),
+             .map((t) => DropdownMenuItem(
+             value: t,
+            child: Text(
+            t,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+                 ),
+                  ))
+          .toList(),
               onChanged: (val) {
                 setState(() {
                   roof.roofSubType = val;
@@ -1396,9 +1394,8 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
     );
   }
   // === FUNCIÓN PARA ENVIAR REPORTE COMERCIAL ===
-  Future<void> _submitCommercialReport() async {
-    
-              if (roof.roofType == null) {
+Future<void> _submitCommercialReport() async {
+  if (roof.roofType == null) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Select the type of roof covering.'),
@@ -1407,39 +1404,57 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
     );
     return;
   }
-    
-    try {
-      widget.report.isCommercial = true;
-      roof.reportType = 'commercial';
-           // 2. MOSTRAR LOADING (Solo si las validaciones pasaron)
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
-      // Generar PDFs
-      final pdfs = await PdfService.generateReports(widget.report);
-        // 4. VALIDAR INTEGRIDAD DE LOS PDFs GENERADOS
-               if (!pdfs.containsKey('tech') || !pdfs.containsKey('photos')) {
-        throw Exception('PDF generation did not return the expected reports.');
-         }
-          // 5. CERRAR LOADING DE FORMA SEGURA
-          if (!mounted) return;
-           Navigator.pop(context); // Cerrar loading
-      // 6. MOSTRAR OPCIONES DE ENVÍO (Una sola vez con su respectivo await si aplica)
-        await _showSubmissionOptions(pdfs['tech']!, pdfs['photos']!);
 
-       } catch (e) {
-      if (!mounted) return;
-      // Un truco seguro para cerrar el diálogo en el catch sin remover pantallas de atrás
-       Navigator.of(context).popUntil((route) => route.isCurrent);
-       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error generando PDFs: $e'),
-          backgroundColor: Colors.red,
-        ),
+  final navigator = Navigator.of(context);
+  bool loadingShown = false;
+
+  try {
+    widget.report.isCommercial = true;
+    roof.reportType = 'commercial';
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    loadingShown = true;
+
+    final pdfs = await PdfService.generateReports(widget.report);
+
+    if (!mounted) return;
+
+    if (!pdfs.containsKey('tech') || !pdfs.containsKey('photos')) {
+      throw Exception(
+        'PDF generation did not return the expected reports.',
       );
     }
+
+    if (loadingShown && navigator.canPop()) {
+      navigator.pop();
+      loadingShown = false;
+    }
+
+    await _showSubmissionOptions(
+      pdfs['tech']!,
+      pdfs['photos']!,
+    );
+  } catch (e) {
+    if (!mounted) return;
+
+    if (loadingShown && navigator.canPop()) {
+      navigator.pop();
+      loadingShown = false;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error generating PDFs: $e'),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
+}
 }
