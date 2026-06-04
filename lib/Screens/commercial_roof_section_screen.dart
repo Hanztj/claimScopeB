@@ -797,10 +797,14 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
           if (_isMetal)
             CommercialMetalHubForm(
               roof: roof,
+              buildingName: buildingName,
+              roofName: roofName,
               pitchController: _pitchController,
               facetCountController: _facetCountController,
+              deckPartialSqftController: _deckPartialSqftController,
               setState: setState,
               sync: _sync,
+              takeCommercialPhoto: _takeCommercialPhoto,
             ),
           if (_isShingles)
             CommercialShinglesHubForm(
@@ -1239,6 +1243,86 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
 
                       for (var i = 0; i < roof.tpoVents.length; i++) {
                         if (roof.tpoVents[i].photo == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Take the main photo for Vent ${i + 1}.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                      }
+
+                      for (var i = 0; i < roof.hvacUnits.length; i++) {
+                        if (roof.hvacUnits[i].photo == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Take the main photo for HVAC ${i + 1}.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                      }
+                    }
+
+                    if (_isMetal) {
+                      for (var i = 0; i < roof.tpoFlashings.length; i++) {
+                        final flashing = roof.tpoFlashings[i];
+                        if (flashing.type.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Select the flashing type for Flashing ${i + 1}.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                        if (flashing.type == 'Other' &&
+                            (flashing.otherSpecify == null ||
+                                flashing.otherSpecify!.trim().isEmpty)) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Specify the flashing type for Flashing ${i + 1}.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                        if (flashing.photo == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Take the main photo for Flashing ${i + 1}.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                      }
+
+                      for (var i = 0; i < roof.tpoVents.length; i++) {
+                        final vent = roof.tpoVents[i];
+                        if (vent.type.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Select the vent type for Vent ${i + 1}.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                        if (vent.type == 'Other' &&
+                            (vent.otherSpecify == null ||
+                                vent.otherSpecify!.trim().isEmpty)) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Specify the vent type for Vent ${i + 1}.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                        if (vent.photo == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text('Take the main photo for Vent ${i + 1}.'),

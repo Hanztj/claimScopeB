@@ -1,5 +1,7 @@
 // lib/catalogs/commercial_flashing_catalog.dart
 
+import 'roof_components_catalog.dart';
+
 class CommercialFlashingFieldConfig {
   final List<String> options;
   final bool showLfCount;
@@ -82,10 +84,23 @@ CommercialFlashingFieldConfig commercialTpoFlashingConfigForType(String? type) {
 // Para agregar Tile / Slate en próximas fases: añadir una entrada
 // nueva en ambos mapas. Si el roofType no está mapeado, cae a TPO.
 // ============================================================
+// ============================================================
+// METAL (commercial) — reusa la lista de flashings de residential Metal.
+// Solo 'Other' tiene config con showOtherSpecify; el resto cae a default
+// (CommercialFlashingFieldConfig()) → solo type + photo, igual que
+// el patrón que ya usa CommercialFlashingsSection en flat.
+// ============================================================
+const Map<String, CommercialFlashingFieldConfig> metalFlashingConfigByType = {
+  'Other': CommercialFlashingFieldConfig(
+    showOtherSpecify: true,
+  ),
+};
+
 const Map<String, List<String>> commercialFlashingTypesByRoof = {
   'TPO': tpoFlashingTypes,
   'EPDM': tpoFlashingTypes,
   'Modified Bitumen': tpoFlashingTypes,
+  'Metal': flashingTypesMetal,
 };
 
 const Map<String, Map<String, CommercialFlashingFieldConfig>>
@@ -93,6 +108,7 @@ const Map<String, Map<String, CommercialFlashingFieldConfig>>
   'TPO': tpoFlashingConfigByType,
   'EPDM': tpoFlashingConfigByType,
   'Modified Bitumen': tpoFlashingConfigByType,
+  'Metal': metalFlashingConfigByType,
 };
 
 List<String> commercialFlashingTypesForRoof(String? roofType) {

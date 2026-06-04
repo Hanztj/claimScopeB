@@ -1,3 +1,5 @@
+import 'roof_components_catalog.dart';
+
 class CommercialVentFieldConfig {
   final List<String> sizeOptions;
   final List<String> throatDimensionOptions;
@@ -57,10 +59,19 @@ CommercialVentFieldConfig commercialVentConfigForType(String? type) {
 // ============================================================
 // NUEVO — API genérica por tipo de techo (Phase 1).
 // ============================================================
+// METAL (commercial) — reusa lista de vents de residential Metal.
+// Solo 'Other' tiene config; el resto cae a default (solo type + photo).
+const Map<String, CommercialVentFieldConfig> metalVentConfigByType = {
+  'Other': CommercialVentFieldConfig(
+    showOtherSpecify: true,
+  ),
+};
+
 const Map<String, List<String>> commercialVentTypesByRoof = {
   'TPO': commercialVentTypes,
   'EPDM': commercialVentTypes,
   'Modified Bitumen': commercialVentTypes,
+  'Metal': ventTypesMetal,
 };
 
 const Map<String, Map<String, CommercialVentFieldConfig>>
@@ -68,6 +79,7 @@ const Map<String, Map<String, CommercialVentFieldConfig>>
   'TPO': commercialVentConfigByType,
   'EPDM': commercialVentConfigByType,
   'Modified Bitumen': commercialVentConfigByType,
+  'Metal': metalVentConfigByType,
 };
 
 List<String> commercialVentTypesForRoof(String? roofType) {
@@ -83,3 +95,4 @@ CommercialVentFieldConfig commercialVentConfigForRoof(
       : commercialVentConfigByRoof[roofType] ?? commercialVentConfigByType);
   return map[type] ?? const CommercialVentFieldConfig();
 }
+

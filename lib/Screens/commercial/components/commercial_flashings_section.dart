@@ -339,21 +339,22 @@ class _CommercialFlashingsSectionState extends State<CommercialFlashingsSection>
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('Choose Flashing Type'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: _typeOptions.map((type) {
-              return ListTile(
-                title: Text(type),
-                onTap: () {
-                  Navigator.pop(context);
-                  _addFlashing(type);
-                },
-              );
-            }).toList(),
-          ),
-        ),
+content: SizedBox(
+  width: double.maxFinite,
+  height: 500,
+  child: ListView(
+    shrinkWrap: true,
+    children: _typeOptions.map((type) {
+      return ListTile(
+        title: Text(type),
+        onTap: () {
+          Navigator.pop(context);
+          _addFlashing(type);
+        },
+      );
+    }).toList(),
+    ),
+   ),
       ),
     );
   }
