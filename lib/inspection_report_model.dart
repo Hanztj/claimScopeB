@@ -154,6 +154,9 @@ class CommercialRoofSectionData {
 
   bool hasHvacEquipment = false;
   bool hasMechanicalEquipment = false;
+
+  // Tile / Slate hubs (Phase 3) — "The batten system needs to be changed?" Yes/No.
+  String? battenChangeRequired;
   // Metal
   String? metalStyle; // Flat / Gable / Other
   bool? metalHasFacets; // Only used when metalStyle == 'Other'

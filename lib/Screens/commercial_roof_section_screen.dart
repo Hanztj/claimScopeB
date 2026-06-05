@@ -10,7 +10,10 @@ import '../inspection_report_model.dart';
 import '../utils/photo_labels.dart';
 import 'commercial/hubs/commercial_flat_hub.dart';
 import 'commercial/hubs/commercial_metal_hub.dart';
+import 'commercial/hubs/commercial_other_hub.dart';
 import 'commercial/hubs/commercial_shingles_hub.dart';
+import 'commercial/hubs/commercial_slate_hub.dart';
+import 'commercial/hubs/commercial_tile_hub.dart';
 import 'commercial_building_details_screen.dart';
 import 'package:claimscope_clean/Services/pdf_service.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -525,6 +528,12 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
 
   bool get _isShingles => roof.roofType == 'Shingles';
 
+  bool get _isTile => roof.roofType == 'Tile roofing';
+
+  bool get _isSlate => roof.roofType == 'Slate Roof';
+
+  bool get _isOther => roof.roofType == 'Other';
+
   Future<void> _takeCommercialPhoto({
     required String buildingName,
     required String roofName,
@@ -743,6 +752,8 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
 
                 roof.noCoreSampleApproach = null;
 
+                roof.battenChangeRequired = null;
+
                 _pitchController.clear();
                 roof.hasMultipleFacets = false;
                 _facetCountController.text = '1';
@@ -794,6 +805,17 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
               ),
             ],
           ],
+          if (_isOther) ...[
+            const SizedBox(height: 12),
+            TextField(
+              controller: _roofSubTypeOtherController,
+              decoration: const InputDecoration(
+                labelText: 'Specify',
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (_) => _sync(),
+            ),
+          ],
           if (_isMetal)
             CommercialMetalHubForm(
               roof: roof,
@@ -819,6 +841,44 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
               sync: _sync,
               takeCommercialPhoto: _takeCommercialPhoto,
             ),
+          if (_isTile)
+            CommercialTileHubForm(
+              roof: roof,
+              buildingName: buildingName,
+              roofName: roofName,
+              pitchController: _pitchController,
+              facetCountController: _facetCountController,
+              deckPartialSqftController: _deckPartialSqftController,
+              setState: setState,
+              sync: _sync,
+              takeCommercialPhoto: _takeCommercialPhoto,
+            ),
+          if (_isSlate)
+            CommercialSlateHubForm(
+              roof: roof,
+              buildingName: buildingName,
+              roofName: roofName,
+              pitchController: _pitchController,
+              facetCountController: _facetCountController,
+              deckPartialSqftController: _deckPartialSqftController,
+              setState: setState,
+              sync: _sync,
+              takeCommercialPhoto: _takeCommercialPhoto,
+            ),
+          if (_isOther)
+            CommercialOtherHubForm(
+              roof: roof,
+              buildingName: buildingName,
+              roofName: roofName,
+              pitchController: _pitchController,
+              facetCountController: _facetCountController,
+              layersCountController: _layersCountController,
+              deckPartialSqftController: _deckPartialSqftController,
+              setState: setState,
+              sync: _sync,
+              takeCommercialPhoto: _takeCommercialPhoto,
+            ),
+          
           
           if (_isFlatSystem)
             CommercialFlatHubForm(
@@ -996,6 +1056,17 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
                       );
                       return;
                     }
+
+                    if (_isOther &&
+                        _roofSubTypeOtherController.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please specify the roof cover type.'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
                     
                        if (_isFlatSystem) {
                       if (roof.coreSamplePerformed) {
@@ -1078,7 +1149,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
                       }
                     }
 
-                    if (roof.roofType == 'Shingles') {
+                    if (_isShingles || _isTile || _isSlate || _isOther) {
                       if (roof.hasValleyMetal &&
                           (roof.valleyMetalType == null ||
                               roof.valleyMetalType!.isEmpty)) {
@@ -1217,7 +1288,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
                       }
                     }
 
-                    if ((roof.roofType == 'Shingles' || roof.roofType == 'Metal') &&
+                    if ((_isShingles || _isMetal || _isTile || _isSlate || _isOther) &&
                         roof.hasMultipleFacets &&
                         roof.facetCount <= 1) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -1359,7 +1430,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
                       }
 
                     // If this roof section has multiple facets, split into separate roof sections.
-                    if ((roof.roofType == 'Shingles' || roof.roofType == 'Metal') &&
+                    if ((_isShingles || _isMetal || _isTile || _isSlate || _isOther) &&
                         roof.hasMultipleFacets &&
                         !roof.facetsGenerated &&
                         roof.facetCount > 1) {
@@ -1414,6 +1485,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
                         r.hasVents = roof.hasVents;
                         r.hasHvacEquipment = roof.hasHvacEquipment;
                         r.hasMechanicalEquipment = roof.hasMechanicalEquipment;
+                        r.battenChangeRequired = roof.battenChangeRequired;
 
                         r.facetsGenerated = true;
                         r.facetGroupTotal = total;

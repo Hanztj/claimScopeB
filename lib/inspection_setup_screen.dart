@@ -278,25 +278,48 @@ class _InspectionSetupScreenState extends State<InspectionSetupScreen> {
                 style: TextStyle(color: Colors.white),
               ),
             ),
-          if (widget.plan == 'premium')
-            IconButton(
-              tooltip: 'My Reports',
-              icon: const Icon(Icons.folder_open),
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const MyReportsScreen()),
-                );
-              },
-            ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              final navigator = Navigator.of(context);
-              await FirebaseAuth.instance.signOut();
-              if (!mounted) return;
-              navigator.popUntil((route) => route.isFirst);
+          // My Reports — refresca claims por si Stripe acaba de upgradear
+          FutureBuilder<IdTokenResult?>(
+            future: FirebaseAuth.instance.currentUser?.getIdTokenResult(true),
+            builder: (context, snap) {
+              final claimPlan = snap.data?.claims?['plan'] as String?;
+              final isPremium = (claimPlan ?? widget.plan) == 'premium';
+              if (!isPremium) return const SizedBox.shrink();
+              return IconButton(
+                tooltip: 'My Reports',
+                icon: const Icon(Icons.folder_open),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const MyReportsScreen()),
+                  );
+                },
+              );
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+            onPressed: () async {
+              final rootNav = Navigator.of(context, rootNavigator: true);
+              final confirm = await showDialog<bool>(
+                context: context,
+                useRootNavigator: true,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Logout'),
+                  content: const Text('Are you sure you want to sign out?'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCEL')),
+                    TextButton(onPressed: () => Navigator.pop(ctx, true),  child: const Text('LOGOUT')),
+                  ],
+                ),
+              ) ?? false;
+              if (!confirm) return;
+              await FirebaseAuth.instance.signOut();
+              if (!mounted) return;
+              rootNav.popUntil((route) => route.isFirst);
+            },
+          ),
+
         ],
       ),
       body: Form(
