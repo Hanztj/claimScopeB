@@ -53,11 +53,12 @@ const Map<String, CommercialFlashingFieldConfig> tpoFlashingConfigByType = {
     showFullPerimeter: true,
   ),
   'Metal Z Flashing': CommercialFlashingFieldConfig(
-    showLfCount: true,
+    showFullPerimeter: true,
   ),
   'Metal Z flashing / drip cap': CommercialFlashingFieldConfig(
-    showLfCount: true,
+    showFullPerimeter: true,
   ),
+
   'Skylight flashing kit (dome)': CommercialFlashingFieldConfig(
     options: ['Average', 'Large'],
     gradeOptions: skylightGrades,

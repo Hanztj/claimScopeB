@@ -1462,6 +1462,9 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
                         r.facetCount = 1;
                         r.metalStyle = roof.metalStyle;
                         r.metalHasFacets = roof.metalHasFacets;
+                        r.metalGauge = roof.metalGauge;
+                        r.metalGaugeOtherSpecify = roof.metalGaugeOtherSpecify;
+
 
                         // Shingles hub fields
                         r.hasMultipleLayers = roof.hasMultipleLayers;

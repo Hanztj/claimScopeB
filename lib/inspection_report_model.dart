@@ -161,6 +161,10 @@ class CommercialRoofSectionData {
   String? metalStyle; // Flat / Gable / Other
   bool? metalHasFacets; // Only used when metalStyle == 'Other'
 
+    // Metal gauge (commercial metal) — mismas opciones/lógica que residential metal
+  String? metalGauge;            // '24' | '26' | '29' | 'Other'
+  String? metalGaugeOtherSpecify;
+
     // Commercial Metal — bloque Deck/Insulation propios (no mezclar con flat)
   bool hasDeck = false;
   bool hasInsulation = false;

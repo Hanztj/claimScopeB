@@ -127,6 +127,46 @@ class CommercialMetalHubForm extends StatelessWidget {
         ],
 
         // ─────────────────────────────────────────────────────────
+        // NUEVO — Gauge (mismo patrón que residential_metal)
+        // ─────────────────────────────────────────────────────────
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(
+          initialValue: roof.metalGauge,
+          decoration: const InputDecoration(
+            labelText: 'Gauge',
+            border: OutlineInputBorder(),
+          ),
+          items: const [
+            DropdownMenuItem(value: '24', child: Text('24')),
+            DropdownMenuItem(value: '26', child: Text('26')),
+            DropdownMenuItem(value: '29', child: Text('29')),
+            DropdownMenuItem(value: 'Other', child: Text('Other')),
+          ],
+          onChanged: (val) {
+            setState(() {
+              roof.metalGauge = val;
+              if (val != 'Other') {
+                roof.metalGaugeOtherSpecify = null;
+              }
+            });
+          },
+        ),
+        if (roof.metalGauge == 'Other') ...[
+          const SizedBox(height: 12),
+          TextFormField(
+            initialValue: roof.metalGaugeOtherSpecify,
+            decoration: const InputDecoration(
+              labelText: 'Specify Other Gauge',
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (val) {
+              roof.metalGaugeOtherSpecify = val;
+              sync();
+            },
+          ),
+        ],
+
+        // ─────────────────────────────────────────────────────────
         // NUEVO — Bloque Deck (copia 1:1 de residential_metal_hub)
         // ─────────────────────────────────────────────────────────
         const SizedBox(height: 16),
