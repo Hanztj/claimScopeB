@@ -1526,6 +1526,31 @@ if (roofCoverType != null && (
     buildDropdown: buildDropdown,
   ),
 
+                                // TextField for 'Other' Metal Subtype
+              if (roofCoverType == 'Metal' && roofSubType == 'Other')
+                TextFormField(
+                  controller: otherMetalSubTypeController,
+                  decoration: const InputDecoration(labelText: 'Specify Other Metal Subtype'),
+                  validator: (v) => v!.isEmpty ? 'Required' : null,
+                ),
+
+              // Gauge Dropdown (third dropdown, only for Metal)
+              if (roofCoverType == 'Metal' && roofSubType != null)
+                buildDropdown('Gauge', gaugeOptions, selectedGauge, (val) {
+                  setState(() {
+                    selectedGauge = val;
+                    otherGaugeController.clear();
+                  });
+                }),
+
+              // TextField for 'Other' Gauge
+              if (selectedGauge == 'Other')
+                TextFormField(
+                  controller: otherGaugeController,
+                  decoration: const InputDecoration(labelText: 'Specify Other Gauge'),
+                  validator: (v) => v!.isEmpty ? 'Required' : null,
+                  ),
+
  if (roofCoverType != null &&
     roofCoverType!.toLowerCase().trim().contains('metal'))
   ResidentialMetalHubForm(
@@ -1603,31 +1628,6 @@ if (roofCoverType != null && (
     takeExtraPhotoForLabel: _takeExtraPhotoForLabel,
     buildDropdown: buildDropdown,
   ),
-
-                              // TextField for 'Other' Metal Subtype
-              if (roofCoverType == 'Metal' && roofSubType == 'Other')
-                TextFormField(
-                  controller: otherMetalSubTypeController,
-                  decoration: const InputDecoration(labelText: 'Specify Other Metal Subtype'),
-                  validator: (v) => v!.isEmpty ? 'Required' : null,
-                ),
-
-              // Gauge Dropdown (third dropdown, only for Metal)
-              if (roofCoverType == 'Metal' && roofSubType != null)
-                buildDropdown('Gauge', gaugeOptions, selectedGauge, (val) {
-                  setState(() {
-                    selectedGauge = val;
-                    otherGaugeController.clear();
-                  });
-                }),
-
-              // TextField for 'Other' Gauge
-              if (selectedGauge == 'Other')
-                TextFormField(
-                  controller: otherGaugeController,
-                  decoration: const InputDecoration(labelText: 'Specify Other Gauge'),
-                  validator: (v) => v!.isEmpty ? 'Required' : null,
-                  ),
 
                  if (roofCoverType != null &&
     roofCoverType!.toLowerCase().trim().contains('roll'))
