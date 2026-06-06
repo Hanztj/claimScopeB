@@ -2,11 +2,26 @@ import 'dart:io';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:claimscope_clean/inspection_report_model.dart';
 
 class PdfService {
 
   static Future<Map<String, File>> generateReports(InspectionReport report) async {
+
+    // 1️⃣ CARGAR FUENTES DESDE ASSETS (Evita crasheos por caracteres como ≤)
+    final fontDataRegular = await rootBundle.load("assets/fonts/Roboto-Regular.ttf");
+    final fontDataBold = await rootBundle.load("assets/fonts/Roboto-Bold.ttf");
+
+    final myFontRegular = pw.Font.ttf(fontDataRegular);
+    final myFontBold = pw.Font.ttf(fontDataBold);
+
+    // 2️⃣ CREAR TEMA UNIFICADO CON LAS FUENTES NUEVAS
+    final pdfTheme = pw.ThemeData.withFont(
+      base: myFontRegular,
+      bold: myFontBold,
+    );
+
     final pdfTech = pw.Document();
     final pdfPhotos = pw.Document();
       // Determinar si es comercial
@@ -200,6 +215,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
        pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
          margin: const pw.EdgeInsets.all(32),
+         theme: pdfTheme,
           build: (context) => [
           _buildHeader("TECHNICAL INSPECTION REPORT"),
           
@@ -497,6 +513,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
      for (var i = 0; i < report.photoReportItems.length; i += 2) {
       pdfPhotos.addPage(
         pw.Page(
+          theme: pdfTheme,
           build: (context) => pw.Column(
             children: [
               _buildPhotoFrame(report.photoReportItems[i]),
