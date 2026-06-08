@@ -74,6 +74,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
   final void Function(File imageFile) onRemoveGalleryImage;
 
   final VoidCallback addNextFacet;
+  final VoidCallback onDeleteCurrentFacet;
   final VoidCallback submitForm;
   final bool isSingleRoofSection;
 
@@ -154,6 +155,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
     required this.inspectionData,
     required this.onRemoveGalleryImage,
     required this.addNextFacet,
+    required this.onDeleteCurrentFacet,
     required this.submitForm,
     this.isSingleRoofSection = false,
     required this.takePhoto,
@@ -224,6 +226,16 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
             decoration: const InputDecoration(labelText: 'Pitch of Facet'),
             onSaved: (val) => facets[currentFacetIndex]['pitchFacetValue'] = val,
           ),
+          if (currentFacetIndex >= 1)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: onDeleteCurrentFacet,
+                icon: const Icon(Icons.delete, color: Colors.red),
+                label: const Text('Delete current facet',
+                    style: TextStyle(color: Colors.red)),
+              ),
+            ),
           ElevatedButton(
             onPressed: () => takePhoto(
               'Facet Overview Photo',

@@ -45,6 +45,10 @@ class InspectionReport {
   bool hasShed = false;
   bool hasDetachedStructure = false;
 
+    // Additional Structures photos (extras via addPhoto/_takeExtraPhotoForLabel)
+  File? shedPhoto;
+  File? largeStructurePhoto;
+
   File? frontElevationPhoto;
   File? dripEdgePhoto;
 
@@ -100,9 +104,16 @@ class CommercialBuildingData {
   CommercialBuildingData();
 
   String displayName(int index) {
-    final n = (name ?? '').trim();
-    return n.isEmpty ? 'Building ${index + 1}' : n;
+  if (name != null && name!.trim().isNotEmpty) {
+    return name!.trim();
   }
+
+  if (index == 0) {
+    return "Main Building";
+  }
+
+  return "Building ${index + 1}";
+}
 }
 
 class CommercialRoofSectionData {

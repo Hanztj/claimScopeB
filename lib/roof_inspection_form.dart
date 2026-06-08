@@ -496,6 +496,8 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
 
    bool hasShed = false;
    bool hasDetachedStructure = false;
+   File? _shedPhoto;
+   File? _largeStructurePhoto;
 
   bool fullRoofReplacementRequired = false;
   String? partialReplacementSqft;
@@ -756,6 +758,17 @@ String? noAction;
     });
    
    }
+
+      void _deleteCurrentFacet() {
+     if (_facets.length <= 1 || _currentFacetIndex == 0) return;
+     setState(() {
+       _facets.removeAt(_currentFacetIndex);
+       if (_currentFacetIndex >= _facets.length) {
+         _currentFacetIndex = _facets.length - 1;
+       }
+       _initializeCurrentFacet();
+     });
+   }
    Map<String, dynamic> _createNewVentData() {
     final countController = TextEditingController(text:'1'); // Default 1 vent if user adds a vent
    final otherSpecifyController = TextEditingController(); 
@@ -876,6 +889,12 @@ String? noAction;
       } else if (label == 'Ice & Water Barrier Photo') {
         iceAndWaterBarrierPhoto = img;
         widget.report.iceAndWaterBarrierPhoto = img;
+      } else if (label == 'Shed Photo') {
+        _shedPhoto = img;
+        widget.report.shedPhoto = img;
+      } else if (label == 'Large Structure Photo') {
+        _largeStructurePhoto = img;
+        widget.report.largeStructurePhoto = img;
       }
 
     } else if (isFacetPhoto && facetIndex != null) {
@@ -1764,11 +1783,30 @@ rollExposure: rollExposure,
                    setState(() {
                    hasShed = val ?? false;
                    widget.report.hasShed = hasShed;
+                   if (!hasShed) {
+                     _shedPhoto = null;
+                     widget.report.shedPhoto = null;
+                   }
              });
             },
           ),
+          if (hasShed) ...[
+            ElevatedButton(
+              onPressed: () => _takePhoto('Shed Photo', isGlobal: true),
+              child: const Text('Take Shed Photo'),
+            ),
+            TextButton(
+              onPressed: () => _takeExtraPhotoForLabel('Shed extra photo'),
+              child: const Text('Add Shed extra photo'),
+            ),
+            if (_shedPhoto != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Image.file(_shedPhoto!, height: 100),
+              ),
+          ],
 
- CheckboxListTile(
+           CheckboxListTile(
   title: const Text(
       'There is a larger structure or detached garage requiring roofing cover replacement'),
   value: hasDetachedStructure,
@@ -1776,9 +1814,28 @@ rollExposure: rollExposure,
     setState(() {
       hasDetachedStructure = val ?? false;
       widget.report.hasDetachedStructure = hasDetachedStructure;
+      if (!hasDetachedStructure) {
+        _largeStructurePhoto = null;
+        widget.report.largeStructurePhoto = null;
+      }
     });
   },
  ),
+ if (hasDetachedStructure) ...[
+   ElevatedButton(
+     onPressed: () => _takePhoto('Large Structure Photo', isGlobal: true),
+     child: const Text('Take Large Structure Photo'),
+   ),
+   TextButton(
+     onPressed: () => _takeExtraPhotoForLabel('Large Structure extra photo'),
+     child: const Text('Add Large Structure extra photo'),
+   ),
+   if (_largeStructurePhoto != null)
+     Padding(
+       padding: const EdgeInsets.symmetric(vertical: 8.0),
+       child: Image.file(_largeStructurePhoto!, height: 100),
+     ),
+ ],
               
 
            ResidentialRoofAccessoriesHub(
@@ -2019,6 +2076,7 @@ rollExposure: rollExposure,
                     );
                   },
                   addNextFacet: _attemptAddNextFacet,
+                    onDeleteCurrentFacet: _deleteCurrentFacet,
                   submitForm: isRollRoofing
                       ? _attemptSubmitSingleRoofSection
                       : submitForm,

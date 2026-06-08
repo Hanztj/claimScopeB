@@ -95,6 +95,13 @@ class _CommercialBuildingDetailScreenState extends State<CommercialBuildingDetai
   Widget build(BuildContext context) {
     final displayName = building.displayName(widget.buildingIndex);
 
+      if (widget.buildingIndex == 0 &&
+      building.differentAddress) {
+    building.differentAddress = false;
+    building.streetAddress = null;
+    _streetController.clear();
+  }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(displayName),
@@ -111,31 +118,34 @@ class _CommercialBuildingDetailScreenState extends State<CommercialBuildingDetai
             onChanged: (_) => _sync(),
           ),
           const SizedBox(height: 12),
-          CheckboxListTile(
-            title: const Text('Different address than main?'),
-            value: building.differentAddress,
-            onChanged: (v) {
-              setState(() {
-                building.differentAddress = v ?? false;
-                if (!building.differentAddress) {
-                  _streetController.clear();
-                  building.streetAddress = null;
-                }
-              });
-            },
-          ),
-          if (building.differentAddress) ...[
-            const SizedBox(height: 8),
-            TextField(
-              controller: _streetController,
-              decoration: const InputDecoration(
-                labelText: 'Street address',
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (_) => _sync(),
+           if (widget.buildingIndex > 0) ...[
+            CheckboxListTile(
+              title: const Text('Different address than main?'),
+              value: building.differentAddress,
+              onChanged: (v) {
+                setState(() {
+                  building.differentAddress = v ?? false;
+                  if (!building.differentAddress) {
+                    _streetController.clear();
+                    building.streetAddress = null;
+                  }
+                });
+              },
             ),
+            if (building.differentAddress) ...[
+              const SizedBox(height: 8),
+              TextField(
+                controller: _streetController,
+                decoration: const InputDecoration(
+                  labelText: 'Street address',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (_) => _sync(),
+              ),
+            ],
+            const SizedBox(height: 12),
           ],
-          const SizedBox(height: 12),
+
           CheckboxListTile(
             title: const Text('Does this building have more than one roof cover type?'),
             value: building.hasMultipleRoofTypes,
