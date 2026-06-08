@@ -212,7 +212,8 @@ class _CommercialFlashingsSectionState extends State<CommercialFlashingsSection>
                       },
                     ),
                   ],
-                  if (typeConfig.showOtherSpecify) ...[
+                  if (typeConfig.showOtherSpecify &&
+                      (typeConfig.options.isEmpty || flashing.size == 'Other')) ...[
                     const SizedBox(height: 12),
                     TextField(
                       decoration: const InputDecoration(labelText: 'Specify', border: OutlineInputBorder()),
@@ -222,6 +223,7 @@ class _CommercialFlashingsSectionState extends State<CommercialFlashingsSection>
                       },
                     ),
                   ],
+
                   if (typeConfig.showCount) ...[
                     const SizedBox(height: 12),
                     TextField(

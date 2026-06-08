@@ -10,6 +10,7 @@ class CommercialFlashingFieldConfig {
   final bool showOtherSpecify;
   final List<String> materialOptions;
   final List<String> gradeOptions;
+  final List<String> finishOptions;
 
   const CommercialFlashingFieldConfig({
     this.options = const [],
@@ -19,6 +20,7 @@ class CommercialFlashingFieldConfig {
     this.showOtherSpecify = false,
     this.materialOptions = const [],
     this.gradeOptions = const [],
+    this.finishOptions = const [],
   });
 }
 
@@ -91,7 +93,45 @@ CommercialFlashingFieldConfig commercialTpoFlashingConfigForType(String? type) {
 // (CommercialFlashingFieldConfig()) → solo type + photo, igual que
 // el patrón que ya usa CommercialFlashingsSection en flat.
 // ============================================================
+// SubTypes 1:1 con residentialFlashingFieldsByType para tipos Metal.
+// 'finishOptions' guarda en flashing.material (sin tocar modelo).
 const Map<String, CommercialFlashingFieldConfig> metalFlashingConfigByType = {
+  'Step flashing': CommercialFlashingFieldConfig(
+    materialOptions: ['Metal', 'Copper'],
+  ),
+  'L flashing': CommercialFlashingFieldConfig(
+    materialOptions: ['Galvanized', 'Color finish'],
+  ),
+  'Steel rake/gable trim': CommercialFlashingFieldConfig(
+    finishOptions: ['Mill finish', 'Color finish'],
+  ),
+  'Eave trim for metal roofing': CommercialFlashingFieldConfig(
+    options: ['26 gauge', '29 gauge', 'Other'],
+    showOtherSpecify: true,
+  ),
+  'Sidewall flashing for metal roofing': CommercialFlashingFieldConfig(
+    options: ['26 gauge', '29 gauge', 'Other'],
+    showOtherSpecify: true,
+  ),
+  'Endwall flashing for metal roofing': CommercialFlashingFieldConfig(
+    options: ['26 gauge', '29 gauge', 'Other'],
+    showOtherSpecify: true,
+  ),
+  'Pitch transition flashing for metal roofing': CommercialFlashingFieldConfig(
+    options: ['26 gauge', '29 gauge', 'Other'],
+    showOtherSpecify: true,
+  ),
+  'Chimney flashing': CommercialFlashingFieldConfig(
+    options: ['Small', 'Average', 'Large'],
+    materialOptions: ['Metal', 'Copper'],
+  ),
+  'Roof window step flashing kit': CommercialFlashingFieldConfig(
+    options: ['Standard', 'Large'],
+  ),
+  'Skylight flashing kit (dome)': CommercialFlashingFieldConfig(
+    options: ['Average', 'Large'],
+    gradeOptions: ['Standard', 'High grade'],
+  ),
   'Other': CommercialFlashingFieldConfig(
     showOtherSpecify: true,
   ),
