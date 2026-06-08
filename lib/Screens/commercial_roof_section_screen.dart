@@ -440,7 +440,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
   final techUrl = await techUploadTask.ref.getDownloadURL();
   final photoUrl = await photoUploadTask.ref.getDownloadURL();
 
-    // Llamar a backend para crear orden en HF Estimates (puede ser una Cloud Function que luego llama a la API de Xactimate)
+    //Xactimate code removed from project
   final callable = FirebaseFunctions.instance.httpsCallable('createHfEstimatesCheckoutSession');
 
        final result = await callable.call({
@@ -466,7 +466,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
     throw Exception("The function did not return the Stripe URL.");
   }
 
-  // Abrir la URL de Stripe Checkout
+  //Xactimate code removed from project
         final url = Uri.parse(sessionUrl);
         final success= await launchUrl(url, mode: LaunchMode.externalApplication);
           if (!success) {

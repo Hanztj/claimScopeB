@@ -133,7 +133,7 @@ attachments: [
       throw error;
     }
   }                      
-                 //hf_estimate_Xactimate_API - one-time payment
+                 //Xactimate code removed from project
 if (session?.metadata?.kind === "hf_estimate_xactimate") {
   const techPdfUrl = session.metadata.techPdfUrl;
   const photoPdfUrl = session.metadata.photoPdfUrl;
@@ -173,6 +173,7 @@ if (session?.metadata?.kind === "hf_estimate_xactimate") {
     `Photo PDF: ${photoPdfUrl}`,
   ].join("\n");
 
+  //Xactimate code removed from project
   const mailOptions = {
     from: '"ClaimScope Support" <soporte.claimscope@gmail.com>',
     to: userEmail,
@@ -348,6 +349,7 @@ exports.createHfEstimatesCheckoutSession = onCall(
   }
 );
 //5.2 Create Xactimate API Checkout Session (Placeholder)
+//Xactimate code removed from project
 exports.createHfEstimatesXactimateCheckoutSession = onCall(
   { secrets: [stripeSecretKey] },
   async (request) => {

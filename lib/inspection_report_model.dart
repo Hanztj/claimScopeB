@@ -28,8 +28,10 @@ class InspectionReport {
   // INSPECTION SCOPE
   bool inspectRoof = true;
   bool inspectElevations = false;
+  // Interior inspection removed from project.
   bool inspectInterior = false;
   String interiorScope = '';
+  // Interior inspection removed from project.
   String? battenSystemNeedsReplacement;
   String? sheathingRequired;
 
