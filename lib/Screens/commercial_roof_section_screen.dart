@@ -523,15 +523,10 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
   }
 
   bool get _isFlatSystem => roof.roofType == 'TPO' || roof.roofType == 'EPDM' || roof.roofType == 'Modified Bitumen';
-
   bool get _isMetal => roof.roofType == 'Metal';
-
   bool get _isShingles => roof.roofType == 'Shingles';
-
   bool get _isTile => roof.roofType == 'Tile roofing';
-
   bool get _isSlate => roof.roofType == 'Slate Roof';
-
   bool get _isOther => roof.roofType == 'Other';
 
   Future<void> _takeCommercialPhoto({
@@ -1543,7 +1538,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
                       );
                     }
                   },
-                  child: Text(isFinalStep ? 'Finish Inspection' : 'Save & Continue'),
+                  child: Text(isFinalStep ? 'Submit Inspection' : 'Save & Continue'),
                 );
               },
             ),

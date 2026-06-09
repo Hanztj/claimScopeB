@@ -559,7 +559,7 @@ class _InspectionSetupScreenState extends State<InspectionSetupScreen> {
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               CheckboxListTile(
-                title: const Text('Roof estimate'),
+                title: const Text('Roof Section'),
                 value: inspectRoof,
                 onChanged: (v) => setState(() => inspectRoof = v ?? false),
               ),
