@@ -1,9 +1,12 @@
 import 'dart:io';
-
+import 'package:claimscope_clean/screens/elevations/elevations_inspection_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:claimscope_clean/inspection_report_model.dart';
 
 class ResidentialFacetInspectionHub extends StatelessWidget {
   final void Function(VoidCallback fn) setState;
+ 
+ final InspectionReport report;
 
   final String? roofCoverType;
 
@@ -161,6 +164,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
     required this.takePhoto,
     required this.takeExtraPhotoForLabel,
     required this.buildDropdown,
+    required this.report,
   });
 
   @override
@@ -798,26 +802,58 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
             ),
         ],
 
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            if (!isSingleRoofSection && !isLastFacet)
-              ElevatedButton(
-                onPressed: addNextFacet,
-                child: const Text('Add Next Facet'),
-              ),
-            if (isSingleRoofSection || isLastFacet)
-              ElevatedButton(
-                onPressed: submitForm,
-                child: const Text(
-                  'Submit Inspection',
-                  style: TextStyle(fontSize: 18),
+// 🟢 1. Botón "Add Next Facet" (Solo sale si NO es la última faceta)
+if (!isSingleRoofSection && !isLastFacet)
+  Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      ElevatedButton(
+        onPressed: addNextFacet,
+        child: const Text('Add Next Facet'),
+      ),
+    ],
+  ),
+
+// 🔵 2. Botones de Cierre (Solo salen si ES sección única o la última faceta)
+// Al estar en un bloque independiente sin un Row padre, el Column se comportará perfectamente.
+if (isSingleRoofSection || isLastFacet)
+  Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      // Primer botón: Inspect Elevations (Si está activo)
+      if (report.inspectElevations) ...[
+        ElevatedButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ElevationsInspectionScreen(
+                  report: report,
+                  isCommercial: false,
                 ),
               ),
-          ],
+            );
+          },
+          child: const Text(
+            'Inspect Elevations',
+            style: TextStyle(fontSize: 18),
+          ),
         ),
+        const SizedBox(height: 12), // Espaciado vertical entre ambos botones
+      ],
 
-        const SizedBox(height: 40),
+      // Segundo botón: Submit Inspection
+      ElevatedButton(
+        onPressed: submitForm,
+        child: const Text(
+          'Submit Inspection',
+          style: TextStyle(fontSize: 18),
+        ),
+      ),
+    ],
+  ),
+
+const SizedBox(height: 40),
       ],
     );
   }

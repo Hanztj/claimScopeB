@@ -5,9 +5,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:claimscope_clean/services/auth_plan_service.dart';
 import 'package:claimscope_clean/services/stripe_service.dart';
 import 'package:claimscope_clean/screens/my_reports_screen.dart';
-
-import 'inspection_report_model.dart';
-import 'screens/commercial_buildings_screen.dart';
+import 'package:claimscope_clean/screens/elevations/elevations_inspection_screen.dart';
+import 'package:claimscope_clean/inspection_report_model.dart';
+import 'package:claimscope_clean/screens/commercial_buildings_screen.dart';
 
 final List<String> usStates = [
   'Alabama',
@@ -85,14 +85,26 @@ class _InspectionSetupScreenState extends State<InspectionSetupScreen> {
       final isPremium = plan == 'premium';
       final normalizedPlan = isPremium ? 'premium' : 'basic';
 
-      if (!inspectRoof) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Only the Roof form is implemented...'),
-          ),
-        );
-        return;
-      }
+if (!inspectRoof) {
+  if (report.inspectElevations) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ElevationsInspectionScreen(
+          report: report,
+          isCommercial: !isResidential, // ✅ Agregamos el parámetro requerido
+        ),
+      ),
+    );
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Please select at least one inspection module.'),
+      ),
+    );
+  }
+  return;
+}
 
       if (isResidential) {
         Navigator.push(

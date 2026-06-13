@@ -1921,6 +1921,7 @@ rollExposure: rollExposure,
                   isRollRoofing)
                 ResidentialFacetInspectionHub(
                   setState: setState,
+                  report: widget.report,
                   roofCoverType: roofCoverType,
                   facets: _facets,
                   currentFacetIndex: _currentFacetIndex,

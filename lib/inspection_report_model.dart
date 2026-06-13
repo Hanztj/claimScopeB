@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'screens/elevations/models/elevations_data.dart';
 
 class InspectionReport {
   // CLIENT & CLAIM
@@ -73,6 +74,9 @@ class InspectionReport {
   String? sheathingType;
   String? sheathingSize;
   double? squareFootageToReplace;
+  
+  // Cambia el "final elevations = ElevationsData();" por:
+late ElevationsData elevations = ElevationsData.fromJson({});
 
 
   // REPORT CONTENT

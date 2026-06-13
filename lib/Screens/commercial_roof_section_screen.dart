@@ -5,8 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../catalogs/roof_catalog.dart';
-import '../inspection_report_model.dart';
+import '/catalogs/roof_catalog.dart';
+import '/inspection_report_model.dart';
 import '../utils/photo_labels.dart';
 import 'commercial/hubs/commercial_flat_hub.dart';
 import 'commercial/hubs/commercial_metal_hub.dart';
@@ -21,6 +21,7 @@ import 'package:claimscope_clean/Services/email_service.dart';
 import '../utils/labeled_photos_zip.dart';
 import '../Screens/widgets/submission_options_dialog.dart'; 
 import '../catalogs/flashing_catalog.dart'; 
+import '/screens/elevations/elevations_inspection_screen.dart'; 
 
 class CommercialRoofSectionScreen extends StatefulWidget {
   final String plan;
@@ -38,18 +39,18 @@ class CommercialRoofSectionScreen extends StatefulWidget {
 
   @override
   State<CommercialRoofSectionScreen> createState() => _CommercialRoofSectionScreenState();
-}
+ }
 
-class BuildingPricing {
+ class BuildingPricing {
   /// Roof sections con cubierta DISTINTA a la principal de ESTE edificio.
   final int extraRoofSections;
   const BuildingPricing({required this.extraRoofSections});
-}
+ }
 
-class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScreen> {
+ class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScreen> {
   late final CommercialRoofSectionData roof;
 
-Future<void> _showSubmissionOptions(File techPdf, File photoPdf) {
+ Future<void> _showSubmissionOptions(File techPdf, File photoPdf) {
   return showSubmissionOptions(
     context: context,
     techPdf: techPdf,
@@ -61,7 +62,7 @@ Future<void> _showSubmissionOptions(File techPdf, File photoPdf) {
     onStoreInCloud: _storeReportInCloud,
     onGenerateLabeledZip: () => generateLabeledPhotosZip(widget.report),
   );
-}
+ }
 
   final _picker = ImagePicker();
 
@@ -134,10 +135,10 @@ Future<void> _showSubmissionOptions(File techPdf, File photoPdf) {
   if (dot == email.length - 1) return false; // no termina con .
 
   return true;
-}
+ }
 
-// Solo Premium+Extra : preguntar si quiere almacenar en la nube (sin cobro HF)
-Future<bool> _askStoreReportInCloud() async {
+ // Solo Premium+Extra : preguntar si quiere almacenar en la nube (sin cobro HF)
+ Future<bool> _askStoreReportInCloud() async {
   if (widget.plan != 'premium') return false;
 
   final navigator = Navigator.of(context);
@@ -163,9 +164,9 @@ Future<bool> _askStoreReportInCloud() async {
   );
 
   return result ?? false;
-}
+ }
 
-Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
+ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
   showDialog(
     context: context,
     builder: (BuildContext dialogContext) {
@@ -256,7 +257,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
       );
     },
   );
-}
+ }
  
                             Future<void> _sendReportViaEmail(File techPdf, File photoPdf, {String? extraEmail}) async {
                             // Aquí se llamara un servicio backend
@@ -350,7 +351,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
        double? _calculateHfEmailPrice({
   required bool rushOrder,
   required List<BuildingPricing> buildings,
-}) {
+ }) {
   const double basePrice        = 100.0; // UNA sola vez
   const double rushOrderFee     = 25.0;
   const double perSectionFee    = 30.0;  // por sección extra (por edificio)
@@ -384,7 +385,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
   if (widget.plan == 'premium') total *= 0.85;
 
   return total;
-}
+ }
 
    Future<void> _sendToHfByEmail(File techPdf, File photoPdf,
         {required bool rushOrder}) async{  
@@ -404,7 +405,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
       extraRoofSections: b.roofs.length,
     )
   ).toList(),
-);
+ );
             
   showDialog(
   context: context,
@@ -418,7 +419,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
       ],
     ),
   ),
-);
+ );
         try{    
  messenger.showSnackBar(
   SnackBar(
@@ -427,7 +428,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
     ),
     duration: const Duration(seconds: 3),
   ),
-);
+ );
   
        //Upload PDFs to cloud storage and get URLs (placeholder logic, implement with Firebase Storage or similar)
   final storage =  FirebaseStorage.instance;
@@ -958,12 +959,12 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
                 final isLastRoof = widget.roofIndex >= building.roofs.length - 1;
                 final isFinalStep = isLastBuilding && isLastRoof;
 
-                if (isFinalStep && _showFinishActions) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        width: double.infinity,
+                         if (isFinalStep && _showFinishActions) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                         SizedBox(
+                          width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () async {
                             final messenger = ScaffoldMessenger.of(context);
@@ -990,14 +991,14 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
                               const SnackBar(content: Text('Photos added')),
                             );
                           },
-                          child: const Text('Add Images from Gallery'),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () async {
+                            child: const Text('Add Images from Gallery'),
+                           ),
+                           ),
+                          const SizedBox(height: 8),
+                           SizedBox(
+                           width: double.infinity,
+                           child: ElevatedButton(
+                           onPressed: () async {
                             if (widget.report.inspectElevations) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -1497,10 +1498,24 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
                       }
                     }
 
-                   if (isFinalStep) {
-                   await _submitCommercialReport();
-                   return;
-                     }
+if (isFinalStep) {
+  if (widget.report.inspectElevations) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ElevationsInspectionScreen(
+          report: widget.report,
+          isCommercial: true,
+        ),
+      ),
+    );
+
+    return;   
+  }
+
+  await _submitCommercialReport();
+  return;
+}
 
                     final nextRoofIndex = widget.roofIndex + 1;
                     if (nextRoofIndex < building.roofs.length) {
@@ -1548,7 +1563,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
     );
   }
   // === FUNCIÓN PARA ENVIAR REPORTE COMERCIAL ===
-Future<void> _submitCommercialReport() async {
+ Future<void> _submitCommercialReport() async {
   if (roof.roofType == null) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
