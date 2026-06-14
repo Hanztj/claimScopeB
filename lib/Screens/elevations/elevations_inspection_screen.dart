@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'package:claimscope_clean/screens/elevations/models/elevations_data.dart'; //  CORRECTO
 import 'package:claimscope_clean/inspection_report_model.dart';
 import 'package:claimscope_clean/screens/elevations/building_elevations_section.dart';
@@ -24,9 +25,9 @@ class ElevationsInspectionScreen extends StatefulWidget {
   @override
   State<ElevationsInspectionScreen> createState() =>
       _ElevationsInspectionScreenState();
-}
+ }
 
-class _ElevationsInspectionScreenState
+ class _ElevationsInspectionScreenState
     extends State<ElevationsInspectionScreen> {
   late final ElevationsAutoSaver _saver;
   int _activeIdx = 0;
@@ -93,29 +94,33 @@ class _ElevationsInspectionScreenState
   }
 
   @override
-  Widget build(BuildContext context) {
-    final elevations = widget.report.elevations.elevations;
-    final title = widget.isCommercial
-        ? 'Commercial Elevations'
-        : 'Residential Elevations';
+ Widget build(BuildContext context) {
+  final elevations = widget.report.elevations.elevations;
+  final title = widget.isCommercial
+      ? 'Commercial Elevations'
+      : 'Residential Elevations';
 
-    // Clamp por seguridad si se eliminó una elevación.
-    final safeIdx = _activeIdx.clamp(0, elevations.length - 1);
+  // Clamp por seguridad si se eliminó una elevación.
+  final safeIdx = _activeIdx.clamp(0, elevations.length - 1);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: Column(
+  return Scaffold(
+    appBar: AppBar(title: Text(title)),
+    body: SafeArea(
+      child: Column(
         children: [
-          GlobalElevationsHub(
-            data: widget.report.elevations,
-            onChange: _onChange,
+          Flexible(
+            fit: FlexFit.loose,
+            child: GlobalElevationsHub(
+              data: widget.report.elevations,
+              onChange: _onChange,
+            ),
           ),
           ElevationTabStrip(
             elevations: elevations,
             activeIdx: safeIdx,
             onTap: (i) => setState(() => _activeIdx = i),
             onAddOther: _promptAddOther,
-            allowAddOther: true, // habilitado para ambos; UX no molesta en res.
+            allowAddOther: true,
           ),
           Expanded(
             child: IndexedStack(
@@ -132,6 +137,7 @@ class _ElevationsInspectionScreenState
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+ }
 }

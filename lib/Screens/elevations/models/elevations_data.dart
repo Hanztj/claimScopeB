@@ -64,110 +64,170 @@ List<File> _pathsToFiles(dynamic xs) =>
 
 // ============================================================================
 // Sección 1 — Emergency Services
+// (rediseñada según docx: 3 sub-bloques opcionales + Additional Notes)
 // ============================================================================
 class EmergencyServicesData {
   EmergencyServicesData(); // ✅ Constructor vacío explícito
 
-  bool performed = false;
-  String type = '';        // Tarp, Board-up, Water mitigation, Other
-  String typeOther = '';
-  String contractor = '';
-  String date = '';
-  String notes = '';
-  List<File> photos = [];
+  bool enabled = false;
+
+  // 1.A — Temporary Wall Protection
+  bool twpEnabled = false;
+  String twpType = '';      // 'Board' | 'Tarp'
+  String twpSf = '';
+
+  // 1.B — Temporary Window/Door Protection
+  bool twdpEnabled = false;
+  String twdpSf = '';
+
+  // 1.C — Power Washing
+  bool pwEnabled = false;
+  String pwArea = '';       // 'Entire Elev' | 'Partial'
+  String pwSf = '';
+
+  String additionalNotes = '';
+
+  bool get hasAnyData =>
+      enabled || twpEnabled || twdpEnabled || pwEnabled ||
+      twpType.isNotEmpty || twpSf.isNotEmpty ||
+      twdpSf.isNotEmpty ||
+      pwArea.isNotEmpty || pwSf.isNotEmpty ||
+      additionalNotes.isNotEmpty;
 
   Map<String, dynamic> toJson() => {
-        'performed': performed,
-        'type': type,
-        'typeOther': typeOther,
-        'contractor': contractor,
-        'date': date,
-        'notes': notes,
-        'photos': _filesToPaths(photos),
+        'enabled': enabled,
+        'twpEnabled': twpEnabled,
+        'twpType': twpType,
+        'twpSf': twpSf,
+        'twdpEnabled': twdpEnabled,
+        'twdpSf': twdpSf,
+        'pwEnabled': pwEnabled,
+        'pwArea': pwArea,
+        'pwSf': pwSf,
+        'additionalNotes': additionalNotes,
       };
 
   factory EmergencyServicesData.fromJson(Map<String, dynamic> j) =>
       EmergencyServicesData()
-        ..performed = j['performed'] as bool? ?? false
-        ..type = j['type'] as String? ?? ''
-        ..typeOther = j['typeOther'] as String? ?? ''
-        ..contractor = j['contractor'] as String? ?? ''
-        ..date = j['date'] as String? ?? ''
-        ..notes = j['notes'] as String? ?? ''
-        ..photos = _pathsToFiles(j['photos']);
+        ..enabled = j['enabled'] as bool? ?? false
+        ..twpEnabled = j['twpEnabled'] as bool? ?? false
+        ..twpType = j['twpType'] as String? ?? ''
+        ..twpSf = j['twpSf'] as String? ?? ''
+        ..twdpEnabled = j['twdpEnabled'] as bool? ?? false
+        ..twdpSf = j['twdpSf'] as String? ?? ''
+        ..pwEnabled = j['pwEnabled'] as bool? ?? false
+        ..pwArea = j['pwArea'] as String? ?? ''
+        ..pwSf = j['pwSf'] as String? ?? ''
+        ..additionalNotes = j['additionalNotes'] as String? ?? '';
 }
 
 // ============================================================================
 // Sección 2 — Gutters / Soffit / Fascia
+// (rediseñada según docx: 3 sub-bloques + Additional Notes)
 // ============================================================================
 class GuttersSoffitFasciaData {
   GuttersSoffitFasciaData(); // ✅ Constructor vacío explícito
 
-  // Gutters
-  String guttersMaterial = '';      // Aluminum, Copper, Steel, Other
-  String guttersMaterialOther = '';
-  String guttersCondition = '';     // Good, Damaged, Missing
-  double guttersLf = 0;
-  // Downspouts
-  int downspoutsQty = 0;
-  String downspoutsCondition = '';
-  // Soffit
-  String soffitMaterial = '';       // Vinyl, Aluminum, Wood, Other
-  String soffitMaterialOther = '';
-  String soffitCondition = '';
-  double soffitSf = 0;
-  // Fascia
-  String fasciaMaterial = '';
-  String fasciaMaterialOther = '';
-  String fasciaCondition = '';
-  double fasciaLf = 0;
-  String notes = '';
-  List<File> photos = [];
+  // 2.A — Gutters & Downspouts
+  String gutMaterial = '';
+  String gutMaterialOther = '';
+  String gutShape = '';
+  String gutShapeOther = '';
+  String gutSize = '';            // SIN opción 'Other'
+  bool gutScreen = false;
+  String gutScreenStyle = '';
+  bool gutScupper = false;
+  String gutScupperQty = '';
+  String gutScope = '';
+  String gutScopeOther = '';
+  String gutLf = '';
+  bool gutPaint = false;
+
+  // 2.B — Fascia
+  String facMaterial = '';
+  String facMaterialOther = '';
+  String facWoodSubtype = '';     // visible solo si facMaterial == 'Wood'
+  String facSize = '';
+  String facSizeOther = '';
+  String facScope = '';
+  String facScopeOther = '';
+  String facQuantity = '';        // 'Entire perimeter' | 'Partial'
+  String facLf = '';              // visible solo si facQuantity == 'Partial'
+  bool facPaint = false;
+  
+  // 2.C — Soffit
+  String sofMaterial = '';
+  String sofMaterialOther = '';
+  String sofSize = '';
+  String sofSizeOther = '';
+  String sofScope = '';
+  String sofScopeOther = '';
+  String sofLf = '';
+  bool sofVents = false;
+  String sofVentsQty = '';
+  bool sofPaint = false;
+
+  String additionalNotes = '';
+
+bool get guttersHasData =>
+      gutMaterial.isNotEmpty || gutShape.isNotEmpty || gutSize.isNotEmpty ||
+      gutScreen || gutScupper || gutScope.isNotEmpty || gutLf.isNotEmpty || gutPaint;
+  bool get fasciaHasData =>
+      facMaterial.isNotEmpty || facWoodSubtype.isNotEmpty || facSize.isNotEmpty ||
+      facScope.isNotEmpty || facQuantity.isNotEmpty || facLf.isNotEmpty || facPaint;
+  bool get soffitHasData =>
+      sofMaterial.isNotEmpty || sofSize.isNotEmpty || sofScope.isNotEmpty ||
+      sofLf.isNotEmpty || sofVents || sofPaint;
+  bool get hasAnyData =>
+      guttersHasData || fasciaHasData || soffitHasData || additionalNotes.isNotEmpty;
 
   Map<String, dynamic> toJson() => {
-        'guttersMaterial': guttersMaterial,
-        'guttersMaterialOther': guttersMaterialOther,
-        'guttersCondition': guttersCondition,
-        'guttersLf': guttersLf,
-        'downspoutsQty': downspoutsQty,
-        'downspoutsCondition': downspoutsCondition,
-        'soffitMaterial': soffitMaterial,
-        'soffitMaterialOther': soffitMaterialOther,
-        'soffitCondition': soffitCondition,
-        'soffitSf': soffitSf,
-        'fasciaMaterial': fasciaMaterial,
-        'fasciaMaterialOther': fasciaMaterialOther,
-        'fasciaCondition': fasciaCondition,
-        'fasciaLf': fasciaLf,
-        'notes': notes,
-        'photos': _filesToPaths(photos),
+        'gutMaterial': gutMaterial, 'gutMaterialOther': gutMaterialOther,
+        'gutShape': gutShape, 'gutShapeOther': gutShapeOther,
+        'gutSize': gutSize,
+        'gutScreen': gutScreen, 'gutScupper': gutScupper,
+        'gutScope': gutScope, 'gutScopeOther': gutScopeOther,
+        'gutLf': gutLf, 'gutPaint': gutPaint,
+        'facMaterial': facMaterial, 'facMaterialOther': facMaterialOther,
+        'facWoodSubtype': facWoodSubtype,
+        'facSize': facSize, 'facSizeOther': facSizeOther,
+        'facScope': facScope, 'facScopeOther': facScopeOther,
+        'facQuantity': facQuantity, 'facLf': facLf, 'facPaint': facPaint,
+        'sofMaterial': sofMaterial, 'sofMaterialOther': sofMaterialOther,
+        'sofSize': sofSize, 'sofSizeOther': sofSizeOther,
+        'sofScope': sofScope, 'sofScopeOther': sofScopeOther,
+        'sofLf': sofLf, 'sofVents': sofVents, 'sofPaint': sofPaint,
+        'additionalNotes': additionalNotes,
       };
 
-  factory GuttersSoffitFasciaData.fromJson(Map<String, dynamic> j) =>
-      GuttersSoffitFasciaData()
-        ..guttersMaterial = j['guttersMaterial'] as String? ?? ''
-        ..guttersMaterialOther = j['guttersMaterialOther'] as String? ?? ''
-        ..guttersCondition = j['guttersCondition'] as String? ?? ''
-        ..guttersLf = (j['guttersLf'] as num?)?.toDouble() ?? 0
-        ..downspoutsQty = j['downspoutsQty'] as int? ?? 0
-        ..downspoutsCondition = j['downspoutsCondition'] as String? ?? ''
-        ..soffitMaterial = j['soffitMaterial'] as String? ?? ''
-        ..soffitMaterialOther = j['soffitMaterialOther'] as String? ?? ''
-        ..soffitCondition = j['soffitCondition'] as String? ?? ''
-        ..soffitSf = (j['soffitSf'] as num?)?.toDouble() ?? 0
-        ..fasciaMaterial = j['fasciaMaterial'] as String? ?? ''
-        ..fasciaMaterialOther = j['fasciaMaterialOther'] as String? ?? ''
-        ..fasciaCondition = j['fasciaCondition'] as String? ?? ''
-        ..fasciaLf = (j['fasciaLf'] as num?)?.toDouble() ?? 0
-        ..notes = j['notes'] as String? ?? ''
-        ..photos = _pathsToFiles(j['photos']);
+  factory GuttersSoffitFasciaData.fromJson(Map<String, dynamic> j) {
+    String s(String k) => j[k] as String? ?? '';
+    bool  b(String k) => j[k] as bool?   ?? false;
+    return GuttersSoffitFasciaData()
+      ..gutMaterial = s('gutMaterial')..gutMaterialOther = s('gutMaterialOther')
+      ..gutShape = s('gutShape')..gutShapeOther = s('gutShapeOther')
+      ..gutSize = s('gutSize')
+      ..gutScreen = b('gutScreen')..gutScupper = b('gutScupper')
+      ..gutScope = s('gutScope')..gutScopeOther = s('gutScopeOther')
+      ..gutLf = s('gutLf')..gutPaint = b('gutPaint')
+      ..facMaterial = s('facMaterial')..facMaterialOther = s('facMaterialOther')
+      ..facWoodSubtype = s('facWoodSubtype')
+      ..facSize = s('facSize')..facSizeOther = s('facSizeOther')
+      ..facScope = s('facScope')..facScopeOther = s('facScopeOther')
+      ..facQuantity = s('facQuantity')..facLf = s('facLf')..facPaint = b('facPaint')
+      ..sofMaterial = s('sofMaterial')..sofMaterialOther = s('sofMaterialOther')
+      ..sofSize = s('sofSize')..sofSizeOther = s('sofSizeOther')
+      ..sofScope = s('sofScope')..sofScopeOther = s('sofScopeOther')
+      ..sofLf = s('sofLf')..sofVents = b('sofVents')..sofPaint = b('sofPaint')
+      ..additionalNotes = s('additionalNotes');
+  }
 }
 
 // ============================================================================
 // Sección 3 — Siding Damages (cuerpo de la elevación)
 // ============================================================================
 class SidingDamagesData {
-  SidingDamagesData(); // ✅ Constructor vacío explícito
+  SidingDamagesData(); 
 
   String sidingType = '';         // catalog key (Vinyl, Stucco, Wood, Brick, Other)
   String sidingSubtype = '';      // profile/finish
@@ -208,7 +268,7 @@ class SidingDamagesData {
 // Sección 4 — Underlayment / Insulation
 // ============================================================================
 class UnderlaymentInsulationData {
-  UnderlaymentInsulationData(); // ✅ Constructor vacío explícito
+  UnderlaymentInsulationData(); 
 
   bool exposed = false;
   String underlaymentType = '';      // House wrap, Felt, Foam board, Other
@@ -249,12 +309,13 @@ class UnderlaymentInsulationData {
 // Sección 5 — Substrate (sheathing / studs)
 // ============================================================================
 class SubstrateData {
-  SubstrateData(); // ✅ Constructor vacío explícito
+  SubstrateData(); 
 
   bool exposed = false;
   String sheathingType = '';      // OSB, Plywood, Gypsum, Other
   String sheathingTypeOther = '';
-  String sheathingCondition = ''; // Dry/intact, Wet, Damaged, Rotted
+  String sheathingCondition = ''; 
+  bool studsExposed = false;// Dry/intact, Wet, Damaged, Rotted
   String studsCondition = '';     // Intact, Damaged, Rotted
   String notes = '';
   List<File> photos = [];
@@ -264,6 +325,7 @@ class SubstrateData {
         'sheathingType': sheathingType,
         'sheathingTypeOther': sheathingTypeOther,
         'sheathingCondition': sheathingCondition,
+        'studsExposed': studsExposed,
         'studsCondition': studsCondition,
         'notes': notes,
         'photos': _filesToPaths(photos),
@@ -274,6 +336,7 @@ class SubstrateData {
     ..sheathingType = j['sheathingType'] as String? ?? ''
     ..sheathingTypeOther = j['sheathingTypeOther'] as String? ?? ''
     ..sheathingCondition = j['sheathingCondition'] as String? ?? ''
+    ..studsExposed = j['studsExposed'] as bool? ?? false
     ..studsCondition = j['studsCondition'] as String? ?? ''
     ..notes = j['notes'] as String? ?? ''
     ..photos = _pathsToFiles(j['photos']);
@@ -283,7 +346,7 @@ class SubstrateData {
 // EIFS
 // ============================================================================
 class EifsData {
-  EifsData(); // ✅ Constructor vacío explícito
+  EifsData();
 
   bool present = false;
   String finishType = '';       // Smooth, Sand, Knockdown, Other
@@ -317,14 +380,13 @@ class EifsData {
 // Card entries (Trim / Window / Door / Accessory)
 // ============================================================================
 class TrimEntry {
-  TrimEntry(); // ✅ Constructor vacío explícito
+  TrimEntry(); 
 
   String type = '';          // J-channel, Corner, Frieze, Other
   String typeOther = '';
   String material = '';      // Vinyl, Aluminum, Wood, Other
   String materialOther = '';
-  double qty = 0;
-  String unit = 'LF';        // LF | SF | EA
+  double lf = 0;
   String condition = '';
   String notes = '';
   File? photo;
@@ -332,8 +394,7 @@ class TrimEntry {
   Map<String, dynamic> toJson() => {
         'type': type, 'typeOther': typeOther,
         'material': material, 'materialOther': materialOther,
-        'qty': qty, 'unit': unit,
-        'condition': condition, 'notes': notes,
+        'lf': lf, 'condition': condition, 'notes': notes,
         'photo': _fileToPath(photo),
       };
 
@@ -342,15 +403,14 @@ class TrimEntry {
     ..typeOther = j['typeOther'] as String? ?? ''
     ..material = j['material'] as String? ?? ''
     ..materialOther = j['materialOther'] as String? ?? ''
-    ..qty = (j['qty'] as num?)?.toDouble() ?? 0
-    ..unit = j['unit'] as String? ?? 'LF'
+    ..lf = (j['lf'] as num?)?.toDouble() ?? 0
     ..condition = j['condition'] as String? ?? ''
     ..notes = j['notes'] as String? ?? ''
     ..photo = _pathToFile(j['photo']);
 }
 
 class WindowEntry {
-  WindowEntry(); // ✅ Constructor vacío explícito
+  WindowEntry(); 
 
   String type = '';          // Single-hung, Double-hung, Casement, Picture, Other
   String typeOther = '';
@@ -383,14 +443,14 @@ class WindowEntry {
 }
 
 class DoorEntry {
-  DoorEntry(); // ✅ Constructor vacío explícito
+  DoorEntry(); 
 
   String type = '';          // Entry, Patio, Sliding, Garage, Other
   String typeOther = '';
   String material = '';      // Steel, Fiberglass, Wood, Aluminum, Other
   String materialOther = '';
   String size = '';
-  int qty = 1;
+  int qty = 0;
   String condition = '';
   String notes = '';
   File? photoBefore;
@@ -422,11 +482,11 @@ class DoorEntry {
 }
 
 class AccessoryEntry {
-  AccessoryEntry(); // ✅ Constructor vacío explícito
+  AccessoryEntry();
 
   String type = '';          // Shutter, Light fixture, Vent, House number, Hose bib, Other
   String typeOther = '';
-  int qty = 1;
+  int qty = 0;
   String condition = '';
   String notes = '';
   File? photo;
