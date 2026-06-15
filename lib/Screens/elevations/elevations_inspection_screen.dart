@@ -13,9 +13,10 @@ import 'package:claimscope_clean/screens/elevations/widgets/elevation_tab_strip.
 /// Anti-rebuild: `IndexedStack` mantiene cada `BuildingElevationsSection`
 /// montada. Cambiar de tab NO destruye controllers ni scroll.
 class ElevationsInspectionScreen extends StatefulWidget {
+  
   final InspectionReport report;
   final bool isCommercial;
-
+  
   const ElevationsInspectionScreen({
     super.key,
     required this.report,
@@ -31,7 +32,7 @@ class ElevationsInspectionScreen extends StatefulWidget {
     extends State<ElevationsInspectionScreen> {
   late final ElevationsAutoSaver _saver;
   int _activeIdx = 0;
-
+  bool _showElevationStrip = false;
   // ID estable para el draft. Si más adelante el modelo expone un id real,
   // reemplaza esta línea por `widget.report.id`.
   String get _reportId =>
@@ -115,26 +116,63 @@ class ElevationsInspectionScreen extends StatefulWidget {
               onChange: _onChange,
             ),
           ),
-          ElevationTabStrip(
-            elevations: elevations,
-            activeIdx: safeIdx,
-            onTap: (i) => setState(() => _activeIdx = i),
-            onAddOther: _promptAddOther,
-            allowAddOther: true,
+Card(
+  margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+  child: Column(
+    children: [
+      ListTile(
+        title: const Text(
+          'Elevations',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        onTap: () {
+          setState(() {
+            _showElevationStrip = !_showElevationStrip;
+          });
+        },
+        trailing: IconButton(
+          icon: Icon(
+            _showElevationStrip
+                ? Icons.keyboard_arrow_up
+                : Icons.keyboard_arrow_down,
           ),
-          Expanded(
-            child: IndexedStack(
-              index: safeIdx,
-              children: [
-                for (final e in elevations)
-                  BuildingElevationsSection(
-                    key: ValueKey(e.side.key),
-                    elevation: e,
-                    onChange: _onChange,
-                  ),
-              ],
-            ),
+          onPressed: () {
+            setState(() {
+              _showElevationStrip = !_showElevationStrip;
+            });
+          },
+        ),
+      ),
+
+      if (_showElevationStrip) ...[
+        ElevationTabStrip(
+          elevations: elevations,
+          activeIdx: safeIdx,
+          onTap: (i) => setState(() => _activeIdx = i),
+          onAddOther: _promptAddOther,
+          allowAddOther: true,
+        ),
+
+        SizedBox(
+         height: (MediaQuery.of(context).size.height * 0.70 -
+        MediaQuery.of(context).viewInsets.bottom)
+    .clamp(250.0, MediaQuery.of(context).size.height * 0.70),
+          child: IndexedStack(
+            index: safeIdx,
+            children: [
+              for (final e in elevations)
+                BuildingElevationsSection(
+                  key: ValueKey(e.side.key),
+                  elevation: e,
+                  onChange: _onChange,
+                ),
+            ],
           ),
+        ),
+      ],
+    ],
+  ),
+),
         ],
       ),
     ),

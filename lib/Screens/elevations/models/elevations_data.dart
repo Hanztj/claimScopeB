@@ -162,6 +162,7 @@ class GuttersSoffitFasciaData {
   String sofScope = '';
   String sofScopeOther = '';
   String sofLf = '';
+  String sofQuantity = '';
   bool sofVents = false;
   String sofVentsQty = '';
   bool sofPaint = false;

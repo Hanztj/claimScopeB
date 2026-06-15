@@ -48,9 +48,9 @@ class _GlobalElevationsHubState extends State<GlobalElevationsHub> {
   late final TextEditingController _sofMaterialOther;
   late final TextEditingController _sofSizeOther;
   late final TextEditingController _sofScopeOther;
-  late final TextEditingController _sofLf;
+  late final TextEditingController _sofQuantity;
   late final TextEditingController _sofVentsQty;
-
+  late final TextEditingController _sofLf;
   // ─── Notas única para sec.2 ──────────────────────────────────────────
   late final TextEditingController _gsfNotes;
 
@@ -81,6 +81,7 @@ class _GlobalElevationsHubState extends State<GlobalElevationsHub> {
     _sofMaterialOther = TextEditingController(text: _gsf.sofMaterialOther);
     _sofSizeOther = TextEditingController(text: _gsf.sofSizeOther);
     _sofScopeOther = TextEditingController(text: _gsf.sofScopeOther);
+    _sofQuantity = TextEditingController(text: _gsf.sofQuantity);
     _sofLf = TextEditingController(text: _gsf.sofLf);
     _sofVentsQty = TextEditingController(text: _gsf.sofVentsQty);
 
@@ -94,7 +95,8 @@ class _GlobalElevationsHubState extends State<GlobalElevationsHub> {
       _gutMaterialOther, _gutShapeOther, _gutScopeOther, _gutLf,
       _gutScreenType, _gutScupperQty,
       _facMaterialOther, _facSizeOther, _facScopeOther, _facLf,
-      _sofMaterialOther, _sofSizeOther, _sofScopeOther, _sofLf, _sofVentsQty,
+      _sofMaterialOther, _sofSizeOther, _sofScopeOther, _sofQuantity,
+      _sofLf,_sofVentsQty,
       _gsfNotes,
     ]) { c.dispose(); }
     super.dispose();
@@ -501,25 +503,37 @@ Widget _buildSoffitTile() {
             onChanged: (v) => setState(() { _gsf.sofScope = v ?? ''; _mark(); }),
             onOtherChanged: (v) { _gsf.sofScopeOther = v; _mark(); },
           ),
-           const SizedBox(height: 8),
-          _dropdown(
-            label: 'Quantity',
-            value: _gsf.facQuantity,
-            options: const ['Entire perimeter', 'Partial'],
-            onChanged: (v) => setState(() {
-              _gsf.facQuantity = v ?? '';
-              if (_gsf.facQuantity == 'Entire perimeter') {
-                _gsf.facLf = '';
-                _facLf.clear();
-              }
-              _mark();
-            }),
-          ),
-          if (_gsf.facQuantity == 'Partial') ...[
-            const SizedBox(height: 8),
-            _qtyField(controller: _facLf, hint: 'How many LF', unit: 'LF',
-                onChanged: (v) { _gsf.facLf = v; _mark(); }),
-          ],
+const SizedBox(height: 8),
+_dropdown(
+  label: 'Quantity',
+  value: _gsf.sofQuantity,
+  options: const ['Entire perimeter', 'Partial'],
+  onChanged: (v) => setState(() {
+    _gsf.sofQuantity = v ?? '';
+
+    if (_gsf.sofQuantity == 'Entire perimeter') {
+      _gsf.sofLf = '';
+      _sofLf.clear();
+    }
+
+    _mark();
+  }),
+),
+
+if (_gsf.sofQuantity == 'Partial') ...[
+  const SizedBox(height: 8),
+  _qtyField(
+    controller: _sofLf,
+    hint: 'How many LF?',
+    unit: 'LF',
+    onChanged: (v) {
+      setState(() {
+        _gsf.sofLf = v;
+        _mark();
+      });
+    },
+  ),
+],
           
           // ─── Modificación para Vents ───────────────────────────────────────
           _checkbox('Has Vents?', _gsf.sofVents, (v) { 
@@ -558,11 +572,21 @@ Widget _buildSoffitTile() {
       ),
     );
   }
-  SectionStatus _sofStatus() {
-    if (!_gsf.soffitHasData) return SectionStatus.empty;
-    final req = [_gsf.sofMaterial, _gsf.sofSize, _gsf.sofScope, _gsf.sofLf];
-    return req.every((r) => r.isNotEmpty) ? SectionStatus.complete : SectionStatus.partial;
-  }
+SectionStatus _sofStatus() {
+  if (!_gsf.soffitHasData) return SectionStatus.empty;
+
+  final req = <String>[
+    _gsf.sofMaterial,
+    _gsf.sofSize,
+    _gsf.sofScope,
+    if (_gsf.sofQuantity == 'Partial') _gsf.sofLf,
+    if (_gsf.sofVents) _gsf.sofVentsQty,
+  ];
+
+  return req.every((r) => r.isNotEmpty)
+      ? SectionStatus.complete
+      : SectionStatus.partial;
+}
 
   // =====================================================================
   // HELPERS UI

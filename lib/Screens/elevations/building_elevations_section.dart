@@ -42,7 +42,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
   final Map<TrimEntry, _TrimControllers> _trimCtl = {};
 
   final _picker = ImagePicker();
-
+  
   SidingDamagesData get _s => widget.elevation.siding;
   List<TrimEntry> get _trims => widget.elevation.trims;
 
@@ -153,13 +153,14 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     return Card(
       margin: EdgeInsets.zero,
       child: ExpansionTile(
+          controlAffinity: ListTileControlAffinity.trailing,
         leading: SectionStatusDot(status: _sidingStatus()),
         title: const Text('Siding',
             style: TextStyle(fontWeight: FontWeight.w600)),
         childrenPadding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
         children: [
           _dropdown(
-            label: 'Siding (Main Category)',
+            label: 'Siding Type',
             value: _s.sidingMain,
             options: const [
               'Vinyl',
@@ -190,18 +191,18 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
               },
             ),
           ],
-          if (_showsSidingHeight()) ...[
-            const SizedBox(height: 8),
-            _textField(
-              controller: _sidingHeight,
-              label: 'Siding Height',
-              helper: 'Write the height of a single piece',
-              onChanged: (v) {
-                _s.sidingHeight = v;
-                _mark();
-              },
-            ),
-          ],
+if (_showsSidingHeight()) ...[
+  const SizedBox(height: 8),
+  _textField(
+    controller: _sidingHeight,
+    label: 'Siding Height',
+    hintText: 'Write the height of a single piece',
+    onChanged: (v) {
+      _s.sidingHeight = v;
+      _mark();
+    },
+  ),
+],
           if (_s.sidingMain.isNotEmpty && _s.sidingMain != 'Stucco') ...[
             const SizedBox(height: 12),
             const Text('Scope of Work',
@@ -1022,12 +1023,18 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     required TextEditingController controller,
     required String label,
     String? helper,
+    String? hintText,
     required ValueChanged<String> onChanged,
   }) {
     return TextField(
       controller: controller,
       decoration: InputDecoration(
         labelText: label,
+        hintText: hintText,
+          hintStyle: const TextStyle(
+    color: Colors.grey,
+    fontSize: 12,
+      ),
         helperText: helper,
         border: const OutlineInputBorder(),
         isDense: true,
