@@ -31,7 +31,7 @@ class ElevationTabStrip extends StatelessWidget {
     final theme = Theme.of(context);
     return Container(
         height: 68,
-       margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+       margin: const EdgeInsets.fromLTRB(14, 12, 12, 0),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
      borderRadius: BorderRadius.circular(12),

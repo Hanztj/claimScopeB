@@ -123,7 +123,6 @@ class EmergencyServicesData {
 
 // ============================================================================
 // Sección 2 — Gutters / Soffit / Fascia
-// (rediseñada según docx: 3 sub-bloques + Additional Notes)
 // ============================================================================
 class GuttersSoffitFasciaData {
   GuttersSoffitFasciaData(); // ✅ Constructor vacío explícito
@@ -169,7 +168,7 @@ class GuttersSoffitFasciaData {
 
   String additionalNotes = '';
 
-bool get guttersHasData =>
+  bool get guttersHasData =>
       gutMaterial.isNotEmpty || gutShape.isNotEmpty || gutSize.isNotEmpty ||
       gutScreen || gutScupper || gutScope.isNotEmpty || gutLf.isNotEmpty || gutPaint;
   bool get fasciaHasData =>
@@ -185,7 +184,8 @@ bool get guttersHasData =>
         'gutMaterial': gutMaterial, 'gutMaterialOther': gutMaterialOther,
         'gutShape': gutShape, 'gutShapeOther': gutShapeOther,
         'gutSize': gutSize,
-        'gutScreen': gutScreen, 'gutScupper': gutScupper,
+        'gutScreen': gutScreen, 
+        'gutScupper': gutScupper,
         'gutScope': gutScope, 'gutScopeOther': gutScopeOther,
         'gutLf': gutLf, 'gutPaint': gutPaint,
         'facMaterial': facMaterial, 'facMaterialOther': facMaterialOther,
@@ -196,7 +196,8 @@ bool get guttersHasData =>
         'sofMaterial': sofMaterial, 'sofMaterialOther': sofMaterialOther,
         'sofSize': sofSize, 'sofSizeOther': sofSizeOther,
         'sofScope': sofScope, 'sofScopeOther': sofScopeOther,
-        'sofLf': sofLf, 'sofVents': sofVents, 'sofPaint': sofPaint,
+        'sofLf': sofLf, 'sofVents': sofVents, 
+        'sofPaint': sofPaint,
         'additionalNotes': additionalNotes,
       };
 
@@ -207,7 +208,8 @@ bool get guttersHasData =>
       ..gutMaterial = s('gutMaterial')..gutMaterialOther = s('gutMaterialOther')
       ..gutShape = s('gutShape')..gutShapeOther = s('gutShapeOther')
       ..gutSize = s('gutSize')
-      ..gutScreen = b('gutScreen')..gutScupper = b('gutScupper')
+      ..gutScreen = b('gutScreen')..gutScreenStyle = s('gutScreenStyle')
+      ..gutScupper = b('gutScupper')..gutScupperQty = s('gutScupperQty')
       ..gutScope = s('gutScope')..gutScopeOther = s('gutScopeOther')
       ..gutLf = s('gutLf')..gutPaint = b('gutPaint')
       ..facMaterial = s('facMaterial')..facMaterialOther = s('facMaterialOther')
@@ -218,7 +220,8 @@ bool get guttersHasData =>
       ..sofMaterial = s('sofMaterial')..sofMaterialOther = s('sofMaterialOther')
       ..sofSize = s('sofSize')..sofSizeOther = s('sofSizeOther')
       ..sofScope = s('sofScope')..sofScopeOther = s('sofScopeOther')
-      ..sofLf = s('sofLf')..sofVents = b('sofVents')..sofPaint = b('sofPaint')
+      ..sofLf = s('sofLf')..sofVents = b('sofVents')..sofVentsQty = s('sofVentsQty')
+      ..sofPaint = b('sofPaint')
       ..additionalNotes = s('additionalNotes');
   }
 }
@@ -226,46 +229,155 @@ bool get guttersHasData =>
 // ============================================================================
 // Sección 3 — Siding Damages (cuerpo de la elevación)
 // ============================================================================
-class SidingDamagesData {
-  SidingDamagesData(); 
+ class SidingDamagesData {
+  SidingDamagesData();
 
-  String sidingType = '';         // catalog key (Vinyl, Stucco, Wood, Brick, Other)
-  String sidingSubtype = '';      // profile/finish
-  String sidingTypeOther = '';
-  String condition = '';          // Good, Minor, Major, Total loss
-  double affectedSf = 0;
-  String causeOfLoss = '';        // Wind, Hail, Impact, Other
-  String causeOfLossOther = '';
-  String notes = '';
-  List<File> photos = [];
+  // Main category (Dropdown)
+  // 'Vinyl' | 'Aluminum' | 'Wood' | 'Fiber-Cement' | 'Steel' |
+  // 'Wall/roof panel' | 'Stucco' | 'Brick Veneer' | 'Tone Veneer'
+  String sidingMain = '';
+
+  // 1. Vinyl
+  String vinylType = '';
+
+  // 2. Aluminum
+  String aluminumType = '';
+
+  // 3. Wood
+  String woodType = '';            // incluye 'Hardboard'
+  String woodHardboardSize = '';   // solo si woodType == 'Hardboard'
+  String woodMaterial = '';        // oculto si woodType == 'Hardboard'
+  String woodMaterialOther = '';   // si woodMaterial == 'Other'
+
+
+
+  // 4. Fiber-Cement
+  String fiberCementType = '';
+  String fiberCementSize = '';     // solo si fiberCementType == 'Clapboard/Lap'
+
+  // 5. Steel
+  String steelType = '';
+  String steelInsulatedSize = '';        // solo si steelType == 'Insulated Metal Panel'
+  String steelInsulatedSizeOther = '';   // si steelInsulatedSize == 'Other'
+
+  // 6. Wall/roof panel
+  String panelType = '';                 // 'Ribbed' | 'Corrugated'
+  String panelCorrugatedGauge = '';      // si panelType == 'Corrugated'
+  bool   panelCorrugatedGalvanized = false;
+  String panelRibbedGauge = '';          // si panelType == 'Ribbed'
+
+  // Conditional Gauge & Height (debajo de la rama principal)
+  String steelSidingGauge = '';          // solo si sidingMain == 'Steel' (no condicional, puede vacío)
+  String sidingHeight = '';              // Vinyl/Aluminum/Wood (excepto Hardboard)
+
+  // Scope of Work (todos excepto Stucco)
+  bool   changeWholeElevation = false;
+  String howManySf = '';                 // oculto si changeWholeElevation == true
+
+  // Stucco scope (Radio Buttons excluyentes)
+  // 'Small repair' | 'Crack repair' | 'Fog coat application' | 'Redash' | 'Whole replacement'
+  String stuccoScope = '';
+  String stuccoSmallRepairSf = '';
+  String stuccoCrackRepairLf = '';
+  bool   stuccoFogCoatEntireElev = false;
+  String stuccoFogCoatSf = '';
+  bool   stuccoRedashEntireElev = false;
+  String stuccoRedashSf = '';
+  String stuccoRedashTexture = '';       // 'Smooth/Flat' | 'Fine Sand' | 'Medium/Coarse'
+  String stuccoWholeReplacementCoats = '';
+
+  // Stucco extras (siempre visibles dentro del bloque Stucco)
+  bool   stuccoMoistureBarrier = false;
+  bool   stuccoExpansionJoints = false;
+  String stuccoFinalTextureFinish = '';  // 'Smooth/Flat' | 'Sand float' | 'Fine Sand' | 'Medium/Coarse'
+  String stuccoFinish = '';              // 'Painted' | 'natural gray'
+
+  // Una única Additional Notes al final de la sección Siding (NO colapsable)
+  String additionalNotes = '';
+
+  bool get hasAnyData =>
+      sidingMain.isNotEmpty || additionalNotes.isNotEmpty;
 
   Map<String, dynamic> toJson() => {
-        'sidingType': sidingType,
-        'sidingSubtype': sidingSubtype,
-        'sidingTypeOther': sidingTypeOther,
-        'condition': condition,
-        'affectedSf': affectedSf,
-        'causeOfLoss': causeOfLoss,
-        'causeOfLossOther': causeOfLossOther,
-        'notes': notes,
-        'photos': _filesToPaths(photos),
+        'sidingMain': sidingMain,
+        'vinylType': vinylType,
+        'aluminumType': aluminumType,
+        'woodType': woodType,
+        'woodHardboardSize': woodHardboardSize,
+        'woodMaterial': woodMaterial,
+        'woodMaterialOther': woodMaterialOther,
+        'fiberCementType': fiberCementType,
+        'fiberCementSize': fiberCementSize,
+        'steelType': steelType,
+        'steelInsulatedSize': steelInsulatedSize,
+        'steelInsulatedSizeOther': steelInsulatedSizeOther,
+        'panelType': panelType,
+        'panelCorrugatedGauge': panelCorrugatedGauge,
+        'panelCorrugatedGalvanized': panelCorrugatedGalvanized,
+        'panelRibbedGauge': panelRibbedGauge,
+        'steelSidingGauge': steelSidingGauge,
+        'sidingHeight': sidingHeight,
+        'changeWholeElevation': changeWholeElevation,
+        'howManySf': howManySf,
+        'stuccoScope': stuccoScope,
+        'stuccoSmallRepairSf': stuccoSmallRepairSf,
+        'stuccoCrackRepairLf': stuccoCrackRepairLf,
+        'stuccoFogCoatEntireElev': stuccoFogCoatEntireElev,
+        'stuccoFogCoatSf': stuccoFogCoatSf,
+        'stuccoRedashEntireElev': stuccoRedashEntireElev,
+        'stuccoRedashSf': stuccoRedashSf,
+        'stuccoRedashTexture': stuccoRedashTexture,
+        'stuccoWholeReplacementCoats': stuccoWholeReplacementCoats,
+        'stuccoMoistureBarrier': stuccoMoistureBarrier,
+        'stuccoExpansionJoints': stuccoExpansionJoints,
+        'stuccoFinalTextureFinish': stuccoFinalTextureFinish,
+        'stuccoFinish': stuccoFinish,
+        'additionalNotes': additionalNotes,
       };
 
-  factory SidingDamagesData.fromJson(Map<String, dynamic> j) =>
-      SidingDamagesData()
-        ..sidingType = j['sidingType'] as String? ?? ''
-        ..sidingSubtype = j['sidingSubtype'] as String? ?? ''
-        ..sidingTypeOther = j['sidingTypeOther'] as String? ?? ''
-        ..condition = j['condition'] as String? ?? ''
-        ..affectedSf = (j['affectedSf'] as num?)?.toDouble() ?? 0
-        ..causeOfLoss = j['causeOfLoss'] as String? ?? ''
-        ..causeOfLossOther = j['causeOfLossOther'] as String? ?? ''
-        ..notes = j['notes'] as String? ?? ''
-        ..photos = _pathsToFiles(j['photos']);
+  factory SidingDamagesData.fromJson(Map<String, dynamic> j) {
+    String s(String k) => j[k] as String? ?? '';
+    bool   b(String k) => j[k] as bool?   ?? false;
+    return SidingDamagesData()
+      ..sidingMain = s('sidingMain')
+      ..vinylType = s('vinylType')
+      ..aluminumType = s('aluminumType')
+      ..woodType = s('woodType')
+      ..woodHardboardSize = s('woodHardboardSize')
+      ..woodMaterial = s('woodMaterial')
+      ..woodMaterialOther = s('woodMaterialOther')
+      ..fiberCementType = s('fiberCementType')
+      ..fiberCementSize = s('fiberCementSize')
+      ..steelType = s('steelType')
+      ..steelInsulatedSize = s('steelInsulatedSize')
+      ..steelInsulatedSizeOther = s('steelInsulatedSizeOther')
+      ..panelType = s('panelType')
+      ..panelCorrugatedGauge = s('panelCorrugatedGauge')
+      ..panelCorrugatedGalvanized = b('panelCorrugatedGalvanized')
+      ..panelRibbedGauge = s('panelRibbedGauge')
+      ..steelSidingGauge = s('steelSidingGauge')
+      ..sidingHeight = s('sidingHeight')
+      ..changeWholeElevation = b('changeWholeElevation')
+      ..howManySf = s('howManySf')
+      ..stuccoScope = s('stuccoScope')
+      ..stuccoSmallRepairSf = s('stuccoSmallRepairSf')
+      ..stuccoCrackRepairLf = s('stuccoCrackRepairLf')
+      ..stuccoFogCoatEntireElev = b('stuccoFogCoatEntireElev')
+      ..stuccoFogCoatSf = s('stuccoFogCoatSf')
+      ..stuccoRedashEntireElev = b('stuccoRedashEntireElev')
+      ..stuccoRedashSf = s('stuccoRedashSf')
+      ..stuccoRedashTexture = s('stuccoRedashTexture')
+      ..stuccoWholeReplacementCoats = s('stuccoWholeReplacementCoats')
+      ..stuccoMoistureBarrier = b('stuccoMoistureBarrier')
+      ..stuccoExpansionJoints = b('stuccoExpansionJoints')
+      ..stuccoFinalTextureFinish = s('stuccoFinalTextureFinish')
+      ..stuccoFinish = s('stuccoFinish')
+      ..additionalNotes = s('additionalNotes');
+  }
 }
 
 // ============================================================================
-// Sección 4 — Underlayment / Insulation
+// Sección 4 — Underlayment / Insulation  (sin cambios — paso 5)
 // ============================================================================
 class UnderlaymentInsulationData {
   UnderlaymentInsulationData(); 
@@ -306,7 +418,7 @@ class UnderlaymentInsulationData {
 }
 
 // ============================================================================
-// Sección 5 — Substrate (sheathing / studs)
+// Sección 5 — Substrate (sin cambios — paso 5)
 // ============================================================================
 class SubstrateData {
   SubstrateData(); 
@@ -343,7 +455,7 @@ class SubstrateData {
 }
 
 // ============================================================================
-// EIFS
+// EIFS (sin cambios — paso 5)
 // ============================================================================
 class EifsData {
   EifsData();
@@ -377,36 +489,75 @@ class EifsData {
 }
 
 // ============================================================================
-// Card entries (Trim / Window / Door / Accessory)
+// TrimEntry — RECONSTRUIDO literal según diseño "Add trim to Inspection"
 // ============================================================================
-class TrimEntry {
-  TrimEntry(); 
+ class TrimEntry {
+  TrimEntry();
 
-  String type = '';          // J-channel, Corner, Frieze, Other
-  String typeOther = '';
-  String material = '';      // Vinyl, Aluminum, Wood, Other
-  String materialOther = '';
-  double lf = 0;
-  String condition = '';
-  String notes = '';
+  // Tipo de trim (selección del catálogo del diseño)
+  // 'Outside corner post' | 'Inside corner post' | 'J-trim' | 'Siding trim' | 'Skirting' | 'Other'
+  String trimType = '';
+  String otherSpecify = '';                // si trimType == 'Other'
+
+  // Acción común a todos los trims
+  // 'Replace' | 'D&R only'
+  String action = '';
+
+  // Campos por tipo (solo visibles si action == 'Replace')
+  // Outside corner post
+  String ocpMaterial = '';                 // 'Vinyl' | 'Metal' | 'Hardwood'
+  bool   ocpInsulated = false;             // si ocpMaterial == 'Vinyl' || 'Metal'
+  String ocpMetalGauge = '';               // si ocpMaterial == 'Metal'
+
+  // J-trim
+  String jTrimMaterial = '';               // 'Vinyl' | 'Metal'
+
+  // Siding trim
+  String sidingTrimMaterial = '';          // 'Hardboard' | 'PVC' | 'Wood'
+  String sidingTrimSize = '';              // TextField
+
+  // Skirting
+  String skirtingMaterial = '';            // 'Vinyl/Plastic' | 'Metal'
+  String skirtingSize = '';                // '24" to 36"' | '37" to 48"'
+
+  // Fotos (Photo + ExtraPhoto, igual que residential Add Flashing/Add Vent)
   File? photo;
+  File? extraPhoto;
 
   Map<String, dynamic> toJson() => {
-        'type': type, 'typeOther': typeOther,
-        'material': material, 'materialOther': materialOther,
-        'lf': lf, 'condition': condition, 'notes': notes,
+        'trimType': trimType,
+        'otherSpecify': otherSpecify,
+        'action': action,
+        'ocpMaterial': ocpMaterial,
+        'ocpInsulated': ocpInsulated,
+        'ocpMetalGauge': ocpMetalGauge,
+        'jTrimMaterial': jTrimMaterial,
+        'sidingTrimMaterial': sidingTrimMaterial,
+        'sidingTrimSize': sidingTrimSize,
+        'skirtingMaterial': skirtingMaterial,
+        'skirtingSize': skirtingSize,
         'photo': _fileToPath(photo),
+        'extraPhoto': _fileToPath(extraPhoto),
       };
 
-  factory TrimEntry.fromJson(Map<String, dynamic> j) => TrimEntry()
-    ..type = j['type'] as String? ?? ''
-    ..typeOther = j['typeOther'] as String? ?? ''
-    ..material = j['material'] as String? ?? ''
-    ..materialOther = j['materialOther'] as String? ?? ''
-    ..lf = (j['lf'] as num?)?.toDouble() ?? 0
-    ..condition = j['condition'] as String? ?? ''
-    ..notes = j['notes'] as String? ?? ''
-    ..photo = _pathToFile(j['photo']);
+  factory TrimEntry.fromJson(Map<String, dynamic> j) {
+    String s(String k) => j[k] as String? ?? '';
+    bool   b(String k) => j[k] as bool?   ?? false;
+    return TrimEntry()
+      ..trimType = s('trimType')
+      ..otherSpecify = s('otherSpecify')
+      ..action = s('action')
+      ..ocpMaterial = s('ocpMaterial')
+      ..ocpInsulated = b('ocpInsulated')
+      ..ocpMetalGauge = s('ocpMetalGauge')
+      ..jTrimMaterial = s('jTrimMaterial')
+      ..sidingTrimMaterial = s('sidingTrimMaterial')
+      ..sidingTrimSize = s('sidingTrimSize')
+      ..skirtingMaterial = s('skirtingMaterial')
+      ..skirtingSize = s('skirtingSize')
+      ..photo = _pathToFile(j['photo'])
+      ..extraPhoto = _pathToFile(j['extraPhoto']);
+  }
 }
 
 class WindowEntry {
@@ -532,7 +683,7 @@ class BuildingElevation {
         windows.isNotEmpty ||
         doors.isNotEmpty ||
         accessories.isNotEmpty ||
-        siding.sidingType.isNotEmpty ||
+      //  siding.sidingType.isNotEmpty ||
         underlayment.exposed ||
         substrate.exposed ||
         eifs.present;

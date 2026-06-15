@@ -854,6 +854,9 @@ String? noAction;
   int? flashingIndex,
   int? otherElementIndex,
  }) async {
+
+   debugPrint('CAMERA DEBUG: before pickImage');
+
   final pickedFile = await picker.pickImage(
     source: ImageSource.camera,
     maxWidth: 1024,
@@ -861,7 +864,12 @@ String? noAction;
     preferredCameraDevice: CameraDevice.rear,
   );
 
+  debugPrint('CAMERA DEBUG: after pickImage path=${pickedFile?.path}');
+
+
   if (pickedFile == null) return;
+
+  if (!mounted) return;
 
   final img = File(pickedFile.path);
 

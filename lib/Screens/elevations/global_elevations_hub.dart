@@ -235,7 +235,7 @@ class _GlobalElevationsHubState extends State<GlobalElevationsHub> {
           _dropdownWithOther(
             label: 'Material Type',
             value: _gsf.gutMaterial,
-            options: const ['Plastic/Vinyl', 'Aluminum', 'Galvanized', 'Copper', 'Other'], // Corregido: Separados por comas
+            options: const ['Plastic/Vinyl', 'Aluminum', 'Galvanized', 'Copper', 'Other'], 
             otherController: _gutMaterialOther,
             onChanged: (v) => setState(() { _gsf.gutMaterial = v ?? ''; _mark(); }),
             onOtherChanged: (v) { _gsf.gutMaterialOther = v; _mark(); },
@@ -329,21 +329,18 @@ const SizedBox(height: 8),
           
           // El campo LF ahora es condicional
           if (_gsf.gutScope.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text(
-                'Approx. LF for gutters/eaves, or downspouts (qty x length)',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600], fontStyle: FontStyle.italic),
-              ),
-            ),
-            _qtyField(
-              controller: _gutLf, 
-              hint: 'How many LF', 
-              unit: 'LF',
-              onChanged: (v) { _gsf.gutLf = v; _mark(); },
-            ),
-          ],
+  const SizedBox(height: 12),
+  _qtyField(
+    controller: _gutLf,
+    hint: 'How many LF?',
+    unit: 'LF',
+    hintText: 'Approx. gutters/downspouts LF',
+    onChanged: (v) {
+      _gsf.gutLf = v;
+      _mark();
+    },
+  ),
+],
           
           const SizedBox(height: 8),
           _checkbox('Requires to be painted?', _gsf.gutPaint, (v) { 
@@ -627,24 +624,26 @@ Widget _buildSoffitTile() {
     ]);
   }
 
-  Widget _qtyField({
-    required TextEditingController controller,
-    required String hint,
-    required String unit,
-    required ValueChanged<String> onChanged,
-  }) {
-    return TextField(
-      controller: controller,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      decoration: InputDecoration(
-        labelText: hint,
-        suffixText: unit,
-        border: const OutlineInputBorder(),
-        isDense: true,
-      ),
-      onChanged: onChanged,
-    );
-  }
+Widget _qtyField({
+  required TextEditingController controller,
+  required String hint,
+  required String unit,
+  required ValueChanged<String> onChanged,
+  String? hintText,
+}) {
+  return TextField(
+    controller: controller,
+    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+    decoration: InputDecoration(
+      labelText: hint,
+      hintText: hintText,
+      suffixText: unit,
+      border: const OutlineInputBorder(),
+      isDense: true,
+    ),
+    onChanged: onChanged,
+  );
+}
 
   Widget _notesField(TextEditingController c, ValueChanged<String> onChanged) {
     return TextField(
