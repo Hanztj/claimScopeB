@@ -104,6 +104,123 @@ class _GlobalElevationsHubState extends State<GlobalElevationsHub> {
 
   void _mark() => widget.onChange();
 
+  void _clearEmergencyServices() {
+  _es.enabled = false;
+  _es.twpEnabled = false;
+  _es.twpType = '';
+  _es.twpSf = '';
+  _es.twdpEnabled = false;
+  _es.twdpSf = '';
+  _es.pwEnabled = false;
+  _es.pwArea = '';
+  _es.pwSf = '';
+  _es.additionalNotes = '';
+
+  _twpSf.clear();
+  _twdpSf.clear();
+  _pwSf.clear();
+  _esNotes.clear();
+
+  _mark();
+}
+
+void _clearGutters() {
+  _gsf.gutMaterial = '';
+  _gsf.gutMaterialOther = '';
+  _gsf.gutShape = '';
+  _gsf.gutShapeOther = '';
+  _gsf.gutSize = '';
+  _gsf.gutScreen = false;
+  _gsf.gutScreenStyle = '';
+  _gsf.gutScupper = false;
+  _gsf.gutScupperQty = '';
+  _gsf.gutScope = '';
+  _gsf.gutScopeOther = '';
+  _gsf.gutLf = '';
+  _gsf.gutPaint = false;
+
+  _gutMaterialOther.clear();
+  _gutShapeOther.clear();
+  _gutScopeOther.clear();
+  _gutLf.clear();
+  _gutScreenType.clear();
+  _gutScupperQty.clear();
+
+  _mark();
+}
+
+void _clearFascia() {
+  _gsf.facMaterial = '';
+  _gsf.facMaterialOther = '';
+  _gsf.facWoodSubtype = '';
+  _gsf.facSize = '';
+  _gsf.facSizeOther = '';
+  _gsf.facScope = '';
+  _gsf.facScopeOther = '';
+  _gsf.facQuantity = '';
+  _gsf.facLf = '';
+  _gsf.facPaint = false;
+
+  _facMaterialOther.clear();
+  _facSizeOther.clear();
+  _facScopeOther.clear();
+  _facLf.clear();
+
+  _mark();
+}
+
+void _clearSoffit() {
+  _gsf.sofMaterial = '';
+  _gsf.sofMaterialOther = '';
+  _gsf.sofSize = '';
+  _gsf.sofSizeOther = '';
+  _gsf.sofScope = '';
+  _gsf.sofScopeOther = '';
+  _gsf.sofQuantity = '';
+  _gsf.sofLf = '';
+  _gsf.sofVents = false;
+  _gsf.sofVentsQty = '';
+  _gsf.sofPaint = false;
+
+  _sofMaterialOther.clear();
+  _sofSizeOther.clear();
+  _sofScopeOther.clear();
+  _sofQuantity.clear();
+  _sofLf.clear();
+  _sofVentsQty.clear();
+
+  _mark();
+}
+
+  Future<void> _confirmClear({
+  required String title,
+  required VoidCallback onClear,
+}) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text('Clear $title?'),
+      content: const Text(
+        'This will remove all saved data in this section.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Clear'),
+        ),
+      ],
+    ),
+  );
+
+  if (ok == true) {
+    setState(onClear);
+  }
+}
+
   // =====================================================================
   // BUILD
   // =====================================================================
@@ -136,8 +253,13 @@ class _GlobalElevationsHubState extends State<GlobalElevationsHub> {
       margin: EdgeInsets.zero,
       child: ExpansionTile(
         leading: SectionStatusDot(status: status),
-        title: const Text('Emergency Services',
-            style: TextStyle(fontWeight: FontWeight.w600)),
+       title: _sectionTitleWithClear(
+        'Emergency Services', 
+           () => _confirmClear(
+         title: 'Emergency Services', 
+          onClear: _clearEmergencyServices,
+           ),
+            ),
         childrenPadding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
         children: [
           const SizedBox(height: 8),
@@ -165,20 +287,20 @@ class _GlobalElevationsHubState extends State<GlobalElevationsHub> {
                 ),
                 const SizedBox(height: 8),
                 _qtyField(controller: _twpSf, hint: 'How many SF', unit: 'SF',
-                    onChanged: (v) { _es.twpSf = v; _mark(); }),
+                    onChanged: (v) => setState(() { _es.twpSf = v; _mark(); })),
               ]),
             ),
             // 1.B Temporary Window/Door Protection
             _checkbox('Temporary Window/Door Protection', _es.twdpEnabled,
-                (v) { _es.twdpEnabled = v; _mark(); }),
+                (v) => setState(() { _es.twdpEnabled = v; _mark(); })),
             if (_es.twdpEnabled) Padding(
               padding: const EdgeInsets.only(left: 32, bottom: 8),
               child: _qtyField(controller: _twdpSf, hint: 'How many SF', unit: 'SF',
-                  onChanged: (v) { _es.twdpSf = v; _mark(); }),
+                  onChanged: (v) => setState(() { _es.twdpSf = v; _mark(); })),
             ),
             // 1.C Power Washing
             _checkbox('Power Washing required', _es.pwEnabled,
-                (v) { _es.pwEnabled = v; _mark(); }),
+                (v) => setState(() { _es.pwEnabled = v; _mark(); })),
             if (_es.pwEnabled) Padding(
               padding: const EdgeInsets.only(left: 32, bottom: 8),
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -194,17 +316,13 @@ class _GlobalElevationsHubState extends State<GlobalElevationsHub> {
                     controller: _pwSf,
                     hint: 'How many SF',
                     unit: 'SF',
-                    onChanged: (v) {
-                      _es.pwSf = v;
-                      _mark();
-                    },
-                  ),
+                    onChanged: (v) => setState(() { _es.pwSf = v; _mark(); })),
                 ],
               ]),
             ),
           ],
           const SizedBox(height: 12),
-          _notesField(_esNotes, (v) { _es.additionalNotes = v; _mark(); }),
+          _notesField(_esNotes, (v) => setState(() { _es.additionalNotes = v; _mark(); })),
         ],
       ),
     );
@@ -229,8 +347,13 @@ class _GlobalElevationsHubState extends State<GlobalElevationsHub> {
       margin: EdgeInsets.zero,
       child: ExpansionTile(
         leading: SectionStatusDot(status: _gutStatus()),
-        title: const Text('Gutters & Downspouts',
-            style: TextStyle(fontWeight: FontWeight.w600)),
+        title: _sectionTitleWithClear(
+            'Gutters & Downspouts',
+            () => _confirmClear(
+            title: 'Gutters & Downspouts',
+            onClear: _clearGutters,
+            ),
+            ),
         childrenPadding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
         children: [
           const SizedBox(height: 8),
@@ -312,7 +435,7 @@ class _GlobalElevationsHubState extends State<GlobalElevationsHub> {
                 },
               ),
             ),
-const SizedBox(height: 8),
+               const SizedBox(height: 8),
           _dropdownWithOther(
             label: 'Scope of Work',
             value: _gsf.gutScope,
@@ -331,30 +454,30 @@ const SizedBox(height: 8),
           
           // El campo LF ahora es condicional
           if (_gsf.gutScope.isNotEmpty) ...[
-  const SizedBox(height: 12),
-  _qtyField(
-    controller: _gutLf,
-    hint: 'How many LF?',
-    unit: 'LF',
-    hintText: 'Approx. gutters/downspouts LF',
-    onChanged: (v) {
-      _gsf.gutLf = v;
-      _mark();
-    },
-  ),
-],
+           const SizedBox(height: 12),
+           _qtyField(
+           controller: _gutLf,
+           hint: 'How many LF?',
+          unit: 'LF',
+           hintText: 'Approx. gutters/downspouts LF',
+           onChanged: (v) {
+          _gsf.gutLf = v;
+          _mark();
+           },
+          ),
+      ],
           
           const SizedBox(height: 8),
           _checkbox('Requires to be painted?', _gsf.gutPaint, (v) { 
             setState(() {
               _gsf.gutPaint = v; 
               _mark(); 
-            });
-          }),
-        ],
-      ),
-    );
-  }
+             });
+           }),
+          ],
+        ),
+        );
+       }
 
 SectionStatus _gutStatus() {
   final any = _gsf.guttersHasData;
@@ -374,8 +497,13 @@ SectionStatus _gutStatus() {
       margin: EdgeInsets.zero,
       child: ExpansionTile(
         leading: SectionStatusDot(status: _facStatus()),
-        title: const Text('Fascia',
-            style: TextStyle(fontWeight: FontWeight.w600)),
+         title: _sectionTitleWithClear(
+            'Fascia',
+             () => _confirmClear(
+            title: 'Fascia',
+               onClear: _clearFascia,
+              ),
+              ),
         childrenPadding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
         children: [
           const SizedBox(height: 8),
@@ -472,8 +600,13 @@ Widget _buildSoffitTile() {
       margin: EdgeInsets.zero,
       child: ExpansionTile(
         leading: SectionStatusDot(status: _sofStatus()),
-        title: const Text('Soffit',
-            style: TextStyle(fontWeight: FontWeight.w600)),
+         title: _sectionTitleWithClear(
+           'Soffit',
+          () => _confirmClear(
+        title: 'Soffit',
+         onClear: _clearSoffit,
+         ),
+        ),
         childrenPadding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
         children: [
           const SizedBox(height: 8),
@@ -679,6 +812,24 @@ Widget _qtyField({
         isDense: true,
       ),
       onChanged: onChanged,
-    );
-  }
+       );
+      }
+     }
+ 
+       Widget _sectionTitleWithClear(String title, VoidCallback onClearPressed) {
+       return Row(
+       children: [
+      Expanded(
+        child: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+      ),
+      IconButton(
+        icon: const Icon(Icons.refresh, size: 20),
+        tooltip: 'Clear section',
+        onPressed: onClearPressed,
+      ),
+    ],
+  );
 }

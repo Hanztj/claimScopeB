@@ -62,6 +62,91 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     _syncTrimControllers();
   }
 
+  void _clearSiding() {
+  _s.sidingMain = '';
+
+  _s.vinylType = '';
+  _s.aluminumType = '';
+  _s.woodType = '';
+  _s.woodMaterial = '';
+  _s.woodMaterialOther = '';
+  _s.woodHardboardSize = '';
+
+  _s.fiberCementType = '';
+  _s.fiberCementSize = '';
+
+  _s.steelType = '';
+  _s.steelSidingGauge = '';
+  _s.steelInsulatedSize = '';
+  _s.steelInsulatedSizeOther = '';
+
+  _s.panelType = '';
+  _s.panelCorrugatedGauge = '';
+  _s.panelCorrugatedGalvanized = false;
+  _s.panelRibbedGauge = '';
+
+  _s.sidingHeight = '';
+  _s.changeWholeElevation = false;
+  _s.howManySf = '';
+
+  _s.stuccoScope = '';
+  _s.stuccoSmallRepairSf = '';
+  _s.stuccoCrackRepairLf = '';
+  _s.stuccoFogCoatEntireElev = false;
+  _s.stuccoFogCoatSf = '';
+  _s.stuccoRedashEntireElev = false;
+  _s.stuccoRedashSf = '';
+  _s.stuccoRedashTexture = '';
+  _s.stuccoWholeReplacementCoats = '';
+  _s.stuccoMoistureBarrier = false;
+  _s.stuccoExpansionJoints = false;
+  _s.stuccoFinalTextureFinish = '';
+  _s.stuccoFinish = '';
+
+  _s.additionalNotes = '';
+
+  _steelSidingGauge.clear();
+  _sidingHeight.clear();
+  _howManySf.clear();
+  _stuccoSmallRepairSf.clear();
+  _stuccoCrackRepairLf.clear();
+  _stuccoFogCoatSf.clear();
+  _stuccoRedashSf.clear();
+  _stuccoWholeReplacementCoats.clear();
+  _sidingNotes.clear();
+
+  _mark();
+}
+
+  Future<void> _confirmClear({
+  required String title,
+  required VoidCallback onClear,
+}) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text('Clear $title?'),
+      content: const Text(
+        'This will remove all saved data in this section.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Clear'),
+        ),
+      ],
+    ),
+  );
+
+  if (ok == true) {
+    setState(onClear);
+  }
+}
+
   @override
   void didUpdateWidget(covariant BuildingElevationsSection oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -155,8 +240,13 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
       child: ExpansionTile(
           controlAffinity: ListTileControlAffinity.trailing,
         leading: SectionStatusDot(status: _sidingStatus()),
-        title: const Text('Siding',
-            style: TextStyle(fontWeight: FontWeight.w600)),
+        title: _sectionTitleWithClear(
+        'Siding',
+         () => _confirmClear(
+         title: 'Siding',
+         onClear: _clearSiding,
+         ),
+         ),
         childrenPadding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
         children: [
           _dropdown(
@@ -1056,6 +1146,24 @@ if (_showsSidingHeight()) ...[
       onChanged: onChanged,
     );
   }
+}
+
+       Widget _sectionTitleWithClear(String title, VoidCallback onClearPressed) {
+       return Row(
+       children: [
+      Expanded(
+        child: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+      ),
+      IconButton(
+        icon: const Icon(Icons.clear, size: 20),
+        tooltip: 'Clear section',
+        onPressed: onClearPressed,
+      ),
+    ],
+  );
 }
 
 // ─── Controllers por TrimEntry ────────────────────────────────────────
