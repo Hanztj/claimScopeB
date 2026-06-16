@@ -1,4 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
+import 'package:claimscope_clean/inspection_report_model.dart';
 
 import 'models/elevations_data.dart';
 import 'widgets/section_status_dot.dart';
@@ -11,11 +16,13 @@ import 'widgets/section_status_dot.dart';
 /// inline. Cada tile termina con un único TextField "Additional Notes" no colapsable.
 class GlobalElevationsHub extends StatefulWidget {
   final ElevationsData data;
+  final InspectionReport report;
   final VoidCallback onChange;
 
   const GlobalElevationsHub({
     super.key,
     required this.data,
+    required this.report,
     required this.onChange,
   });
 
@@ -56,6 +63,50 @@ class _GlobalElevationsHubState extends State<GlobalElevationsHub> {
 
   EmergencyServicesData get _es => widget.data.emergencyServices;
   GuttersSoffitFasciaData get _gsf => widget.data.guttersSoffitFascia;
+
+    // ─── Captura de fotos (Paso 4.5a) ────────────────────────────────────
+  final ImagePicker _picker = ImagePicker();
+
+  /// Cuenta cuántas fotos previas existen para esta categoría global
+  /// y devuelve el siguiente índice (1-based) para etiquetar.
+  int _nextPhotoIndex(String category) {
+    final prefix = '$category - Photo';
+    return widget.report.photoReportItems
+            .where((p) => p.label.startsWith(prefix))
+            .length +
+        1;
+  }
+
+  /// Captura una foto desde la cámara y la registra en
+  /// `report.photoReportItems` con label legible:
+  ///   `"<Category> - Photo <N>"`
+  /// Sin thumbnail, sin estado local. El autosaver no se involucra.
+  Future<void> _addCategoryPhoto(String category) async {
+    final picked = await _picker.pickImage(source: ImageSource.camera);
+    if (picked == null) return;
+    final n = _nextPhotoIndex(category);
+    widget.report.addPhoto(File(picked.path), '$category - Photo $n');
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Photo Stored'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+    _mark();
+  }
+
+  /// Botón estandarizado "Add 'Category' Photos".
+  Widget _addPhotoButton(String category) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        onPressed: () => _addCategoryPhoto(category),
+        icon: const Icon(Icons.add_a_photo_outlined),
+        label: Text('Add $category Photos'),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -321,7 +372,12 @@ void _clearSoffit() {
               ]),
             ),
           ],
+
+          // 📷 Botón de Foto antes de las notas adicionales
+          const SizedBox(height: 8),
+          _addPhotoButton('Emergency Services'),
           const SizedBox(height: 12),
+
           _notesField(_esNotes, (v) => setState(() { _es.additionalNotes = v; _mark(); })),
         ],
       ),
@@ -469,11 +525,13 @@ void _clearSoffit() {
           
           const SizedBox(height: 8),
           _checkbox('Requires to be painted?', _gsf.gutPaint, (v) { 
-            setState(() {
-              _gsf.gutPaint = v; 
-              _mark(); 
-             });
+            setState(() {  _gsf.gutPaint = v;  _mark();   });
            }),
+
+           // 📷 Botón de Foto antes de las notas adicionales (Compartidas por la sección GSF)
+          const SizedBox(height: 8),
+          _addPhotoButton('Gutters & Downspouts'),
+
           ],
         ),
         );
@@ -575,8 +633,12 @@ SectionStatus _gutStatus() {
             _qtyField(controller: _facLf, hint: 'How many LF', unit: 'LF',
                 onChanged: (v) { _gsf.facLf = v; _mark(); }),
           ],
-          _checkbox('Requires to be painted?', _gsf.facPaint,
-              (v) { _gsf.facPaint = v; _mark(); }),
+              _checkbox('Requires to be painted?', _gsf.facPaint,
+              (v) => setState(() { _gsf.facPaint = v; _mark(); })),
+          
+          // 📷 Botón de Foto antes de las notas adicionales (Compartidas por la sección GSF)
+          const SizedBox(height: 8),
+          _addPhotoButton('Fascia'),
         ],
       ),
     );
@@ -641,8 +703,7 @@ _dropdown(
   label: 'Quantity',
   value: _gsf.sofQuantity,
   options: const ['Entire perimeter', 'Partial'],
-  onChanged: (v) => setState(() {
-    _gsf.sofQuantity = v ?? '';
+  onChanged: (v) => setState(() {  _gsf.sofQuantity = v ?? '';
 
     if (_gsf.sofQuantity == 'Entire perimeter') {
       _gsf.sofLf = '';
@@ -687,18 +748,17 @@ if (_gsf.sofQuantity == 'Partial') ...[
                 controller: _sofVentsQty, 
                 hint: 'How many vents', 
                 unit: 'Qty',
-                onChanged: (v) { 
-                  _gsf.sofVentsQty = v; 
-                  _mark(); 
-                },
+              onChanged: (v) => setState(() { _gsf.sofVentsQty = v; _mark(); }),
               ),
             ),
-          // ───────────────────────────────────────────────────────────────────
 
           const SizedBox(height: 8),
           _checkbox('Requires to be painted?', _gsf.sofPaint,
-              (v) { setState(() { _gsf.sofPaint = v; _mark(); }); }),
-          const SizedBox(height: 12),
+              (v) => setState(() { _gsf.sofPaint = v; _mark(); })),
+          
+          // 📷 Botón de Foto antes de las notas adicionales
+          const SizedBox(height: 8),
+          _addPhotoButton('Soffit'),
           // Notas únicas de TODA la sección Gutters/Fascia/Soffit
           _notesField(_gsfNotes, (v) { _gsf.additionalNotes = v; _mark(); }),
         ],

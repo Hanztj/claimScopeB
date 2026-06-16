@@ -113,6 +113,7 @@ class ElevationsInspectionScreen extends StatefulWidget {
             fit: FlexFit.loose,
             child: GlobalElevationsHub(
               data: widget.report.elevations,
+              report: widget.report,
               onChange: _onChange,
             ),
           ),
@@ -164,6 +165,7 @@ Card(
                 BuildingElevationsSection(
                   key: ValueKey(e.side.key),
                   elevation: e,
+                  report: widget.report,
                   onChange: _onChange,
                 ),
             ],

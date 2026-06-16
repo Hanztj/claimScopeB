@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'package:claimscope_clean/inspection_report_model.dart';
+
 import 'models/elevations_data.dart';
 import 'widgets/section_status_dot.dart';
 
@@ -13,11 +15,13 @@ import 'widgets/section_status_dot.dart';
 /// en el diseño, NO se implementa.
 class BuildingElevationsSection extends StatefulWidget {
   final BuildingElevation elevation;
+  final InspectionReport report;
   final VoidCallback onChange;
 
   const BuildingElevationsSection({
     super.key,
     required this.elevation,
+    required this.report,
     required this.onChange,
   });
 
@@ -192,6 +196,40 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
 
   void _mark() => widget.onChange();
 
+  // ─── Captura de fotos de Siding (Paso 4.5a) ──────────────────────────
+  /// Devuelve el siguiente índice (1-based) para etiquetar la próxima foto
+  /// de Siding de ESTA elevación, contando las ya almacenadas en
+  /// `report.photoReportItems` con el mismo prefijo.
+  int _nextSidingPhotoIndex() {
+    final prefix = '${widget.elevation.side.display} - Siding - Photo';
+    return widget.report.photoReportItems
+            .where((p) => p.label.startsWith(prefix))
+            .length +
+        1;
+  }
+
+  /// Captura una foto desde la cámara y la registra en
+  /// `report.photoReportItems` con label:
+  ///   `"<Elev> - Siding - Photo <N>"`
+  /// Sin thumbnail, sin estado local, sin persistencia adicional.
+  Future<void> _addSidingPhoto() async {
+    final picked = await _picker.pickImage(source: ImageSource.camera);
+    if (picked == null) return;
+    final n = _nextSidingPhotoIndex();
+    widget.report.addPhoto(
+      File(picked.path),
+      '${widget.elevation.side.display} - Siding - Photo $n',
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Photo Stored'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+    _mark();
+  }
+
   // =====================================================================
   // BUILD
   // =====================================================================
@@ -330,6 +368,15 @@ if (_showsSidingHeight()) ...[
             _s.additionalNotes = v;
             _mark();
           }),
+                    const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _addSidingPhoto,
+              icon: const Icon(Icons.add_a_photo_outlined),
+              label: const Text('Add Siding Photos'),
+            ),
+          ),
         ],
       ),
     );
@@ -1158,7 +1205,7 @@ if (_showsSidingHeight()) ...[
         ),
       ),
       IconButton(
-        icon: const Icon(Icons.clear, size: 20),
+        icon: const Icon(Icons.refresh, size: 20),
         tooltip: 'Clear section',
         onPressed: onClearPressed,
       ),
