@@ -437,11 +437,16 @@ exports.createHfEstimatesXactimateCheckoutSession = onCall(
     return { url: session.url };
   }
 );
+// ==========================================
 // 6. SEND INSPECTION EMAIL (V2 - Consolidada)
-// Esta versión usa las URLs de los archivos para no saturar la memoria
+// ==========================================
 exports.sendInspectionEmail = onCall(
-    { secrets: [emailPass] }, // <-- 1er argumento: Objeto de configuración
-    async (request) => {      // <-- 2do argumento: Tu función async de siempre
+    { 
+        secrets: [emailPass],
+        memory: "1GiB",          
+        timeoutSeconds: 120      
+    }, 
+    async (request) => {
         if (!request.auth) {
             throw new HttpsError("unauthenticated", "Debe iniciar sesión.");
         }
@@ -454,40 +459,54 @@ exports.sendInspectionEmail = onCall(
             },
         });
 
-    const { toEmails, techPdfUrl, photoPdfUrl, techFilename, photoFilename } = request.data;
-    if (!techPdfUrl || !photoPdfUrl) {
-  throw new HttpsError("invalid-argument", "Missing PDF URLs.");
-}
+        const { toEmails, techPdfUrl, photoPdfUrl, techFilename, photoFilename } = request.data;
+        if (!techPdfUrl || !photoPdfUrl) {
+            throw new HttpsError("invalid-argument", "Missing PDF URLs.");
+        }
 
-    const cleanToEmails = Array.isArray(toEmails)
-  ? toEmails.map((e) => String(e || "").trim()).filter((e) => e.length > 0)
-  : [];
+        const cleanToEmails = Array.isArray(toEmails)
+            ? toEmails.map((e) => String(e || "").trim()).filter((e) => e.length > 0)
+            : [];
 
-if (cleanToEmails.length === 0) {
-  console.error("sendInspectionEmail: no recipients", { toEmails });
-  throw new HttpsError("invalid-argument", "No recipients provided.");
-}
+        if (cleanToEmails.length === 0) {
+            console.error("sendInspectionEmail: no recipients", { toEmails });
+            throw new HttpsError("invalid-argument", "No recipients provided.");
+        }
 
-console.log(`Sending report to: ${cleanToEmails.join(", ")}`);
+        console.log(`Sending report links to: ${cleanToEmails.join(", ")}`);
 
-const mailOptions = { 
-  from: '"ClaimScope Support" <soporte.claimscope@gmail.com>',
-  to: cleanToEmails.join(","),
-  subject: "Your Roof Inspection Report 🚀",
-  text: "Attached are your requested inspection reports.",
-  attachments: [
-    { filename: techFilename, path: techPdfUrl }, 
-    { filename: photoFilename, path: photoPdfUrl }
-  ]
-};
-    try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log("Email sent successfully: " + info.response);
-        return { success: true };
-    } catch (error) {
-        console.error("Detailed Email Error:", error);
-        throw new HttpsError("internal", "Could not send email.");
-    }
+        // 💡 CONSTRUIMOS UN CUERPO DE CORREO ELEGANTE CON LOS ENLACES DE DESCARGA
+        const emailText = [
+            "Hello,",
+            "",
+            "Your requested inspection reports are ready. Due to the high-resolution images included, please use the links below to view and download your files securely:",
+            "",
+            `1. Technical Report (${techFilename || 'Technical_Report.pdf'}):`,
+            techPdfUrl,
+            "",
+            `2. Photo Report (${photoFilename || 'Photo_Report.pdf'}):`,
+            photoPdfUrl,
+            "",
+            "Thank you for using ClaimScope.",
+            "Support Team"
+        ].join("\n");
+
+        const mailOptions = { 
+            from: '"ClaimScope Support" <soporte.claimscope@gmail.com>',
+            to: cleanToEmails.join(","),
+            subject: "Your Roof Inspection Report Links 🚀",
+            text: emailText
+            // 💡 ELIMINAMOS EL ARREGLO DE ATTACHMENTS TOTALMENTE
+        };
+
+        try {
+            const info = await transporter.sendMail(mailOptions);
+            console.log("Email with links sent successfully: " + info.response);
+            return { success: true };
+        } catch (error) {
+            console.error("Detailed Email Error:", error);
+            throw new HttpsError("internal", "Could not send email.");
+        }
 });
 exports.purgeExpiredInspectionReports = onSchedule(
   {

@@ -4,6 +4,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:claimscope_clean/inspection_report_model.dart';
+import 'package:claimscope_clean/utils/photo_labels.dart'; 
 
 class PdfService {
 
@@ -685,10 +686,14 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
      }
 
     static pw.Widget _buildPhotoFrame(PhotoItem item) {
+    // Paso 4.5b: mostrar labels estructurados de Elevations como texto legible.
+    // Commercial/residential existentes conservan su fallback original.
+    final caption = formatElevationsPhotoCaption(item.label);
+
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Text(item.label, style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+        pw.Text(caption, style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
         pw.SizedBox(height: 5),
         pw.Container(
           height: 300, // Altura optimizada para 2 por página A4

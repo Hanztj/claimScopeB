@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:claimscope_clean/inspection_report_model.dart';
+import 'package:claimscope_clean/utils/photo_labels.dart'; 
 
 import 'models/elevations_data.dart';
 import 'widgets/section_status_dot.dart';
@@ -70,7 +71,8 @@ class _GlobalElevationsHubState extends State<GlobalElevationsHub> {
   /// Cuenta cuántas fotos previas existen para esta categoría global
   /// y devuelve el siguiente índice (1-based) para etiquetar.
   int _nextPhotoIndex(String category) {
-    final prefix = '$category - Photo';
+    // Paso 4.5b: contar usando el label estructurado de Elevations.
+    final prefix = 'Elev=Global|Cat=$category|';
     return widget.report.photoReportItems
             .where((p) => p.label.startsWith(prefix))
             .length +
@@ -85,7 +87,15 @@ class _GlobalElevationsHubState extends State<GlobalElevationsHub> {
     final picked = await _picker.pickImage(source: ImageSource.camera);
     if (picked == null) return;
     final n = _nextPhotoIndex(category);
-    widget.report.addPhoto(File(picked.path), '$category - Photo $n');
+    // Paso 4.5b: label parseable para PDF Photos y ZIP etiquetado.
+    widget.report.addPhoto(
+      File(picked.path),
+      buildElevationsPhotoLabel(
+        elev: 'Global',
+        category: category,
+        label: 'Photo $n',
+      ),
+    );
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -442,10 +452,7 @@ void _clearSoffit() {
           
           // 1. Checkbox de Gutter Screen (Corregido con setState)
           _checkbox('Has gutter screen?', _gsf.gutScreen, (v) { 
-            setState(() {
-              _gsf.gutScreen = v; 
-              _mark(); 
-            });
+            setState(() { _gsf.gutScreen = v; _mark(); });
           }),
           if (_gsf.gutScreen) 
             Padding(
@@ -478,17 +485,14 @@ void _clearSoffit() {
               _mark(); 
             });
           }),
-          if (_gsf.gutScupper) 
+if (_gsf.gutScupper) 
             Padding(
               padding: const EdgeInsets.only(left: 32, bottom: 8),
               child: _qtyField(
                 controller: _gutScupperQty, 
                 hint: 'How many Scuppers', 
                 unit: 'Qty',
-                onChanged: (v) { 
-                  _gsf.gutScupperQty = v; 
-                  _mark(); 
-                },
+                onChanged: (v) => setState(() { _gsf.gutScupperQty = v; _mark(); }),
               ),
             ),
                const SizedBox(height: 8),
@@ -515,13 +519,10 @@ void _clearSoffit() {
            controller: _gutLf,
            hint: 'How many LF?',
           unit: 'LF',
-           hintText: 'Approx. gutters/downspouts LF',
-           onChanged: (v) {
-          _gsf.gutLf = v;
-          _mark();
-           },
-          ),
-      ],
+            hintText: 'Approx. gutters/downspouts LF',
+              onChanged: (v) => setState(() { _gsf.gutLf = v; _mark(); }),
+            ),
+          ],
           
           const SizedBox(height: 8),
           _checkbox('Requires to be painted?', _gsf.gutPaint, (v) { 

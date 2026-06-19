@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:claimscope_clean/inspection_report_model.dart';
+import 'package:claimscope_clean/utils/photo_labels.dart'; // Paso 4.5b
 
 import 'models/elevations_data.dart';
 import 'widgets/section_status_dot.dart';
@@ -196,12 +197,12 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
 
   void _mark() => widget.onChange();
 
-  // ─── Captura de fotos de Siding (Paso 4.5a) ──────────────────────────
+  // ─── Captura de fotos de Elevations (Paso 4.5a + 4.5b) ──────────────
   /// Devuelve el siguiente índice (1-based) para etiquetar la próxima foto
-  /// de Siding de ESTA elevación, contando las ya almacenadas en
-  /// `report.photoReportItems` con el mismo prefijo.
-  int _nextSidingPhotoIndex() {
-    final prefix = '${widget.elevation.side.display} - Siding - Photo';
+  /// de ESTA elevación y categoría, contando las ya almacenadas con el
+  /// label estructurado `Elev=<side>|Cat=<category>|Label=Photo <N>`.
+  int _nextElevationPhotoIndex(String category) {
+    final prefix = 'Elev=${widget.elevation.side.display}|Cat=$category|';
     return widget.report.photoReportItems
             .where((p) => p.label.startsWith(prefix))
             .length +
@@ -209,16 +210,21 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
   }
 
   /// Captura una foto desde la cámara y la registra en
-  /// `report.photoReportItems` con label:
-  ///   `"<Elev> - Siding - Photo <N>"`
+  /// `report.photoReportItems` con label estructurado de Elevations:
+  ///   `Elev=<side>|Cat=Siding|Label=Photo <N>`
   /// Sin thumbnail, sin estado local, sin persistencia adicional.
   Future<void> _addSidingPhoto() async {
     final picked = await _picker.pickImage(source: ImageSource.camera);
     if (picked == null) return;
-    final n = _nextSidingPhotoIndex();
+    final n = _nextElevationPhotoIndex('Siding');
+    // Paso 4.5b: label parseable para PDF Photos y ZIP etiquetado.
     widget.report.addPhoto(
       File(picked.path),
-      '${widget.elevation.side.display} - Siding - Photo $n',
+      buildElevationsPhotoLabel(
+        elev: widget.elevation.side.display,
+        category: 'Siding',
+        label: 'Photo $n',
+      ),
     );
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -982,11 +988,26 @@ if (_showsSidingHeight()) ...[
       preferredCameraDevice: CameraDevice.rear,
     );
     if (picked == null) return;
+
+    final file = File(picked.path);
+    final n = _nextElevationPhotoIndex('Trim');
+
+    // Paso 4.5b: además del thumbnail local, registrar la foto
+    // en el Photo PDF / ZIP con label estructurado de Elevations.
+    widget.report.addPhoto(
+      file,
+      buildElevationsPhotoLabel(
+        elev: widget.elevation.side.display,
+        category: 'Trim',
+        label: 'Photo $n',
+      ),
+    );
+
     setState(() {
       if (extra) {
-        t.extraPhoto = File(picked.path);
+        t.extraPhoto = file;
       } else {
-        t.photo = File(picked.path);
+        t.photo = file;
       }
       _mark();
     });

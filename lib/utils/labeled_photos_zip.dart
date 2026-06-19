@@ -34,12 +34,32 @@ Archive buildLabeledPhotosArchive(List<PhotoItem> items) {
 
   for (final item in items) {
     final parsed = tryParseCommercialPhotoLabel(item.label);
+    final parsedElev = tryParseElevationsPhotoLabel(item.label);
 
-    final folder = parsed == null
-        ? 'General'
-        : sanitizeZipPathPart(parsed.building);
+    late final String folder;
+    late final String displayLabel;
 
-    final displayLabel = parsed == null ? item.label : parsed.label;
+    if (parsed != null) {
+      // Comportamiento comercial existente: se mantiene intacto.
+      folder = sanitizeZipPathPart(parsed.building);
+      displayLabel = parsed.label;
+    } else if (parsedElev != null) {
+      // ✨ CORRECCIÓN ELEVATIONS:
+      final elevFolder = parsedElev.elev == 'Global'
+          ? 'Global'
+          : sanitizeZipPathPart(parsedElev.elev);
+      
+      final categoryFolder = sanitizeZipPathPart(parsedElev.category);
+      folder = 'Elevations/$elevFolder/$categoryFolder';
+      
+      // 🔥 En vez de usar parsedElev.label (que es "Photo 1"), 
+      // usamos la categoría ("Siding", "Trim") para el nombre del archivo.
+      displayLabel = parsedElev.category; 
+    } else {
+      // ✨ CAMBIO: De 'General' a 'Roof' como preferías
+      folder = 'Roof';
+      displayLabel = item.label;
+    }
 
     final base = _sanitizePhotoBaseName(displayLabel);
     final key = '$folder/$base';

@@ -32,6 +32,53 @@ String buildCommercialPhotoLabel({
   return (building: b, roof: r, label: l);
 }
 
+// === Elevations photo labels (Paso 4.5b) ===============================
+String buildElevationsPhotoLabel({
+  required String elev,
+  required String category,
+  required String label,
+}) {
+  return 'Elev=$elev|Cat=$category|Label=$label';
+}
+
+({String elev, String category, String label})? tryParseElevationsPhotoLabel(
+  String input,
+) {
+  final raw = input.trim();
+  if (!raw.startsWith('Elev=')) return null;
+
+  final parts = raw.split('|');
+  String? e;
+  String? c;
+  String? l;
+
+  for (final p in parts) {
+    final idx = p.indexOf('=');
+    if (idx <= 0) continue;
+    final key = p.substring(0, idx);
+    final val = p.substring(idx + 1);
+
+    if (key == 'Elev') e = val;
+    if (key == 'Cat') c = val;
+    if (key == 'Label') l = val;
+  }
+
+  if (e == null || c == null || l == null) return null;
+  return (elev: e, category: c, label: l);
+}
+
+String formatElevationsPhotoCaption(String raw) {
+  final parsed = tryParseElevationsPhotoLabel(raw);
+  if (parsed == null) return raw;
+
+  if (parsed.elev == 'Global') {
+    return '${parsed.category} - ${parsed.label}';
+  }
+
+  return '${parsed.elev} Elev. - ${parsed.category} - ${parsed.label}';
+}
+// =======================================================================
+
 String sanitizeZipPathPart(String input) {
   var s = input.trim();
   if (s.isEmpty) return 'UNKNOWN';
