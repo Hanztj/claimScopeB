@@ -74,6 +74,40 @@ class InspectionReport {
   String? sheathingType;
   String? sheathingSize;
   double? squareFootageToReplace;
+
+  // RESIDENTIAL TILE / SLATE / WOOD SHAKE
+// Uses existing battenSystemNeedsReplacement field above.
+
+// RESIDENTIAL METAL
+String? selectedGauge;
+String? metalGaugeOtherSpecify;
+String? metalSubTypeOtherSpecify;
+bool? residentialMetalHasDeck;
+bool? residentialMetalDeckRequiresReplacement;
+bool? residentialMetalDeckFullReplacementRequired;
+String? residentialMetalDeckPartialReplacementSqft;
+String? residentialMetalRoofSupportBase;
+String? residentialMetalDeckSize;
+bool? residentialMetalIceWaterBarrierInstalled;
+String? residentialMetalIceWaterBarrierType;
+String? residentialMetalNoIceWaterBarrierApproach;
+
+// RESIDENTIAL ROLL ROOFING
+String? rollExposure;
+String? rollNumberOfPlies;
+String? rollFasteningMethod;
+bool? rollFastenerPullTestPerformed;
+String? rollFastenerPullTestResult;
+String? rollUnderlaymentType;
+String? rollInsulationType;
+String? rollInsulationSize;
+bool? rollDeckRequiresReplacement;
+bool? rollDeckFullReplacementRequired;
+String? rollDeckPartialReplacementSqft;
+bool? rollIceWaterBarrierInstalled;
+bool? rollDripEdgeInstalled;
+String? rollDripEdgeType;
+bool rollGravelBallastPresent = false;
   
   // Cambia el "final elevations = ElevationsData();" por:
 late ElevationsData elevations = ElevationsData.fromJson({});

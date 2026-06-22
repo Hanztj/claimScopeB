@@ -253,259 +253,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
              pw.SizedBox(height: 10),
 
                     // SECCIÓN 4: ROOF DETAILS
-   _buildSectionTitle("ROOF SYSTEM DETAILS"),
-   _buildDataRow("Occupancy Type", "Residential"),
-   _buildDataRow("Roof Cover Type", report.roofCoverType ?? "N/A"),
-   _buildDataRow("Subtype", report.roofSubType ?? "N/A"),
-
-   _buildDataRow(
-   "Full roof replacement required",
-   report.fullRoofReplacementRequired ? "Yes" : "No",
-    ),
-   if (!report.fullRoofReplacementRequired)
-   _buildDataRow(
-    "Partial replacement (SF)",
-    report.partialReplacementSqft ?? "N/A",
-   ),
-
-   _buildDataRow(
-   "Sheathing required to be changed",
-   report.sheathingRequiredToBeChanged ? "Yes" : "No",
-   ),
-   if (report.sheathingRequiredToBeChanged) ...[
-    _buildDataRow(
-    "Sheathing full replacement required",
-    report.sheathingFullReplacementRequired ? "Yes" : "No",
-   ),
-   if (!report.sheathingFullReplacementRequired)
-    _buildDataRow(
-      "Sheathing partial replacement (SF)",
-      report.sheathingPartialReplacementSqft ?? "N/A",
-    ),
-   _buildDataRow(
-    "Sheathing type",
-    report.sheathingType ?? "N/A",
-   ),
-   _buildDataRow(
-    "Sheathing size",
-    report.sheathingSize ?? "N/A",
-    ),
-   ],
-
-   _buildDataRow(
-   "Estimated Age",
-   report.estimatedAge != null ? "${report.estimatedAge} years" : "N/A",
-    ),
-    _buildDataRow(
-    "Number of Layers",
-    report.numLayers != null ? report.numLayers.toString() : "N/A",
-   ),
-
-   _buildDataRow(
-   "Ridge Vent",
-   report.facets.any((f) => f.hasRidgeVent)
-      ? "Yes (${report.facets.where((f) => f.hasRidgeVent).map((f) => '${f.name}: ${f.ridgeVentType ?? 'Type N/A'}').join(', ')})"
-      : "No",
-   ),
-   _buildDataRow(
-   "Ice & Water Barrier",
-   report.iceAndWaterBarrierInstalled ? "Yes" : "No",
-   ),
-   _buildDataRow(
-   "Starter Row Installed",
-   report.starterRowInstalled ? "Yes" : "No",
-   ),
-   if (report.starterRowInstalled) ...[
-   _buildDataRow(
-    "Starter Row at Eave",
-    report.starterEaveInstalled ? "Yes" : "No",
-   ),
-   _buildDataRow(
-    "Starter Row at Rake",
-    report.starterRakeInstalled ? "Yes" : "No",
-   ),
-   ],
-   _buildDataRow(
-   "Drip Edge",
-   report.hasDripEdge
-      ? "Yes (${report.dripEdgeType ?? 'Type N/A'})"
-      : "No",
-   ),
-   _buildDataRow(
-   "Shed requiring replacement (≤ 6 SQ)",
-   report.hasShed ? "Yes" : "No",
-   ),
-   _buildDataRow(
-    "Larger/detached structure requiring replacement",
-   report.hasDetachedStructure ? "Yes" : "No",
-    ),
-     pw.SizedBox(height: 10),
-          _buildSectionTitle("FACET BREAKDOWN"),
-    if (report.facets.isEmpty)
-   pw.Text(
-    "No facet data recorded.",
-    style: pw.TextStyle(fontStyle: pw.FontStyle.italic),
-   )
-   else
-   pw.Table(
-    border: pw.TableBorder.all(color: PdfColors.grey300),
-    children: [
-      pw.TableRow(
-        decoration: const pw.BoxDecoration(color: PdfColors.grey100),
-        children: [
-          _buildTableCell("Facet Name", isHeader: true),
-          _buildTableCell("Orientation", isHeader: true),
-          _buildTableCell("Pitch", isHeader: true),
-        ],
-       ),
-        ...report.facets.map(
-        (facet) => pw.TableRow(
-          children: [
-            _buildTableCell(facet.name),
-            _buildTableCell(facet.orientation),
-            _buildTableCell(facet.pitch ?? "N/A"),
-          ],
-        ),
-      ),
-    ],
-   ),
-   pw.SizedBox(height: 10),
-
-   // NUEVO: DETALLES POR FACET
-   _buildSectionTitle("FACET DETAILS"),
-   if (report.facets.isEmpty)
-   pw.Text(
-    "No facet details recorded.",
-    style: pw.TextStyle(fontStyle: pw.FontStyle.italic),
-   )
-   else
-   pw.Column(
-    crossAxisAlignment: pw.CrossAxisAlignment.start,
-    children: report.facets.map((facet) {
-      return pw.Padding(
-        padding: const pw.EdgeInsets.symmetric(vertical: 4),
-        child: pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text(
-              "Facet: ${facet.name} (${facet.orientation})",
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-            ),
-              
-              _buildDataRow(
-              "Ridge Vent",
-               facet.hasRidgeVent
-               ? "Yes (${facet.ridgeVentType ?? 'Type N/A'})"
-               : "No",
-               ),
-               
-            _buildDataRow(
-              "ATR Performed",
-              facet.atrPerformed ? "Yes" : "No",
-            ),
-            if (facet.atrPerformed)
-              _buildDataRow(
-                "ATR Result",
-                facet.atrResult ?? "N/A",
-              ),
-            _buildDataRow(
-              "Has Valley Metal",
-              facet.hasValleyMetal ? "Yes" : "No",
-            ),
-            if (facet.hasValleyMetal)
-              _buildDataRow(
-                "Valley Metal Type",
-                facet.valleyMetalType ?? "N/A",
-               ),
-
-    ...facet.flashings.map((f) {
-     // base: tipo u "Other: ..."
-    String desc;
-    if (f.type == 'Other') {
-    desc = 'Other: ${f.otherSpecify ?? ''}';
-    } else {
-     desc = f.type;
-     }
-
-    // añadir size/material/finish/grade si existen
-    final parts = <String>[];
-    if (f.size != null && f.size!.trim().isNotEmpty) {
-     parts.add(f.size!);
-   }
-    if (f.material != null && f.material!.trim().isNotEmpty) {
-     parts.add(f.material!);
-    }
-    if (f.finish != null && f.finish!.trim().isNotEmpty) {
-     parts.add(f.finish!);
-    }
-    if (f.grade != null && f.grade!.trim().isNotEmpty) {
-     parts.add(f.grade!);
-   }
-
-    if (parts.isNotEmpty) {
-    desc = '$desc (${parts.join(', ')})';
-    }
-
-    final change = f.shouldBeChanged ? "Yes" : "No";
-
-    return _buildDataRow(
-    "  - $desc",
-    "Should be changed: $change",
-    );
-   }),
-
-                                // NUEVO: Vents
-            if (facet.vents.isEmpty)
-              _buildDataRow("Vents", "None recorded")
-            else ...[
-              _buildDataRow("Vents", ""),
-              ...facet.vents.map((v) {
-                // Descripción básica
-                String desc;
-                if (v.type == 'Other') {
-                  desc = 'Other: ${v.otherSpecify ?? ''}';
-                } else {
-                  desc = v.type;
-                }
-
-                final count = (v.count != null && v.count!.isNotEmpty)
-                    ? v.count
-                    : '0';
-
-                // Extras para Pipe jack
-                String extras = '';
-                if (v.type == 'Pipe jack') {
-                  final split = v.includeSplitBoot ? 'Split boot' : null;
-                  final lead = v.includeLead ? 'Lead' : null;
-                  final extraList = [split, lead].whereType<String>().toList();
-                  if (extraList.isNotEmpty) {
-                    extras = ' (${extraList.join(', ')})';
-                  }
-                }
-                
-                final change = v.shouldBeChanged ? "Yes" : "No";
-
-                return _buildDataRow(
-                  "  - $desc$extras x$count",
-                  "Should be changed: $change",
-                );
-              }),
-            ],
-                        if (facet.comment != null &&
-                facet.comment!.trim().isNotEmpty)
-              _buildDataRow(
-                "Additional comment",
-                facet.comment!,
-              ),
-
-
-            pw.SizedBox(height: 6),
-          ],
-        ),
-      );
-       }).toList(),
-        ),
-       pw.SizedBox(height: 10),
+            ..._buildResidentialRoofDetails(report),
         ],
        ),
      );
@@ -565,6 +313,460 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
     await photoFile.writeAsBytes(await pdfPhotos.save());
 
    return {'tech': techFile, 'photos': photoFile};
+    }
+
+     
+    static List<pw.Widget> _buildResidentialRoofDetails(InspectionReport report) {
+      return [
+        _buildSectionTitle("ROOF SYSTEM DETAILS"),
+        _buildDataRow("Occupancy Type", "Residential"),
+        _buildDataRow("Roof Cover Type", report.roofCoverType ?? "N/A"),
+        _buildDataRow("Subtype", report.roofSubType ?? "N/A"),
+        ..._buildResidentialHubDetails(report),
+        pw.SizedBox(height: 10),
+        ..._buildResidentialFacetOrSectionDetails(report),
+        pw.SizedBox(height: 10),
+      ];
+    }
+
+    static List<pw.Widget> _buildResidentialHubDetails(InspectionReport report) {
+      if (_isRollRoofing(report.roofCoverType)) {
+        return _buildResidentialRollRoofingDetails(report);
+      }
+      if (_isMetalRoof(report.roofCoverType)) {
+        return _buildResidentialMetalDetails(report);
+      }
+      if (_isHeavyResidentialRoof(report.roofCoverType)) {
+        return _buildResidentialHeavyRoofDetails(report);
+      }
+      return _buildResidentialShinglesDetails(report);
+    }
+
+    static List<pw.Widget> _buildResidentialShinglesDetails(InspectionReport report) {
+      return [
+        ..._buildResidentialReplacementRows(report),
+        _buildDataRow(
+          "Estimated Age",
+          report.estimatedAge != null ? "${report.estimatedAge} years" : "N/A",
+        ),
+        _buildDataRow(
+          "Number of Layers",
+          report.numLayers != null ? report.numLayers.toString() : "N/A",
+        ),
+        _buildDataRow(
+          "Ridge Vent",
+          report.facets.any((f) => f.hasRidgeVent)
+              ? "Yes (${report.facets.where((f) => f.hasRidgeVent).map((f) => '${f.name}: ${f.ridgeVentType ?? 'Type N/A'}').join(', ')})"
+              : "No",
+        ),
+        _buildDataRow(
+          "Ice & Water Barrier",
+          report.iceAndWaterBarrierInstalled ? "Yes" : "No",
+        ),
+        _buildDataRow(
+          "Starter Row Installed",
+          report.starterRowInstalled ? "Yes" : "No",
+        ),
+        if (report.starterRowInstalled) ...[
+          _buildDataRow(
+            "Starter Row at Eave",
+            report.starterEaveInstalled ? "Yes" : "No",
+          ),
+          _buildDataRow(
+            "Starter Row at Rake",
+            report.starterRakeInstalled ? "Yes" : "No",
+          ),
+        ],
+        ..._buildResidentialCommonExteriorRows(report),
+      ];
+    }
+
+    static List<pw.Widget> _buildResidentialHeavyRoofDetails(InspectionReport report) {
+      return [
+        ..._buildResidentialReplacementRows(report),
+        _buildDataRow(
+          "Batten system needs to be changed",
+          report.battenSystemNeedsReplacement ?? "N/A",
+        ),
+        _buildDataRow(
+          "Ice & Water Barrier",
+          report.iceAndWaterBarrierInstalled ? "Yes" : "No",
+        ),
+        ..._buildResidentialCommonExteriorRows(report),
+      ];
+    }
+
+    static List<pw.Widget> _buildResidentialMetalDetails(InspectionReport report) {
+      final gauge = report.selectedGauge == 'Other'
+          ? "Other (${_textOrNA(report.metalGaugeOtherSpecify)})"
+          : _textOrNA(report.selectedGauge);
+
+      return [
+        if (report.roofSubType == 'Other')
+          _buildDataRow(
+            "Other metal subtype",
+            _textOrNA(report.metalSubTypeOtherSpecify),
+          ),
+        _buildDataRow("Gauge", gauge),
+        _buildDataRow(
+          "Does the roof have a deck",
+          _yesNo(report.residentialMetalHasDeck),
+        ),
+        if (report.residentialMetalHasDeck == true) ...[
+          _buildDataRow(
+            "Deck requires replacement",
+            _yesNo(report.residentialMetalDeckRequiresReplacement),
+          ),
+          if (report.residentialMetalDeckRequiresReplacement == true) ...[
+            _buildDataRow(
+              "Deck full replacement required",
+              _yesNo(report.residentialMetalDeckFullReplacementRequired),
+            ),
+            if (report.residentialMetalDeckFullReplacementRequired != true)
+              _buildDataRow(
+                "Deck partial replacement (SF)",
+                _textOrNA(report.residentialMetalDeckPartialReplacementSqft),
+              ),
+            _buildDataRow(
+              "Roof support base",
+              _textOrNA(report.residentialMetalRoofSupportBase),
+            ),
+            _buildDataRow(
+              "Deck size",
+              _textOrNA(report.residentialMetalDeckSize),
+            ),
+            _buildDataRow(
+              "Ice & Water Barrier Installed",
+              _yesNo(report.residentialMetalIceWaterBarrierInstalled),
+            ),
+            if (report.residentialMetalIceWaterBarrierInstalled == true)
+              _buildDataRow(
+                "Ice & Water Barrier Type",
+                _textOrNA(report.residentialMetalIceWaterBarrierType),
+              ),
+            if (report.residentialMetalIceWaterBarrierInstalled == false)
+              _buildDataRow(
+                "No Ice & Water Barrier Approach",
+                _textOrNA(report.residentialMetalNoIceWaterBarrierApproach),
+              ),
+          ],
+        ],
+        ..._buildResidentialAdditionalStructureRows(report),
+      ];
+    }
+
+    static List<pw.Widget> _buildResidentialRollRoofingDetails(InspectionReport report) {
+      return [
+        _buildDataRow("Exposure", _textOrNA(report.rollExposure)),
+        _buildDataRow("Number of Plies", _textOrNA(report.rollNumberOfPlies)),
+        _buildDataRow("Fastening Method", _textOrNA(report.rollFasteningMethod)),
+        if (report.rollFasteningMethod == 'Mechanical') ...[
+          _buildDataRow(
+            "Fastener Pull Test performed",
+            _yesNo(report.rollFastenerPullTestPerformed),
+          ),
+          if (report.rollFastenerPullTestPerformed == true)
+            _buildDataRow(
+              "Fastener Pull Test Result",
+              _textOrNA(report.rollFastenerPullTestResult),
+            ),
+        ],
+        _buildDataRow("Underlayment Type", _textOrNA(report.rollUnderlaymentType)),
+        _buildDataRow("Insulation Type", _textOrNA(report.rollInsulationType)),
+        _buildDataRow("Insulation Size", _textOrNA(report.rollInsulationSize)),
+        _buildDataRow(
+          "Deck requires replacement",
+          _yesNo(report.rollDeckRequiresReplacement),
+        ),
+        if (report.rollDeckRequiresReplacement == true) ...[
+          _buildDataRow(
+            "Deck full replacement required",
+            _yesNo(report.rollDeckFullReplacementRequired),
+          ),
+          if (report.rollDeckFullReplacementRequired != true)
+            _buildDataRow(
+              "Deck partial replacement (SF)",
+              _textOrNA(report.rollDeckPartialReplacementSqft),
+            ),
+        ],
+        _buildDataRow(
+          "Ice & Water Barrier",
+          _yesNo(report.rollIceWaterBarrierInstalled),
+        ),
+        _buildDataRow(
+          "Drip Edge",
+          _yesNo(report.rollDripEdgeInstalled),
+        ),
+        if (report.rollDripEdgeInstalled == true)
+          _buildDataRow("Drip Edge Type", _textOrNA(report.rollDripEdgeType)),
+        _buildDataRow(
+          "Gravel ballast present",
+          report.rollGravelBallastPresent ? "Yes" : "No",
+        ),
+        ..._buildResidentialAdditionalStructureRows(report),
+      ];
+    }
+
+    static List<pw.Widget> _buildResidentialReplacementRows(InspectionReport report) {
+      return [
+        _buildDataRow(
+          "Full roof replacement required",
+          report.fullRoofReplacementRequired ? "Yes" : "No",
+        ),
+        if (!report.fullRoofReplacementRequired)
+          _buildDataRow(
+            "Partial replacement (SF)",
+            report.partialReplacementSqft ?? "N/A",
+          ),
+        _buildDataRow(
+          "Sheathing required to be changed",
+          report.sheathingRequiredToBeChanged ? "Yes" : "No",
+        ),
+        if (report.sheathingRequiredToBeChanged) ...[
+          _buildDataRow(
+            "Sheathing full replacement required",
+            report.sheathingFullReplacementRequired ? "Yes" : "No",
+          ),
+          if (!report.sheathingFullReplacementRequired)
+            _buildDataRow(
+              "Sheathing partial replacement (SF)",
+              report.sheathingPartialReplacementSqft ?? "N/A",
+            ),
+          _buildDataRow("Sheathing type", report.sheathingType ?? "N/A"),
+          _buildDataRow("Sheathing size", report.sheathingSize ?? "N/A"),
+        ],
+      ];
+    }
+
+    static List<pw.Widget> _buildResidentialCommonExteriorRows(InspectionReport report) {
+      return [
+        _buildDataRow(
+          "Drip Edge",
+          report.hasDripEdge ? "Yes (${report.dripEdgeType ?? 'Type N/A'})" : "No",
+        ),
+        ..._buildResidentialAdditionalStructureRows(report),
+      ];
+    }
+
+    static List<pw.Widget> _buildResidentialAdditionalStructureRows(InspectionReport report) {
+      return [
+        _buildDataRow(
+          "Shed requiring replacement (≤ 6 SQ)",
+          report.hasShed ? "Yes" : "No",
+        ),
+        _buildDataRow(
+          "Larger/detached structure requiring replacement",
+          report.hasDetachedStructure ? "Yes" : "No",
+        ),
+      ];
+    }
+
+    static List<pw.Widget> _buildResidentialFacetOrSectionDetails(InspectionReport report) {
+      if (_isRollRoofing(report.roofCoverType)) {
+        return _buildResidentialRollRoofSectionDetails(report);
+      }
+      return _buildResidentialFacetDetails(report);
+    }
+
+    static List<pw.Widget> _buildResidentialFacetDetails(InspectionReport report) {
+      final isHeavy = _isHeavyResidentialRoof(report.roofCoverType);
+      final isMetal = _isMetalRoof(report.roofCoverType);
+      final isShingles = _isShinglesRoof(report.roofCoverType);
+
+      return [
+        _buildSectionTitle("FACET BREAKDOWN"),
+        if (report.facets.isEmpty)
+          pw.Text(
+            "No facet data recorded.",
+            style: pw.TextStyle(fontStyle: pw.FontStyle.italic),
+          )
+        else
+          pw.Table(
+            border: pw.TableBorder.all(color: PdfColors.grey300),
+            children: [
+              pw.TableRow(
+                decoration: const pw.BoxDecoration(color: PdfColors.grey100),
+                children: [
+                  _buildTableCell("Facet Name", isHeader: true),
+                  _buildTableCell("Orientation", isHeader: true),
+                  _buildTableCell("Pitch", isHeader: true),
+                ],
+              ),
+              ...report.facets.map(
+                (facet) => pw.TableRow(
+                  children: [
+                    _buildTableCell(facet.name),
+                    _buildTableCell(facet.orientation),
+                    _buildTableCell(facet.pitch ?? "N/A"),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        pw.SizedBox(height: 10),
+        _buildSectionTitle("FACET DETAILS"),
+        if (report.facets.isEmpty)
+          pw.Text(
+            "No facet details recorded.",
+            style: pw.TextStyle(fontStyle: pw.FontStyle.italic),
+          )
+        else
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: report.facets.map((facet) {
+              return pw.Padding(
+                padding: const pw.EdgeInsets.symmetric(vertical: 4),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      "Facet: ${facet.name} (${facet.orientation})",
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
+                    if (!isHeavy && !isMetal)
+                      _buildDataRow(
+                        "Ridge Vent",
+                        facet.hasRidgeVent
+                            ? "Yes (${facet.ridgeVentType ?? 'Type N/A'})"
+                            : "No",
+                      ),
+                    if (isShingles) ...[
+                      _buildDataRow(
+                        "ATR Performed",
+                        facet.atrPerformed ? "Yes" : "No",
+                      ),
+                      if (facet.atrPerformed)
+                        _buildDataRow("ATR Result", facet.atrResult ?? "N/A"),
+                    ],
+                    _buildDataRow(
+                      "Has Valley Metal",
+                      facet.hasValleyMetal ? "Yes" : "No",
+                    ),
+                    if (facet.hasValleyMetal)
+                      _buildDataRow(
+                        "Valley Metal Type",
+                        facet.valleyMetalType ?? "N/A",
+                      ),
+                    ..._buildResidentialFacetCommonElementRows(facet),
+                    pw.SizedBox(height: 6),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+      ];
+    }
+
+    static List<pw.Widget> _buildResidentialRollRoofSectionDetails(InspectionReport report) {
+      return [
+        _buildSectionTitle("ROOF SECTION DETAILS"),
+        if (report.facets.isEmpty)
+          pw.Text(
+            "No roof section details recorded.",
+            style: pw.TextStyle(fontStyle: pw.FontStyle.italic),
+          )
+        else
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: report.facets.map((section) {
+              final sectionName = section.name.trim().isEmpty
+                  ? "Roof Section"
+                  : section.name.trim();
+              return pw.Padding(
+                padding: const pw.EdgeInsets.symmetric(vertical: 4),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      sectionName,
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
+                    ..._buildResidentialFacetCommonElementRows(section),
+                    pw.SizedBox(height: 6),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+      ];
+    }
+
+    static List<pw.Widget> _buildResidentialFacetCommonElementRows(FacetData facet) {
+      return [
+        if (facet.flashings.isEmpty)
+          _buildDataRow("Flashings", "None recorded")
+        else ...[
+          _buildDataRow("Flashings", ""),
+          ...facet.flashings.map((f) => _buildDataRow(
+                "  - ${_describeFlashing(f)}",
+                "Should be changed: ${f.shouldBeChanged ? 'Yes' : 'No'}",
+              )),
+        ],
+        if (facet.vents.isEmpty)
+          _buildDataRow("Vents", "None recorded")
+        else ...[
+          _buildDataRow("Vents", ""),
+          ...facet.vents.map((v) => _buildDataRow(
+                "  - ${_describeVent(v)}",
+                "Should be changed: ${v.shouldBeChanged ? 'Yes' : 'No'}",
+              )),
+        ],
+        if (facet.otherElements.isEmpty)
+          _buildDataRow("Other Elements", "None recorded")
+        else ...[
+          _buildDataRow("Other Elements", ""),
+          ...facet.otherElements.map((e) => _buildDataRow(
+                "  - ${_describeOtherElement(e)}",
+                "",
+              )),
+        ],
+        if (facet.comment != null && facet.comment!.trim().isNotEmpty)
+          _buildDataRow("Additional comment", facet.comment!),
+      ];
+    }
+
+    static String _describeOtherElement(OtherElementData element) {
+      final base = element.type == 'Other'
+          ? 'Other: ${element.otherSpecify ?? ''}'
+          : element.type;
+      final count = element.count != null && element.count!.trim().isNotEmpty
+          ? ' x${element.count}'
+          : '';
+      final actions = <String>[];
+      if (element.shouldBeChanged) actions.add('change');
+      if (element.detachAndResetOnly) actions.add('detach & reset only');
+      if (actions.isEmpty) actions.add('no change');
+      return '$base$count (${actions.join(', ')})';
+    }
+
+    static bool _isShinglesRoof(String? roofType) {
+      return roofType?.toLowerCase().trim() == 'shingles' ||
+          roofType?.toLowerCase().trim() == 'other';
+    }
+
+    static bool _isHeavyResidentialRoof(String? roofType) {
+      final normalized = roofType?.toLowerCase().trim() ?? '';
+      return normalized.contains('tile') ||
+          normalized.contains('slate') ||
+          normalized.contains('shake');
+    }
+
+    static bool _isMetalRoof(String? roofType) {
+      return (roofType ?? '').toLowerCase().trim().contains('metal');
+    }
+
+    static bool _isRollRoofing(String? roofType) {
+      return (roofType ?? '').toLowerCase().trim().contains('roll');
+    }
+
+    static String _yesNo(bool? value) {
+      if (value == null) return "N/A";
+      return value ? "Yes" : "No";
+    }
+
+    static String _textOrNA(String? value) {
+      if (value == null || value.trim().isEmpty) return "N/A";
+      return value.trim();
     }
 
     static List<pw.Widget> _buildCommercialRoofDetails(CommercialRoofSectionData roof) {

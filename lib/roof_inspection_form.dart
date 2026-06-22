@@ -1077,6 +1077,49 @@ _formKey.currentState!.save();
           : _sheathingPartialSqftController.text.trim();
        widget.report.sheathingType = sheathingType;
       widget.report.sheathingSize = sheathingSize;
+
+      // Residential hub-specific fields for the technical PDF
+widget.report.battenSystemNeedsReplacement = battenSystemNeedsReplacement;
+
+widget.report.selectedGauge = selectedGauge;
+widget.report.metalGaugeOtherSpecify = selectedGauge == 'Other'
+    ? otherGaugeController.text.trim()
+    : null;
+widget.report.metalSubTypeOtherSpecify =
+    roofCoverType == 'Metal' && roofSubType == 'Other'
+        ? otherMetalSubTypeController.text.trim()
+        : null;
+widget.report.residentialMetalHasDeck = hasDeck;
+widget.report.residentialMetalDeckRequiresReplacement =
+    deckRequiresReplacement;
+widget.report.residentialMetalDeckFullReplacementRequired =
+    deckFullReplacementRequired;
+widget.report.residentialMetalDeckPartialReplacementSqft =
+    howManySFDeckRequireReplacementVisible;
+widget.report.residentialMetalRoofSupportBase = roofSupportBase;
+widget.report.residentialMetalDeckSize = deckSize;
+widget.report.residentialMetalIceWaterBarrierInstalled =
+    iceWaterBarrierInstalled;
+widget.report.residentialMetalIceWaterBarrierType = hightemp ?? doubleFelt;
+widget.report.residentialMetalNoIceWaterBarrierApproach =
+    ordinanceandlawapproach ?? biditemblank ?? noAction;
+
+widget.report.rollExposure = rollExposure;
+widget.report.rollNumberOfPlies = numberOfPlies;
+widget.report.rollFasteningMethod = fasteningMethod;
+widget.report.rollFastenerPullTestPerformed = fastenerPullTestPerformed;
+widget.report.rollFastenerPullTestResult = fastenerPullTestResult;
+widget.report.rollUnderlaymentType = underlaymentType;
+widget.report.rollInsulationType = insulationType;
+widget.report.rollInsulationSize = insulationSize;
+widget.report.rollDeckRequiresReplacement = deckRequiresReplacement;
+widget.report.rollDeckFullReplacementRequired = deckFullReplacementRequired;
+widget.report.rollDeckPartialReplacementSqft =
+    howManySFDeckRequireReplacementVisible;
+widget.report.rollIceWaterBarrierInstalled = iceWaterBarrierInstalled;
+widget.report.rollDripEdgeInstalled = dripEdgeInstalled;
+widget.report.rollDripEdgeType = dripEdgeType;
+widget.report.rollGravelBallastPresent = gravelBallastPresent;
       // Mostrar Cargando
       showDialog(
         context: context,
