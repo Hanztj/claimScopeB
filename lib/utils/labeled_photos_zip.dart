@@ -7,17 +7,27 @@ import 'photo_labels.dart';
 import 'package:path_provider/path_provider.dart';
 
 
-String _sanitizePhotoBaseName(String label) {
+String _sanitizePhotoBaseName(
+  String label, {
+  bool removeGenericPhotoWord = false,
+})   {
   var s = label.trim();
 
   s = s.replaceAll(RegExp(r'\bextra photo\b', caseSensitive: false), '');
   s = s.replaceAll(RegExp(r'\badditional photo\b', caseSensitive: false), '');
   s = s.replaceAll(RegExp(r'\badditional\b', caseSensitive: false), '');
 
+    if (removeGenericPhotoWord) {
+    s = s.replaceAll(RegExp(r'\bphoto\b', caseSensitive: false), '');
+  }
+  
   s = s.replaceAll(RegExp(r'\s+'), ' ').trim();
 
   s = s.replaceAll(RegExp(r'[^A-Za-z0-9\-\s_]'), '');
+  s = s.replaceAll(RegExp(r'_+'), '_');
+  s = s.replaceAll(RegExp(r'^_+|_+$'), '');
   s = s.replaceAll(' ', '_');
+  s = s.replaceAll(RegExp(r'_+'), '_');
 
   if (s.isEmpty) return 'Image';
   return s;
@@ -38,6 +48,7 @@ Archive buildLabeledPhotosArchive(List<PhotoItem> items) {
 
     late final String folder;
     late final String displayLabel;
+    var isRoofPhoto = false;
 
     if (parsed != null) {
       // Comportamiento comercial existente: se mantiene intacto.
@@ -59,9 +70,13 @@ Archive buildLabeledPhotosArchive(List<PhotoItem> items) {
       // ✨ CAMBIO: De 'General' a 'Roof' como preferías
       folder = 'Roof';
       displayLabel = item.label;
+      isRoofPhoto = true;
     }
 
-    final base = _sanitizePhotoBaseName(displayLabel);
+    final base = _sanitizePhotoBaseName(
+      displayLabel,
+      removeGenericPhotoWord: isRoofPhoto,
+    );
     final key = '$folder/$base';
     final n = (counts[key] ?? 0) + 1;
     counts[key] = n;

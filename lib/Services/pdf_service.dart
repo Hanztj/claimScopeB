@@ -845,6 +845,17 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
       }
       if (flashing.grade != null && flashing.grade!.trim().isNotEmpty) {
         parts.add(flashing.grade!);
+     }
+           if (flashing.changeFlueCap) {
+        parts.add('change flue cap');
+      }
+      if (flashing.changeChaseCover) {
+        final material = flashing.chaseCoverMaterial;
+        parts.add(
+          material != null && material.trim().isNotEmpty
+              ? 'change chase cover: ${material.trim()}'
+              : 'change chase cover',
+        );
       }
       final action = flashing.shouldBeChanged ? 'change' : 'no change';
       return parts.isEmpty ? '$base ($action)' : '$base (${parts.join(', ')}, $action)';

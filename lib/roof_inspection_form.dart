@@ -72,18 +72,45 @@ Future<void> _showSubmissionOptions(File techPdf, File photoPdf) {
   if (type == null) return const SizedBox.shrink();
 
   final fields = flashingFieldsForResidentialType(type);
-  if (fields.isEmpty) return const SizedBox.shrink();
 
-  return Column(
+   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
-    children: fields.map((field) {
-      return buildDropdown(
-        field.label,
-        field.options,
-        data[field.key],
-        (val) => setState(() => data[field.key] = val),
-      );
-    }).toList(),
+    children: [
+      ...fields.map((field) {
+        return buildDropdown(
+          field.label,
+          field.options,
+          data[field.key],
+          (val) => setState(() => data[field.key] = val),
+        );
+      }),
+      if (type == 'Chimney flashing') ...[
+        CheckboxListTile(
+          title: const Text('Change flue cap?'),
+          value: data['changeFlueCap'] ?? false,
+          onChanged: (val) => setState(
+            () => data['changeFlueCap'] = val ?? false,
+          ),
+        ),
+        CheckboxListTile(
+          title: const Text('Change chase cover?'),
+          value: data['changeChaseCover'] ?? false,
+          onChanged: (val) => setState(() {
+            data['changeChaseCover'] = val ?? false;
+            if (data['changeChaseCover'] != true) {
+              data['chaseCoverMaterial'] = null;
+            }
+          }),
+        ),
+        if (data['changeChaseCover'] == true)
+          buildDropdown(
+            'Chase cover material',
+            const ['Metal', 'Copper'],
+            data['chaseCoverMaterial'],
+            (val) => setState(() => data['chaseCoverMaterial'] = val),
+          ),
+      ],
+    ],
   );
  }
      
@@ -509,7 +536,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
   String? sheathingSize;
 
   //Input variables for metal hub (además de roofCoverType y roofSubType)
-  bool? hasDeck;
+bool? hasDeck;
 bool? deckRequiresReplacement;
 bool? deckFullReplacementRequired;
 
@@ -658,6 +685,13 @@ String? noAction;
           return 'Select ${field.label} for Flashing ${i + 1}.';
         }
       }
+
+            if (type == 'Chimney flashing' &&
+          flashing['changeChaseCover'] == true &&
+          ((flashing['chaseCoverMaterial'] as String?) == null ||
+              (flashing['chaseCoverMaterial'] as String).isEmpty)) {
+        return 'Select chase cover material for Flashing ${i + 1}.';
+      }
     }
                   
     for (var i = 0; i < _currentFacetVentsData.length; i++) {
@@ -795,6 +829,9 @@ String? noAction;
     'finish': null,
     'grade': null,
     'shouldBeChanged': false,
+    'changeFlueCap': false,
+    'changeChaseCover': false,
+    'chaseCoverMaterial': null,
     'otherSpecify': '',
     'photo': null,
     'otherController': otherController,
@@ -1283,6 +1320,9 @@ widget.report.rollGravelBallastPresent = gravelBallastPresent;
     grade: map['grade'] as String?,
     otherSpecify: map['otherSpecify'] as String?,
     shouldBeChanged: map['shouldBeChanged'] ?? false,
+    changeFlueCap: map['changeFlueCap'] ?? false,
+    changeChaseCover: map['changeChaseCover'] ?? false,
+    chaseCoverMaterial: map['chaseCoverMaterial'] as String?,
   );
  }).toList();
            // Vents

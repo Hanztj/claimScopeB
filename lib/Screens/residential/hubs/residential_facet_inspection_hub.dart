@@ -167,6 +167,25 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
     required this.report,
   });
 
+    String _selectedLabel({
+    required String fallback,
+    required int index,
+    required String? type,
+    TextEditingController? otherController,
+  }) {
+    if (type == 'Other') {
+      final other = otherController?.text.trim() ?? '';
+      if (other.isNotEmpty) return '$fallback ${index + 1} ($other)';
+      return 'Other $fallback ${index + 1}';
+    }
+
+    if (type != null && type.trim().isNotEmpty) {
+      return type.trim();
+    }
+
+    return '$fallback ${index + 1}';
+  }
+    
   @override
   Widget build(BuildContext context) {
     
@@ -419,6 +438,9 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
                         data['size'] = null;
                         data['finish'] = null;
                         data['grade'] = null;
+                        data['changeFlueCap'] = false;
+                        data['changeChaseCover'] = false;
+                        data['chaseCoverMaterial'] = null;
                         data['otherSpecify'] = '';
                         if (data['otherController'] is TextEditingController) {
                           (data['otherController'] as TextEditingController).clear();
@@ -442,14 +464,27 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
                   ),
                   ElevatedButton(
                     onPressed: () => takePhoto(
-                      'Flashing Photo ${idx + 1}',
+                      '${_selectedLabel(
+                        fallback: 'flashing',
+                        index: idx,
+                        type: data['type'] as String?,
+                        otherController: data['otherController']
+                            as TextEditingController?,
+                      )} Photo',
                       flashingIndex: idx,
                     ),
                     child: const Text("Take Flashing Photo"),
                   ),
                   TextButton(
-                    onPressed: () =>
-                        takeExtraPhotoForLabel('Flashing extra photo'),
+                    onPressed: () => takeExtraPhotoForLabel(
+                      '${_selectedLabel(
+                        fallback: 'flashing',
+                        index: idx,
+                        type: data['type'] as String?,
+                        otherController: data['otherController']
+                            as TextEditingController?,
+                      )} extra photo',
+                    ),
                     child: const Text('Add extra Flashing photo'),
                   ),
                   if (data['photo'] != null)
@@ -553,13 +588,27 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
                     ),
                   ElevatedButton(
                     onPressed: () => takePhoto(
-                      'Vent Photo ${ventIndex + 1}',
+                      '${_selectedLabel(
+                        fallback: 'vent',
+                        index: ventIndex,
+                        type: ventData['type'] as String?,
+                        otherController: ventData['otherSpecifyController']
+                            as TextEditingController?,
+                      )} Photo',
                       ventIndex: ventIndex,
                     ),
                     child: const Text("Take Vent Photo"),
                   ),
                   TextButton(
-                    onPressed: () => takeExtraPhotoForLabel('Vent extra photo'),
+                    onPressed: () => takeExtraPhotoForLabel(
+                      '${_selectedLabel(
+                        fallback: 'vent',
+                        index: ventIndex,
+                        type: ventData['type'] as String?,
+                        otherController: ventData['otherSpecifyController']
+                            as TextEditingController?,
+                      )} extra photo',
+                    ),
                     child: const Text('Add extra Vent photo'),
                   ),
                   if (ventData['photo'] != null)

@@ -118,7 +118,7 @@ class ResidentialRoofAccessoriesHub extends StatelessWidget {
                       child: const Text("Take Starter Row Eave Photo"),
                     ),
                     TextButton(
-                      onPressed: () => takeExtraPhotoForLabel('Starter row at Eave extra photo'),
+                      onPressed: () => takeExtraPhotoForLabel('Starter Row Eave extra photo'),
                       child: const Text('Add extra Starter row at Eave photo'),
                     ),
                     if (starterEavePhoto != null)
@@ -145,7 +145,7 @@ class ResidentialRoofAccessoriesHub extends StatelessWidget {
                       child: const Text("Take Starter Row Rake Photo"),
                     ),
                     TextButton(
-                      onPressed: () => takeExtraPhotoForLabel('Starter row at Rake extra photo'),
+                      onPressed: () => takeExtraPhotoForLabel('Starter Row Rake extra photo'),
                       child: const Text('Add extra Starter row at Rake photo'),
                     ),
                     if (starterRakePhoto != null)

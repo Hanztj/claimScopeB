@@ -315,6 +315,9 @@ class FlashingData {
   String? grade;
   String? otherSpecify;
   bool shouldBeChanged;
+  bool changeFlueCap;
+  bool changeChaseCover;
+  String? chaseCoverMaterial;
   File? photo;
   List<File> extraPhotos;
 
@@ -326,6 +329,9 @@ class FlashingData {
     this.grade,
     this.otherSpecify,
     this.shouldBeChanged = false,
+    this.changeFlueCap = false,
+    this.changeChaseCover = false,
+    this.chaseCoverMaterial,
     this.photo,
     List<File>? extraPhotos,
   }) : extraPhotos = extraPhotos ?? [];

@@ -99,7 +99,7 @@ const Map<String, List<FlashingFieldConfig>> residentialFlashingFieldsByType = {
     FlashingFieldConfig(
       key: 'size',
       label: 'Size',
-      options: ['Small', 'Average', 'Large'],
+      options: ['Average (32"-36")', 'Small (24"-24")', 'Large (32"-60")'],
     ),
     FlashingFieldConfig(
       key: 'material',
