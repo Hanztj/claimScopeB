@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:archive/archive.dart';
+import 'package:image/image.dart' as img;
 
 import '../inspection_report_model.dart';
 import 'photo_labels.dart';
@@ -31,6 +32,42 @@ String _sanitizePhotoBaseName(
 
   if (s.isEmpty) return 'Image';
   return s;
+}
+
+int _clampInt(int value, int min, int max) {
+  if (value < min) return min;
+  if (value > max) return max;
+  return value;
+}
+
+List<int> _readLandscapeZipPhotoBytes(File file) {
+  final originalBytes = file.readAsBytesSync();
+  final decoded = img.decodeImage(originalBytes);
+
+  if (decoded == null) {
+    return originalBytes;
+  }
+
+  if (decoded.width > decoded.height) {
+    return originalBytes;
+  }
+
+  final targetHeight = _clampInt(
+    ((decoded.width * 3) / 4).round(),
+    1,
+    decoded.height,
+  );
+  final cropY = ((decoded.height - targetHeight) / 2).round();
+
+  final landscapeImage = img.copyCrop(
+    decoded,
+    x: 0,
+    y: cropY,
+    width: decoded.width,
+    height: targetHeight,
+  );
+
+  return img.encodeJpg(landscapeImage, quality: 85);
 }
 
 /// Creates a ZIP with labeled photos.
@@ -82,7 +119,7 @@ Archive buildLabeledPhotosArchive(List<PhotoItem> items) {
     counts[key] = n;
 
     final filename = '$folder/${base}_Image$n.jpg';
-    final bytes = item.file.readAsBytesSync();
+    final bytes = _readLandscapeZipPhotoBytes(item.file);
 
     archive.addFile(ArchiveFile(filename, bytes.length, bytes));
   }
