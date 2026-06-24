@@ -65,6 +65,42 @@ Future<void> _showSubmissionOptions(File techPdf, File photoPdf) {
     onGenerateLabeledZip: () => generateLabeledPhotosZip(widget.report),
   );
 }
+
+Future<T> _runWithBlockingProgress<T>(
+  String message,
+  Future<T> Function() task,
+) async {
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => PopScope(
+      canPop: false, // Bloquea el botón de atrás / gesto predictivo de Android
+      onPopInvokedWithResult: (didPop, result ) async {
+        if (didPop) {
+          // Si el usuario intenta salir del diálogo, no hacemos nada
+          return;
+        }
+      },
+      child: AlertDialog(
+        content: Row(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(width: 16),
+            Expanded(child: Text(message)),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  try {
+    return await task();
+  } finally {
+    if (mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+  }
+}
                  
  Widget _buildFlashingSubfields(Map<String, dynamic> data) {
   final String? type = data['type'];
@@ -300,15 +336,15 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
                                  toEmails.add(extraEmail.trim());
                                }     
                                     
-                                   messenger.showSnackBar(
-                               const SnackBar(content: Text('Sending email...')),
-                                );
-                                  try {
-                               await EmailService.sendEmailWithReports(
-                               toEmails: toEmails,
-                               techPdf: techPdf,
-                               photoPdf: photoPdf,
-                                 );
+                                try {
+                               await _runWithBlockingProgress<void>(
+                                 'Sending email...',
+                                 () => EmailService.sendEmailWithReports(
+                                   toEmails: toEmails,
+                                   techPdf: techPdf,
+                                   photoPdf: photoPdf,
+                                 ),
+                               );
 
                                if (!mounted) return;
 

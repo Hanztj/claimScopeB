@@ -64,6 +64,42 @@ class CommercialRoofSectionScreen extends StatefulWidget {
   );
  }
 
+  Future<T> _runWithBlockingProgress<T>(
+  String message,
+  Future<T> Function() task,
+ ) async {
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => PopScope(
+      canPop: false, // Bloquea el botón de atrás / gesto predictivo de Android
+      onPopInvokedWithResult: (didPop, result ) async {
+        if (didPop) {
+          // Si el usuario intenta salir del diálogo, no hacemos nada
+          return;
+        }
+      },
+      child: AlertDialog(
+        content: Row(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(width: 16),
+            Expanded(child: Text(message)),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  try {
+    return await task();
+  } finally {
+    if (mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+  }
+ }
+
   final _picker = ImagePicker();
 
   final _roofLabelController = TextEditingController();
@@ -279,12 +315,14 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                                const SnackBar(content: Text('Sending email...')),
                                 );
                                   try {
-                               await EmailService.sendEmailWithReports(
-                               toEmails: toEmails,
-                               techPdf: techPdf,
-                               photoPdf: photoPdf,
-                                 );
-
+                               await _runWithBlockingProgress<void>(
+                                 'Sending email...',
+                                 () => EmailService.sendEmailWithReports(
+                                   toEmails: toEmails,
+                                   techPdf: techPdf,
+                                   photoPdf: photoPdf,
+                                 ),
+                               );
                                if (!mounted) return;
 
                               messenger.showSnackBar(

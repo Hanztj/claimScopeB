@@ -103,6 +103,7 @@ class PdfService {
             ],
            );
           }),
+          ..._buildElevationsUnderlaymentDetails(report),
         ],
         ),  
         );
@@ -254,6 +255,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
 
                     // SECCIÓN 4: ROOF DETAILS
             ..._buildResidentialRoofDetails(report),
+            ..._buildElevationsUnderlaymentDetails(report),
         ],
        ),
      );
@@ -767,6 +769,121 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
     static String _textOrNA(String? value) {
       if (value == null || value.trim().isEmpty) return "N/A";
       return value.trim();
+    }
+
+    static List<pw.Widget> _buildElevationsUnderlaymentDetails(InspectionReport report) {
+      if (!report.inspectElevations) return [];
+
+      final rows = <pw.Widget>[];
+      for (final elevation in report.elevations.elevations) {
+        final siding = elevation.siding.sidingMain;
+        final underlayment = elevation.underlayment;
+        if (!underlayment.hasAnyData) continue;
+        if (!_isUnderlaymentApplicableSiding(siding)) continue;
+
+        rows.addAll([
+          pw.Text(
+            "${elevation.side.display} Elevation",
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+          ),
+          _buildDataRow("Siding Type", _textOrNA(siding)),
+          ..._buildElevationUnderlaymentRows(siding, underlayment),
+          pw.SizedBox(height: 6),
+        ]);
+      }
+
+      if (rows.isEmpty) return [];
+
+      return [
+        _buildSectionTitle("ELEVATIONS"),
+        pw.SizedBox(height: 5),
+        ...rows,
+        pw.SizedBox(height: 10),
+      ];
+    }
+
+    static List<pw.Widget> _buildElevationUnderlaymentRows(
+      String siding,
+      dynamic underlayment,
+    ) {
+      final rows = <pw.Widget>[];
+
+      if (_showsElevationFanfoldInsulation(siding)) {
+        rows.add(_buildDataRow(
+          "Add Fanfold Insulation",
+          underlayment.addFanfoldInsulation ? "Yes" : "No",
+        ));
+        if (underlayment.addFanfoldInsulation) {
+          rows.add(_buildDataRow(
+            "Thickness",
+            _textOrNA(underlayment.fanfoldThickness),
+          ));
+        }
+      }
+
+      if (_isElevationVeneerSiding(siding)) {
+        rows.add(_buildDataRow(
+          "Add Foil Insulation / Radiant Barrier",
+          underlayment.addFoilInsulationRadiantBarrier ? "Yes" : "No",
+        ));
+      }
+
+      if (_showsElevationHouseWrap(siding)) {
+        rows.add(_buildDataRow(
+          "Add House Wrap (WRB)",
+          underlayment.addHouseWrapWrb ? "Yes" : "No",
+        ));
+      }
+
+      rows.add(_buildDataRow(
+        "Use Rainscreen/Furring Strips",
+        underlayment.useRainscreenFurringStrips ? "Yes" : "No",
+      ));
+
+      if (!_isElevationVeneerSiding(siding) &&
+          _showsElevationFoilInsulation(siding, underlayment)) {
+        rows.add(_buildDataRow(
+          "Add Foil Insulation / Radiant Barrier",
+          underlayment.addFoilInsulationRadiantBarrier ? "Yes" : "No",
+        ));
+      }
+
+      if (underlayment.additionalNotes.trim().isNotEmpty) {
+        rows.add(_buildDataRow(
+          "Additional Notes",
+          underlayment.additionalNotes.trim(),
+        ));
+      }
+
+      return rows;
+    }
+
+    static bool _isUnderlaymentApplicableSiding(String siding) {
+      return siding.trim().isNotEmpty && siding != 'Stucco';
+    }
+
+    static bool _showsElevationFanfoldInsulation(String siding) {
+      return siding == 'Vinyl' || siding == 'Aluminum';
+    }
+
+    static bool _showsElevationHouseWrap(String siding) {
+      return siding == 'Vinyl' ||
+          siding == 'Aluminum' ||
+          siding == 'Fiber-Cement' ||
+          siding == 'Wood' ||
+          siding == 'Steel' ||
+          _isElevationVeneerSiding(siding);
+    }
+
+    static bool _showsElevationFoilInsulation(String siding, dynamic underlayment) {
+      return _isElevationVeneerSiding(siding) ||
+          underlayment.useRainscreenFurringStrips;
+    }
+
+    static bool _isElevationVeneerSiding(String siding) {
+      return siding == 'Brick Veneer' ||
+          siding == 'Stone Veneer' ||
+          siding == 'Tone Veneer';
     }
 
     static List<pw.Widget> _buildCommercialRoofDetails(CommercialRoofSectionData roof) {

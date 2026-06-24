@@ -42,6 +42,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
   late final TextEditingController _stuccoRedashSf;
   late final TextEditingController _stuccoWholeReplacementCoats;
   late final TextEditingController _sidingNotes;
+  late final TextEditingController _underlaymentNotes;
 
   // ─── Controllers por Trim (gestionados por id de instancia) ───────────
   final Map<TrimEntry, _TrimControllers> _trimCtl = {};
@@ -49,6 +50,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
   final _picker = ImagePicker();
   
   SidingDamagesData get _s => widget.elevation.siding;
+  UnderlaymentInsulationData get _u => widget.elevation.underlayment;
   List<TrimEntry> get _trims => widget.elevation.trims;
 
   @override
@@ -64,6 +66,8 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     _stuccoWholeReplacementCoats =
         TextEditingController(text: _s.stuccoWholeReplacementCoats);
     _sidingNotes = TextEditingController(text: _s.additionalNotes);
+    _underlaymentNotes =
+        TextEditingController(text: _u.additionalNotes);
     _syncTrimControllers();
   }
 
@@ -158,6 +162,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     // Si cambia la elevación (Front → Right, etc.) hay que repoblar
     // los controllers de Trim para los TrimEntry de la nueva elevación.
     if (oldWidget.elevation != widget.elevation) {
+      _underlaymentNotes.text = _u.additionalNotes;
       _syncTrimControllers();
     }
   }
@@ -186,6 +191,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
       _stuccoRedashSf,
       _stuccoWholeReplacementCoats,
       _sidingNotes,
+      _underlaymentNotes,
     ]) {
       c.dispose();
     }
@@ -253,9 +259,10 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
         const SizedBox(height: 12),
         _buildTrimSection(),
         const SizedBox(height: 8),
+        _buildUnderlaymentInsulationTile(),
+        const SizedBox(height: 8),
         // Placeholders compilables para próximas secciones (pasos 5+)
         for (final s in const [
-          'Underlayment & Insulation',
           'Substrate',
           'EIFS',
           'Windows',
@@ -273,6 +280,162 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
           ),
       ],
     );
+  }
+
+    // =====================================================================
+  // SECCIÓN 4 — UNDERLAYMENT & INSULATION
+  // =====================================================================
+  Widget _buildUnderlaymentInsulationTile() {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: ExpansionTile(
+        controlAffinity: ListTileControlAffinity.trailing,
+        leading: SectionStatusDot(status: _underlaymentStatus()),
+        title: _sectionTitleWithClear(
+          'Underlayment & Insulation',
+          () => _confirmClear(
+            title: 'Underlayment & Insulation',
+            onClear: _clearUnderlayment,
+          ),
+        ),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+        children: _buildUnderlaymentInsulationFields(),
+      ),
+    );
+  }
+
+  List<Widget> _buildUnderlaymentInsulationFields() {
+    if (_s.sidingMain.isEmpty) {
+      return const [
+        Text('Select Siding Type first.'),
+      ];
+    }
+
+    if (!_isUnderlaymentApplicableSiding(_s.sidingMain)) {
+      return const [
+        Text('Underlayment & Insulation does not apply to this Siding Type.'),
+      ];
+    }
+
+    return [
+      if (_showsFanfoldInsulation(_s.sidingMain)) ...[
+        _checkbox('Add Fanfold Insulation', _u.addFanfoldInsulation, (v) {
+          setState(() {
+            _u.addFanfoldInsulation = v;
+            if (!v) _u.fanfoldThickness = '';
+            _mark();
+          });
+        }),
+        if (_u.addFanfoldInsulation) ...[
+          const SizedBox(height: 8),
+          _dropdown(
+            label: 'Thickness',
+            value: _u.fanfoldThickness,
+            options: const ['1/4"', '1/2"'],
+            onChanged: (v) => setState(() {
+              _u.fanfoldThickness = v ?? '';
+              _mark();
+            }),
+          ),
+        ],
+      ],
+      if (_isVeneerSiding(_s.sidingMain))
+        _checkbox(
+          'Add Foil Insulation / Radiant Barrier',
+          _u.addFoilInsulationRadiantBarrier,
+          (v) {
+            setState(() {
+              _u.addFoilInsulationRadiantBarrier = v;
+              _mark();
+            });
+          },
+        ),
+      if (_showsHouseWrap(_s.sidingMain))
+        _checkbox('Add House Wrap (WRB)', _u.addHouseWrapWrb, (v) {
+          setState(() {
+            _u.addHouseWrapWrb = v;
+            _mark();
+          });
+        }),
+      _checkbox(
+        'Use Rainscreen/Furring Strips',
+        _u.useRainscreenFurringStrips,
+        (v) {
+          setState(() {
+            _u.useRainscreenFurringStrips = v;
+            if (!v && !_isVeneerSiding(_s.sidingMain)) {
+              _u.addFoilInsulationRadiantBarrier = false;
+            }
+            _mark();
+          });
+        },
+      ),
+      if (!_isVeneerSiding(_s.sidingMain) && _showsFoilInsulation(_s.sidingMain))
+        _checkbox(
+          'Add Foil Insulation / Radiant Barrier',
+          _u.addFoilInsulationRadiantBarrier,
+          (v) {
+            setState(() {
+              _u.addFoilInsulationRadiantBarrier = v;
+              _mark();
+            });
+          },
+        ),
+      const SizedBox(height: 8),
+      _notesField(_underlaymentNotes, (v) {
+        _u.additionalNotes = v;
+        _mark();
+      }),
+    ];
+  }
+
+  void _clearUnderlayment() {
+    _u.addFanfoldInsulation = false;
+    _u.fanfoldThickness = '';
+    _u.addHouseWrapWrb = false;
+    _u.addFoilInsulationRadiantBarrier = false;
+    _u.useRainscreenFurringStrips = false;
+    _u.additionalNotes = '';
+    _underlaymentNotes.clear();
+    _mark();
+  }
+
+  SectionStatus _underlaymentStatus() {
+    if (!_u.hasAnyData) return SectionStatus.empty;
+    if (_s.sidingMain.isEmpty || !_isUnderlaymentApplicableSiding(_s.sidingMain)) {
+      return SectionStatus.partial;
+    }
+    if (_u.addFanfoldInsulation && _u.fanfoldThickness.isEmpty) {
+      return SectionStatus.partial;
+    }
+    return SectionStatus.complete;
+  }
+
+  bool _isUnderlaymentApplicableSiding(String siding) {
+    return siding != 'Stucco';
+  }
+
+  bool _showsFanfoldInsulation(String siding) {
+    return siding == 'Vinyl' || siding == 'Aluminum';
+  }
+
+  bool _showsHouseWrap(String siding) {
+    return siding == 'Vinyl' ||
+        siding == 'Aluminum' ||
+        siding == 'Fiber-Cement' ||
+        siding == 'Wood' ||
+        siding == 'Steel' ||
+        _isVeneerSiding(siding);
+  }
+
+  bool _showsFoilInsulation(String siding) {
+    return _isVeneerSiding(siding) || _u.useRainscreenFurringStrips;
+  }
+
+  bool _isVeneerSiding(String siding) {
+    return siding == 'Brick Veneer' ||
+        siding == 'Stone Veneer' ||
+        siding == 'Tone Veneer';
   }
 
   // =====================================================================

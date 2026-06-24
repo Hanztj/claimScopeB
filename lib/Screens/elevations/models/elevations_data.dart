@@ -381,41 +381,43 @@ class GuttersSoffitFasciaData {
 // Sección 4 — Underlayment / Insulation  (sin cambios — paso 5)
 // ============================================================================
 class UnderlaymentInsulationData {
-  UnderlaymentInsulationData(); 
+  UnderlaymentInsulationData();
 
-  bool exposed = false;
-  String underlaymentType = '';      // House wrap, Felt, Foam board, Other
-  String underlaymentTypeOther = '';
-  String underlaymentCondition = ''; // Intact, Torn, Missing
-  String insulationType = '';        // Batt, Spray foam, Rigid, None, Other
-  String insulationTypeOther = '';
-  String insulationCondition = '';
-  String notes = '';
-  List<File> photos = [];
+  bool addFanfoldInsulation = false;
+  String fanfoldThickness = '';
+  bool addHouseWrapWrb = false;
+  bool addFoilInsulationRadiantBarrier = false;
+  bool useRainscreenFurringStrips = false;
+  String additionalNotes = '';
+
+  bool get hasAnyData =>
+      addFanfoldInsulation ||
+      fanfoldThickness.isNotEmpty ||
+      addHouseWrapWrb ||
+      addFoilInsulationRadiantBarrier ||
+      useRainscreenFurringStrips ||
+      additionalNotes.trim().isNotEmpty;
 
   Map<String, dynamic> toJson() => {
-        'exposed': exposed,
-        'underlaymentType': underlaymentType,
-        'underlaymentTypeOther': underlaymentTypeOther,
-        'underlaymentCondition': underlaymentCondition,
-        'insulationType': insulationType,
-        'insulationTypeOther': insulationTypeOther,
-        'insulationCondition': insulationCondition,
-        'notes': notes,
-        'photos': _filesToPaths(photos),
+        'addFanfoldInsulation': addFanfoldInsulation,
+        'fanfoldThickness': fanfoldThickness,
+        'addHouseWrapWrb': addHouseWrapWrb,
+        'addFoilInsulationRadiantBarrier': addFoilInsulationRadiantBarrier,
+        'useRainscreenFurringStrips': useRainscreenFurringStrips,
+        'additionalNotes': additionalNotes,
       };
-
+      
   factory UnderlaymentInsulationData.fromJson(Map<String, dynamic> j) =>
       UnderlaymentInsulationData()
-        ..exposed = j['exposed'] as bool? ?? false
-        ..underlaymentType = j['underlaymentType'] as String? ?? ''
-        ..underlaymentTypeOther = j['underlaymentTypeOther'] as String? ?? ''
-        ..underlaymentCondition = j['underlaymentCondition'] as String? ?? ''
-        ..insulationType = j['insulationType'] as String? ?? ''
-        ..insulationTypeOther = j['insulationTypeOther'] as String? ?? ''
-        ..insulationCondition = j['insulationCondition'] as String? ?? ''
-        ..notes = j['notes'] as String? ?? ''
-        ..photos = _pathsToFiles(j['photos']);
+        ..addFanfoldInsulation =
+            j['addFanfoldInsulation'] as bool? ?? false
+        ..fanfoldThickness = j['fanfoldThickness'] as String? ?? ''
+        ..addHouseWrapWrb = j['addHouseWrapWrb'] as bool? ?? false
+        ..addFoilInsulationRadiantBarrier =
+            j['addFoilInsulationRadiantBarrier'] as bool? ?? false
+        ..useRainscreenFurringStrips =
+            j['useRainscreenFurringStrips'] as bool? ?? false
+        ..additionalNotes = j['additionalNotes'] as String? ?? '';
 }
 
 // ============================================================================
@@ -685,7 +687,7 @@ class BuildingElevation {
         doors.isNotEmpty ||
         accessories.isNotEmpty ||
       //  siding.sidingType.isNotEmpty ||
-        underlayment.exposed ||
+        underlayment.hasAnyData ||
         substrate.exposed ||
         eifs.present;
   }

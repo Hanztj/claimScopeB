@@ -3,6 +3,41 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:claimscope_clean/services/stripe_service.dart';
 
+
+Future<T> _runWithBlockingProgress<T>(
+  BuildContext context,
+  String message,
+  Future<T> Function() task,
+) async {
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => PopScope(
+      canPop: false, // Bloquea el botón de atrás / gesto predictivo de Android
+      child: AlertDialog(
+        content: Row(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(width: 16),
+            Expanded(child: Text(message)),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  // Give the loading dialog one frame to render before any synchronous ZIP work starts.
+  await Future<void>.delayed(const Duration(milliseconds: 100));
+
+  try {
+    return await task();
+  } finally {
+    if (context.mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+  }
+}
+
 Future<void> showSubmissionOptions({
   required BuildContext context,
   required File techPdf,
@@ -76,12 +111,16 @@ Future<void> showSubmissionOptions({
                     Navigator.of(dialogContext).pop();
                     final messenger = ScaffoldMessenger.of(context);
                     try {
-                      final zip = await onGenerateLabeledZip();
+                      final zip = await _runWithBlockingProgress<File>(
+                        context,
+                        'Preparing labeled ZIP...',
+                        onGenerateLabeledZip,
+                      );
                       await Share.shareXFiles(
                         [XFile(zip.path)],
                         text: 'Inspection Photos ZIP',
                       );
-                    } catch (e) {
+                    }  catch (e) {
                       messenger.showSnackBar(
                         SnackBar(
                           content: Text('Error creating ZIP: $e'),
