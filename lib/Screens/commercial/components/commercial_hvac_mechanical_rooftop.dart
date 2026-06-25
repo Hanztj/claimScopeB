@@ -260,7 +260,7 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                         child: Image.file(item.photo!, height: 160, width: double.infinity, fit: BoxFit.cover, cacheWidth: 480), 
+                         child: Image.file(item.photo!, height: 100, fit: BoxFit.cover, cacheWidth: 300), 
                         ),
                         const SizedBox(height: 8),
                         TextButton(
@@ -480,7 +480,7 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.file(item.photo!, height: 160, width: double.infinity, fit: BoxFit.cover, cacheWidth: 480),
+                         child: Image.file(item.photo!, height: 100, fit: BoxFit.cover, cacheWidth: 300),
                         ),
                         const SizedBox(height: 8),
                         TextButton(

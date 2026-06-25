@@ -120,7 +120,11 @@ Future<T> _runWithBlockingProgress<T>(
           (val) => setState(() => data[field.key] = val),
         );
       }),
-      if (type == 'Flashing kick-out divert')
+     
+      if (type == 'Flashing kick-out divert' ||
+          type == 'Skylight flashing kit (dome)' ||
+          type == 'Skylight step flashing kit')
+
         TextFormField(
           initialValue: data['count'] as String? ?? '',
           decoration: const InputDecoration(labelText: 'Count'),

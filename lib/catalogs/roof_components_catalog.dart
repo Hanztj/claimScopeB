@@ -43,6 +43,7 @@ const List<String> flashingTypesShingles = [
   'Chimney flashing',
   'Roof window step flashing kit',
   'Skylight flashing kit (dome)',
+  'Skylight step flashing kit',
   'Other',
 ];
 
@@ -60,6 +61,7 @@ const List<String> flashingTypesMetal = [
   'Chimney flashing',
   'Roof window step flashing kit',
   'Skylight flashing kit (dome)',
+  'Skylight step flashing kit',
   'Other',
 ];
 

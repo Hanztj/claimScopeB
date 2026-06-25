@@ -271,7 +271,7 @@ class _CommercialFlashingsSectionState extends State<CommercialFlashingsSection>
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.file(flashing.photo!, height: 160, width: double.infinity, fit: BoxFit.cover, cacheWidth: 480),
+                          child: Image.file(flashing.photo!, height: 100, fit: BoxFit.cover, cacheWidth: 300)
                         ),
                         const SizedBox(height: 8),
                         TextButton(

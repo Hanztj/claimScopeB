@@ -701,7 +701,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
                       'Snow bar - powder coated',
                       'Snow panel - aluminum',
                       'Snow panel rake cap - aluminum',
-                      'Skylight',
+                      'Skylight (roof window)',
                       'Evaporative cooler',
                       'Air condenser w/pad',
                       'Solar electric panel',

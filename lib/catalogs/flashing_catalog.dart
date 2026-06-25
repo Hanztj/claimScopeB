@@ -123,9 +123,18 @@ const Map<String, List<FlashingFieldConfig>> residentialFlashingFieldsByType = {
     FlashingFieldConfig(
       key: 'grade',
       label: 'Grade',
-      options: ['Standard', 'High grade'],
+      options: ['Average', 'High Grade'],
     ),
   ],
+  
+  'Skylight step flashing kit': [
+    FlashingFieldConfig(
+      key: 'size',
+      label: 'Size',
+      options: ['Up to 5 sf', '5.1 - 12 sf', '12.1 or greater'],
+     ),
+   ],
+
 };
 
 List<FlashingFieldConfig> flashingFieldsForResidentialType(String? type) {
