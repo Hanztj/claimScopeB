@@ -292,12 +292,6 @@ class _CommercialFlashingsSectionState extends State<CommercialFlashingsSection>
                       textStyle: const TextStyle(fontSize: 15),
                     ),
                   ),
-
-                  if (flashing.extraPhotos.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text('${flashing.extraPhotos.length} extra flashing photo(s) stored'),
-                    ),
                 ],
               ),
             ),

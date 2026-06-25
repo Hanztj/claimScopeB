@@ -1135,12 +1135,7 @@ if (_showsSidingHeight()) ...[
             if (t.photo != null)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
-                 child: Image.file(t.photo!, height: 100, cacheWidth: 300),
-              ),
-            if (t.extraPhoto != null)
-             const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8.0),
-                child: Text('Extra trim photo stored'),
+                child: Image.file(t.photo!, height: 100, cacheWidth: 300),
               ),
           ],
         ),
@@ -1179,6 +1174,16 @@ if (_showsSidingHeight()) ...[
       }
       _mark();
     });
+
+    
+if (extra && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Photo stored'),
+          duration: Duration(seconds: 2),
+        ),
+);
+}
   }
 
   List<Widget> _buildTrimReplaceFields(TrimEntry t, _TrimControllers c) {

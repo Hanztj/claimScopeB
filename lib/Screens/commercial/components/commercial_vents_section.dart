@@ -260,12 +260,6 @@ class _CommercialVentsSectionState extends State<CommercialVentsSection> {
                       textStyle: const TextStyle(fontSize: 15),
                     ),
                   ),
-
-                  if (vent.extraPhotos.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text('${vent.extraPhotos.length} extra vent photo(s) stored'),
-                    ),
                 ],
               ),
             ),

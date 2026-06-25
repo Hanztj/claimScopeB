@@ -281,12 +281,6 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
                       textStyle: const TextStyle(fontSize: 15),
                     ),
                   ),
-
-                  if (item.extraPhotos.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text('${item.extraPhotos.length} extra HVAC photo(s) stored'),
-                    ),
                 ],
               ),
             ),
@@ -507,12 +501,6 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
                       textStyle: const TextStyle(fontSize: 15),
                     ),
                   ),
-
-                  if (item.extraPhotos.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text('${item.extraPhotos.length} extra Mechanical photo(s) stored'),
-                    ),
                 ],
               ),
             ),
