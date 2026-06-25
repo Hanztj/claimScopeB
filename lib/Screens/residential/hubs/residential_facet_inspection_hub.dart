@@ -438,6 +438,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
                         data['size'] = null;
                         data['finish'] = null;
                         data['grade'] = null;
+                        data['count'] = '';
                         data['changeFlueCap'] = false;
                         data['changeChaseCover'] = false;
                         data['chaseCoverMaterial'] = null;
@@ -461,7 +462,33 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
                     value: data['shouldBeChanged'],
                     onChanged: (val) =>
                         setState(() => data['shouldBeChanged'] = val ?? false),
-                  ),
+                         ),
+                                           if (data['type'] == 'Chimney flashing') ...[
+                    CheckboxListTile(
+                      title: const Text('Change flue cap?'),
+                      value: data['changeFlueCap'] ?? false,
+                      onChanged: (val) => setState(
+                        () => data['changeFlueCap'] = val ?? false,
+                      ),
+                    ),
+                    CheckboxListTile(
+                      title: const Text('Change chase cover?'),
+                      value: data['changeChaseCover'] ?? false,
+                      onChanged: (val) => setState(() {
+                        data['changeChaseCover'] = val ?? false;
+                        if (data['changeChaseCover'] != true) {
+                          data['chaseCoverMaterial'] = null;
+                        }
+                      }),
+                    ),
+                    if (data['changeChaseCover'] == true)
+                      buildDropdown(
+                        'Chase cover material',
+                        const ['Metal', 'Copper'],
+                        data['chaseCoverMaterial'],
+                        (val) => setState(() => data['chaseCoverMaterial'] = val),
+                      ),
+                  ],
                   ElevatedButton(
                     onPressed: () => takePhoto(
                       '${_selectedLabel(

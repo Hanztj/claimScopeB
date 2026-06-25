@@ -120,32 +120,14 @@ Future<T> _runWithBlockingProgress<T>(
           (val) => setState(() => data[field.key] = val),
         );
       }),
-      if (type == 'Chimney flashing') ...[
-        CheckboxListTile(
-          title: const Text('Change flue cap?'),
-          value: data['changeFlueCap'] ?? false,
-          onChanged: (val) => setState(
-            () => data['changeFlueCap'] = val ?? false,
-          ),
+      if (type == 'Flashing kick-out divert')
+        TextFormField(
+          initialValue: data['count'] as String? ?? '',
+          decoration: const InputDecoration(labelText: 'Count'),
+          keyboardType: TextInputType.number,
+          onChanged: (val) => data['count'] = val,
+          onSaved: (val) => data['count'] = val ?? '',
         ),
-        CheckboxListTile(
-          title: const Text('Change chase cover?'),
-          value: data['changeChaseCover'] ?? false,
-          onChanged: (val) => setState(() {
-            data['changeChaseCover'] = val ?? false;
-            if (data['changeChaseCover'] != true) {
-              data['chaseCoverMaterial'] = null;
-            }
-          }),
-        ),
-        if (data['changeChaseCover'] == true)
-          buildDropdown(
-            'Chase cover material',
-            const ['Metal', 'Copper'],
-            data['chaseCoverMaterial'],
-            (val) => setState(() => data['chaseCoverMaterial'] = val),
-          ),
-      ],
     ],
   );
  }
@@ -864,6 +846,7 @@ String? noAction;
     'size': null,
     'finish': null,
     'grade': null,
+    'count': '',
     'shouldBeChanged': false,
     'changeFlueCap': false,
     'changeChaseCover': false,
@@ -1354,6 +1337,7 @@ widget.report.rollGravelBallastPresent = gravelBallastPresent;
     size: map['size'] as String?,
     finish: map['finish'] as String?,
     grade: map['grade'] as String?,
+    count: map['count'] as String?,
     otherSpecify: map['otherSpecify'] as String?,
     shouldBeChanged: map['shouldBeChanged'] ?? false,
     changeFlueCap: map['changeFlueCap'] ?? false,

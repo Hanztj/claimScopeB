@@ -313,6 +313,7 @@ class FlashingData {
   String? size;
   String? finish;
   String? grade;
+  String? count;
   String? otherSpecify;
   bool shouldBeChanged;
   bool changeFlueCap;
@@ -327,6 +328,7 @@ class FlashingData {
     this.size,
     this.finish,
     this.grade,
+    this.count,
     this.otherSpecify,
     this.shouldBeChanged = false,
     this.changeFlueCap = false,

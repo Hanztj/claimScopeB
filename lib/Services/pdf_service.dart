@@ -799,8 +799,9 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
       for (final elevation in report.elevations.elevations) {
         final siding = elevation.siding.sidingMain;
         final underlayment = elevation.underlayment;
-        if (!underlayment.hasAnyData) continue;
-        if (!_isUnderlaymentApplicableSiding(siding)) continue;
+        final hasSidingScope = _hasElevationSidingScopeData(elevation.siding);
+        if (!underlayment.hasAnyData && !hasSidingScope) continue;
+        if (!_isUnderlaymentApplicableSiding(siding) && !hasSidingScope) continue;
 
         rows.addAll([
           pw.Text(
@@ -808,7 +809,10 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
             style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
           ),
           _buildDataRow("Siding Type", _textOrNA(siding)),
-          ..._buildElevationUnderlaymentRows(siding, underlayment),
+          ..._buildElevationSidingScopeRows(elevation.siding),
+          if (_isUnderlaymentApplicableSiding(siding) &&
+              underlayment.hasAnyData)
+            ..._buildElevationUnderlaymentRows(siding, underlayment),
           pw.SizedBox(height: 6),
         ]);
       }
@@ -821,6 +825,60 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
         ...rows,
         pw.SizedBox(height: 10),
       ];
+    }
+
+    static List<pw.Widget> _buildElevationSidingScopeRows(dynamic siding) {
+      final rows = <pw.Widget>[];
+      final sidingType = (siding.sidingMain as String?) ?? '';
+
+      if (sidingType == 'Stucco') {
+        final scope = (siding.stuccoScope as String?) ?? '';
+        if (scope.trim().isNotEmpty) {
+          rows.add(_buildDataRow("Siding Scope of Work", scope.trim()));
+
+          if (scope == 'Small repair' && siding.stuccoSmallRepairSf.trim().isNotEmpty) {
+            rows.add(_buildDataRow("Stucco small repair", "${siding.stuccoSmallRepairSf.trim()} SF"));
+          }
+          if (scope == 'Crack repair' && siding.stuccoCrackRepairLf.trim().isNotEmpty) {
+            rows.add(_buildDataRow("Stucco crack repair", "${siding.stuccoCrackRepairLf.trim()} LF"));
+          }
+          if (scope == 'Fog coat application') {
+            rows.add(_buildDataRow("Fog coat entire elevation", siding.stuccoFogCoatEntireElev ? "Yes" : "No"));
+            if (!siding.stuccoFogCoatEntireElev && siding.stuccoFogCoatSf.trim().isNotEmpty) {
+              rows.add(_buildDataRow("Fog coat area", "${siding.stuccoFogCoatSf.trim()} SF"));
+            }
+          }
+          if (scope == 'Redash') {
+            rows.add(_buildDataRow("Redash entire elevation", siding.stuccoRedashEntireElev ? "Yes" : "No"));
+            if (!siding.stuccoRedashEntireElev && siding.stuccoRedashSf.trim().isNotEmpty) {
+              rows.add(_buildDataRow("Redash area", "${siding.stuccoRedashSf.trim()} SF"));
+            }
+            if (siding.stuccoRedashTexture.trim().isNotEmpty) {
+              rows.add(_buildDataRow("Redash texture", siding.stuccoRedashTexture.trim()));
+            }
+          }
+          if (scope == 'Whole replacement' && siding.stuccoWholeReplacementCoats.trim().isNotEmpty) {
+            rows.add(_buildDataRow("How many coats", siding.stuccoWholeReplacementCoats.trim()));
+          }
+        }
+        return rows;
+      }
+
+      if (siding.changeWholeElevation) {
+        rows.add(_buildDataRow("Siding Scope of Work", "Change whole elevation siding"));
+      } else if (siding.howManySf.trim().isNotEmpty) {
+        rows.add(_buildDataRow("Siding Scope of Work", "Partial replacement (${siding.howManySf.trim()} SF)"));
+      }
+
+      return rows;
+    }
+
+    static bool _hasElevationSidingScopeData(dynamic siding) {
+      final sidingType = (siding.sidingMain as String?) ?? '';
+      if (sidingType == 'Stucco') {
+        return siding.stuccoScope.trim().isNotEmpty;
+      }
+      return siding.changeWholeElevation || siding.howManySf.trim().isNotEmpty;
     }
 
     static List<pw.Widget> _buildElevationUnderlaymentRows(
@@ -983,8 +1041,11 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
       }
       if (flashing.grade != null && flashing.grade!.trim().isNotEmpty) {
         parts.add(flashing.grade!);
-     }
-           if (flashing.changeFlueCap) {
+      }
+      if (flashing.count != null && flashing.count!.trim().isNotEmpty) {
+        parts.add('x${flashing.count!.trim()}');
+      }
+      if (flashing.changeFlueCap) {
         parts.add('change flue cap');
       }
       if (flashing.changeChaseCover) {

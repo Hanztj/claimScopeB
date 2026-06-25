@@ -58,7 +58,7 @@ const Map<String, List<FlashingFieldConfig>> residentialFlashingFieldsByType = {
       options: ['Galvanized', 'Color finish'],
     ),
   ],
-  'Hip/ridge cap for metal roofing'
+  'Hip/ridge cap for metal roofing': const [],
   'Steel rake/gable trim': [
     FlashingFieldConfig(
       key: 'finish',
@@ -94,19 +94,19 @@ const Map<String, List<FlashingFieldConfig>> residentialFlashingFieldsByType = {
       options: ['26 gauge', '29 gauge', 'Other'],
     ),
   ],
-  'Closure strips for metal roofing - inside and/or outside'
-  'Chimney flashing': [
-    FlashingFieldConfig(
-      key: 'size',
-      label: 'Size',
-      options: ['Average (32"-36")', 'Small (24"-24")', 'Large (32"-60")'],
-    ),
-    FlashingFieldConfig(
-      key: 'material',
-      label: 'Material',
-      options: ['Metal', 'Copper'],
-    ),
-  ],
+  'Closure strips for metal roofing - inside and/or outside': const [],
+'Chimney flashing': [
+     FlashingFieldConfig(
+       key: 'size',
+       label: 'Size',
+       options: ['Average (32"-36")', 'Small (24"-24")', 'Large (32"-60")'],
+     ),
+     FlashingFieldConfig(
+       key: 'material',
+       label: 'Material',
+       options: ['Metal', 'Copper'],
+     ),
+   ],
   'Roof window step flashing kit': [
     FlashingFieldConfig(
       key: 'size',
