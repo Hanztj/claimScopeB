@@ -175,7 +175,7 @@ class CommercialTileHubForm extends StatelessWidget {
           ),
           if (roof.dripEdgePhoto != null) ...[
             const SizedBox(height: 8),
-            Image.file(roof.dripEdgePhoto!, height: 140, fit: BoxFit.cover),
+            Image.file(roof.dripEdgePhoto!, height: 140, fit: BoxFit.cover, cacheWidth: 420),
           ],
         ],
 
@@ -213,7 +213,7 @@ class CommercialTileHubForm extends StatelessWidget {
           ),
           if (roof.iceAndWaterBarrierPhoto != null) ...[
             const SizedBox(height: 8),
-            Image.file(roof.iceAndWaterBarrierPhoto!, height: 140, fit: BoxFit.cover),
+            Image.file(roof.iceAndWaterBarrierPhoto!, height: 140, fit: BoxFit.cover, cacheWidth: 420),
           ],
         ],
 
@@ -269,7 +269,7 @@ class CommercialTileHubForm extends StatelessWidget {
           ),
           if (roof.valleyMetalPhoto != null) ...[
             const SizedBox(height: 8),
-            Image.file(roof.valleyMetalPhoto!, height: 140, fit: BoxFit.cover),
+            Image.file(roof.valleyMetalPhoto!, height: 140, fit: BoxFit.cover, cacheWidth: 420),
           ],
         ],
 
@@ -503,7 +503,7 @@ DropdownButtonFormField<bool>(
                   if (flashing.photo != null)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Image.file(flashing.photo!, height: 100),
+                      child: Image.file(flashing.photo!, height: 100, cacheWidth: 300),
                     ),
                 ],
               ),
@@ -692,7 +692,7 @@ DropdownButtonFormField<bool>(
                     if (vent.photo != null)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: Image.file(vent.photo!, height: 100),
+                        child: Image.file(vent.photo!, height: 100, cacheWidth: 300),
                       ),
                   ],
                 ),

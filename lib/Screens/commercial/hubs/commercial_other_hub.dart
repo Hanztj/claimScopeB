@@ -191,7 +191,7 @@ class CommercialOtherHubForm extends StatelessWidget {
             ),
             if (roof.starterEavePhoto != null) ...[
               const SizedBox(height: 8),
-              Image.file(roof.starterEavePhoto!, height: 140, fit: BoxFit.cover),
+              Image.file(roof.starterEavePhoto!, height: 140, fit: BoxFit.cover, cacheWidth: 420),
             ],
           ],
 
@@ -228,7 +228,7 @@ class CommercialOtherHubForm extends StatelessWidget {
             ),
             if (roof.starterRakePhoto != null) ...[
               const SizedBox(height: 8),
-              Image.file(roof.starterRakePhoto!, height: 140, fit: BoxFit.cover),
+              Image.file(roof.starterRakePhoto!, height: 140, fit: BoxFit.cover, cacheWidth: 420),
             ],
           ],
         ],
@@ -287,7 +287,7 @@ class CommercialOtherHubForm extends StatelessWidget {
           ),
           if (roof.dripEdgePhoto != null) ...[
             const SizedBox(height: 8),
-            Image.file(roof.dripEdgePhoto!, height: 140, fit: BoxFit.cover),
+            Image.file(roof.dripEdgePhoto!, height: 140, fit: BoxFit.cover, cacheWidth: 420),
           ],
         ],
 
@@ -325,7 +325,7 @@ class CommercialOtherHubForm extends StatelessWidget {
           ),
           if (roof.iceAndWaterBarrierPhoto != null) ...[
             const SizedBox(height: 8),
-            Image.file(roof.iceAndWaterBarrierPhoto!, height: 140, fit: BoxFit.cover),
+           Image.file(roof.iceAndWaterBarrierPhoto!, height: 140, fit: BoxFit.cover, cacheWidth: 420),
           ],
         ],
 
@@ -398,7 +398,7 @@ class CommercialOtherHubForm extends StatelessWidget {
           ),
             if (roof.ridgeVentPhoto != null) ...[
             const SizedBox(height: 8),
-            Image.file(roof.ridgeVentPhoto!, height: 140, fit: BoxFit.cover),
+            Image.file(roof.ridgeVentPhoto!, height: 140, fit: BoxFit.cover, cacheWidth: 420),
           ],
         ],
 
@@ -454,7 +454,7 @@ class CommercialOtherHubForm extends StatelessWidget {
           ),
           if (roof.valleyMetalPhoto != null) ...[
             const SizedBox(height: 8),
-            Image.file(roof.valleyMetalPhoto!, height: 140, fit: BoxFit.cover),
+            Image.file(roof.valleyMetalPhoto!, height: 140, fit: BoxFit.cover, cacheWidth: 420),
           ],
         ],
 
@@ -688,7 +688,7 @@ DropdownButtonFormField<bool>(
                   if (flashing.photo != null)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Image.file(flashing.photo!, height: 100),
+                     child: Image.file(flashing.photo!, height: 100, cacheWidth: 300),
                     ),
                 ],
               ),
@@ -877,7 +877,7 @@ DropdownButtonFormField<bool>(
                     if (vent.photo != null)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: Image.file(vent.photo!, height: 100),
+                        child: Image.file(vent.photo!, height: 100, cacheWidth: 300),
                       ),
                   ],
                 ),

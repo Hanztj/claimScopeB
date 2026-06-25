@@ -260,7 +260,7 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.file(item.photo!, height: 160, width: double.infinity, fit: BoxFit.cover),
+                         child: Image.file(item.photo!, height: 160, width: double.infinity, fit: BoxFit.cover, cacheWidth: 480), 
                         ),
                         const SizedBox(height: 8),
                         TextButton(
@@ -283,15 +283,9 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
                   ),
 
                   if (item.extraPhotos.isNotEmpty)
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: item.extraPhotos
-                          .map((f) => ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.file(f, height: 90),
-                              ))
-                          .toList(),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text('${item.extraPhotos.length} extra HVAC photo(s) stored'),
                     ),
                 ],
               ),
@@ -492,7 +486,7 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.file(item.photo!, height: 160, width: double.infinity, fit: BoxFit.cover),
+                          child: Image.file(item.photo!, height: 160, width: double.infinity, fit: BoxFit.cover, cacheWidth: 480),
                         ),
                         const SizedBox(height: 8),
                         TextButton(
@@ -515,15 +509,9 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
                   ),
 
                   if (item.extraPhotos.isNotEmpty)
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: item.extraPhotos
-                          .map((f) => ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.file(f, height: 90),
-                              ))
-                          .toList(),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text('${item.extraPhotos.length} extra Mechanical photo(s) stored'),
                     ),
                 ],
               ),

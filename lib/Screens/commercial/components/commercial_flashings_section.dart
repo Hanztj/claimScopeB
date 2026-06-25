@@ -271,7 +271,7 @@ class _CommercialFlashingsSectionState extends State<CommercialFlashingsSection>
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.file(flashing.photo!, height: 160, width: double.infinity, fit: BoxFit.cover),
+                          child: Image.file(flashing.photo!, height: 160, width: double.infinity, fit: BoxFit.cover, cacheWidth: 480),
                         ),
                         const SizedBox(height: 8),
                         TextButton(
@@ -294,15 +294,9 @@ class _CommercialFlashingsSectionState extends State<CommercialFlashingsSection>
                   ),
 
                   if (flashing.extraPhotos.isNotEmpty)
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: flashing.extraPhotos
-                          .map((f) => ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.file(f, height: 90),
-                              ))
-                          .toList(),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text('${flashing.extraPhotos.length} extra flashing photo(s) stored'),
                     ),
                 ],
               ),

@@ -239,7 +239,7 @@ class _CommercialVentsSectionState extends State<CommercialVentsSection> {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.file(vent.photo!, height: 160, width: double.infinity, fit: BoxFit.cover),
+                          child: Image.file(vent.photo!, height: 160, width: double.infinity, fit: BoxFit.cover, cacheWidth: 480),
                         ),
                         const SizedBox(height: 8),
                         TextButton(
@@ -262,15 +262,9 @@ class _CommercialVentsSectionState extends State<CommercialVentsSection> {
                   ),
 
                   if (vent.extraPhotos.isNotEmpty)
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: vent.extraPhotos
-                          .map((f) => ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.file(f, height: 90),
-                              ))
-                          .toList(),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text('${vent.extraPhotos.length} extra vent photo(s) stored'),
                     ),
                 ],
               ),

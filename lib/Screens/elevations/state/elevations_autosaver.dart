@@ -66,12 +66,12 @@ class ElevationsAutoSaver {
   void mount() {
     // Aquí adentro va tu lógica para iniciar el temporizador (Timer) 
     // o el mecanismo que detecta los cambios.
-    print('AutoSaver montado e iniciado.');
+    debugPrint('AutoSaver montado e iniciado.');
   }
      void markDirty() {
     // Aquí adentro va la lógica que le dice al Timer: 
     // "Hubo un cambio, ejecuta el guardado en el próximo ciclo".
-    print('Datos marcados como modificados (dirty). Guardando pronto...');
+    debugPrint('Datos marcados como modificados (dirty). Guardando pronto...');
   }
   /// Hidrata [target] con el draft guardado (si existe). No-op si no hay draft
   /// o si el JSON está corrupto.

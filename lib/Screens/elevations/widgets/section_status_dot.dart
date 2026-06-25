@@ -22,7 +22,7 @@ class SectionStatusDot extends StatelessWidget {
   Color _color(BuildContext c) {
     switch (status) {
       case SectionStatus.empty:
-        return Theme.of(c).disabledColor.withOpacity(0.4);
+        return Theme.of(c).disabledColor.withValues(alpha: 0.5);
       case SectionStatus.partial:
         return Colors.amber.shade600;
       case SectionStatus.complete:

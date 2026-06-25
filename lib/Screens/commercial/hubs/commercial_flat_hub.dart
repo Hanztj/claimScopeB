@@ -134,6 +134,7 @@ class CommercialFlatHubForm extends StatelessWidget {
                 roof.coreSamplePhoto!,
                 height: 140,
                 fit: BoxFit.cover,
+                cacheWidth: 420,
               ),
             ),
         ],

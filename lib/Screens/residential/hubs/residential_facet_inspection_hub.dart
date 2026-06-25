@@ -197,6 +197,10 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
 
     if (roofCoverType == null) return const SizedBox.shrink();
 
+          final previewPhotoReportImages = photoReportImages.length > 12
+        ? photoReportImages.sublist(photoReportImages.length - 12)
+        : photoReportImages;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -517,7 +521,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
                   if (data['photo'] != null)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Image.file(data['photo']!, height: 100),
+                      child: Image.file(data['photo']!, height: 100, cacheWidth: 300),
                     ),
                 ],
               ),
@@ -837,14 +841,16 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Images added to the report::',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                Text(
+                  photoReportImages.length > previewPhotoReportImages.length
+                      ? 'Images added to the report: ${photoReportImages.length} total. Showing latest ${previewPhotoReportImages.length} thumbnails.'
+                      : 'Images added to the report:',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 Wrap(
                   spacing: 8.0,
                   runSpacing: 4.0,
-                  children: photoReportImages.map((imageFile) {
+                  children: previewPhotoReportImages.map((imageFile) {
                     return Stack(
                       children: [
                         Image.file(

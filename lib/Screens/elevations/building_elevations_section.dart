@@ -1138,9 +1138,9 @@ if (_showsSidingHeight()) ...[
                  child: Image.file(t.photo!, height: 100, cacheWidth: 300),
               ),
             if (t.extraPhoto != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Image.file(t.extraPhoto!, height: 100, cacheWidth: 300),
+             const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.0),
+                child: Text('Extra trim photo stored'),
               ),
           ],
         ),

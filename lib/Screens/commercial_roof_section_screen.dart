@@ -1008,7 +1008,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                             final messenger = ScaffoldMessenger.of(context);
                             final images = await _picker.pickMultiImage(
                               maxWidth: 1024,
-                              imageQuality: 80,
+                              imageQuality: 75,
                             );
 
                             if (images.isEmpty) return;

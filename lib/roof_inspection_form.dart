@@ -857,6 +857,41 @@ String? noAction;
   };
  }
 
+ List<TextEditingController> _detachCurrentFacetDynamicControllers() {
+  final controllers = <TextEditingController>[
+    ..._currentVentCountControllers,
+    ..._currentOtherVentSpecifyControllers,
+    ..._currentFlashingOtherControllers,
+    ..._currentOtherElementCountControllers,
+    ..._currentOtherElementSpecifyControllers,
+  ];
+
+  _currentVentCountControllers.clear();
+  _currentOtherVentSpecifyControllers.clear();
+  _currentFlashingOtherControllers.clear();
+  _currentOtherElementCountControllers.clear();
+  _currentOtherElementSpecifyControllers.clear();
+
+  return controllers;
+ }
+
+ void _disposeControllers(List<TextEditingController> controllers) {
+  for (final controller in controllers) {
+    controller.dispose();
+  }
+ }
+
+ void _disposeCurrentFacetDynamicControllers() {
+  _disposeControllers(_detachCurrentFacetDynamicControllers());
+ }
+
+ void _disposeControllersAfterFrame(List<TextEditingController> controllers) {
+  if (controllers.isEmpty) return;
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    _disposeControllers(controllers);
+  });
+ }
+
  Map<String, dynamic> _createNewOtherElementData() {
   final countController = TextEditingController(text:'1'); // Default 1 element if user adds an element
   final otherSpecifyController = TextEditingController();
@@ -1202,6 +1237,7 @@ widget.report.rollGravelBallastPresent = gravelBallastPresent;
   }
   // --- LOGICA DE FACETAS (Mantenida para funcionamiento) ---
   void _initializeCurrentFacet() {
+    final controllersToDispose = _detachCurrentFacetDynamicControllers();
     if (_facets.isEmpty) _facets.add(_createNewFacetData());
     final currentFacetData = _facets[_currentFacetIndex];
     _currentFacetNameController.text = currentFacetData['facetName'] ?? '';
@@ -1220,8 +1256,6 @@ widget.report.rollGravelBallastPresent = gravelBallastPresent;
     _currentFacetCommentController.text = currentFacetData['comment'] ?? '';
                             // Vents: limpiar y recargar SIEMPRE
   _currentFacetVentsData.clear();
-  _currentVentCountControllers.clear();
-  _currentOtherVentSpecifyControllers.clear();
 
   final List<dynamic> loadedVents = currentFacetData['vents'] ?? [];
   for (final v in loadedVents) {
@@ -1239,7 +1273,6 @@ widget.report.rollGravelBallastPresent = gravelBallastPresent;
   }               
              // Flashings
     _currentFacetFlashingsData.clear();
-    _currentFlashingOtherControllers.clear();
     final List<dynamic> loadedFlashings = currentFacetData['flashings'] ?? [];
     for (var f in loadedFlashings) {
       final map = Map<String, dynamic>.from(f);
@@ -1251,8 +1284,6 @@ widget.report.rollGravelBallastPresent = gravelBallastPresent;
     }
                 // OTHER ELEMENTS
   _currentFacetOtherElementsData.clear();
-  _currentOtherElementCountControllers.clear();
-  _currentOtherElementSpecifyControllers.clear();
   final List<dynamic> loadedOther = currentFacetData['otherElements'] ?? [];
   for (final e in loadedOther) {
     final map = Map<String, dynamic>.from(e);
@@ -1268,6 +1299,7 @@ widget.report.rollGravelBallastPresent = gravelBallastPresent;
   }
   _currentFacetCommentController.text =
       currentFacetData['comment'] ?? '';
+  _disposeControllersAfterFrame(controllersToDispose);
          }
          void _saveCurrentFacetData() {
         // Antes de guardar, sincronizar textos de 'Other' flashings
@@ -1304,7 +1336,13 @@ widget.report.rollGravelBallastPresent = gravelBallastPresent;
     'valleyMetalType': _currentValleyMetalType,
     'valleyMetalPhoto': _currentValleyMetalPhoto,
              'vents': _currentFacetVentsData
-      .map((m) => Map<String, dynamic>.from(m))
+      .map((m) {
+        final copy = Map<String, dynamic>.from(m);
+        // No queremos guardar controllers dentro del map persistente.
+        copy.remove('countController');
+        copy.remove('otherSpecifyController');
+        return copy;
+      })
       .toList(),
        'flashings': _currentFacetFlashingsData
       .map((m) {
@@ -1425,20 +1463,7 @@ widget.report.rollGravelBallastPresent = gravelBallastPresent;
     _partialReplacementSqftController.dispose();
     _sheathingPartialSqftController.dispose();
 
-      for (var controller in _currentOtherElementCountControllers) {
-    controller.dispose();
-  }
-  for (var controller in _currentOtherElementSpecifyControllers) {
-    controller.dispose();
-  }
-
-    // Dispose controllers for dynamically added vents
-    for (var controller in _currentVentCountControllers) {
-      controller.dispose();
-    }
-    for (var controller in _currentOtherVentSpecifyControllers) {
-      controller.dispose();
-    }
+    _disposeCurrentFacetDynamicControllers();
     super.dispose();
   }
 

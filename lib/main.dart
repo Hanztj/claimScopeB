@@ -14,6 +14,12 @@ import 'package:claimscope_clean/inspection_setup_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+    // Keep decoded image thumbnails from growing without bounds on long inspections.
+  final imageCache = PaintingBinding.instance.imageCache;
+  imageCache.maximumSize = 80;
+  imageCache.maximumSizeBytes = 40 * 1024 * 1024;
+  
   await Firebase.initializeApp();
   debugPrint("Firebase inicializado correctamente");
   runApp(const MyApp());
