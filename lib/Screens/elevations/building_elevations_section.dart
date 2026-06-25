@@ -220,7 +220,12 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
   ///   `Elev=<side>|Cat=Siding|Label=Photo <N>`
   /// Sin thumbnail, sin estado local, sin persistencia adicional.
   Future<void> _addSidingPhoto() async {
-    final picked = await _picker.pickImage(source: ImageSource.camera);
+   final picked = await _picker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: 1024,
+      imageQuality: 75,
+      preferredCameraDevice: CameraDevice.rear,
+    );
     if (picked == null) return;
     final n = _nextElevationPhotoIndex('Siding');
     // Paso 4.5b: label parseable para PDF Photos y ZIP etiquetado.
@@ -1130,12 +1135,12 @@ if (_showsSidingHeight()) ...[
             if (t.photo != null)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Image.file(t.photo!, height: 100),
+                 child: Image.file(t.photo!, height: 100, cacheWidth: 300),
               ),
             if (t.extraPhoto != null)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Image.file(t.extraPhoto!, height: 100),
+                child: Image.file(t.extraPhoto!, height: 100, cacheWidth: 300),
               ),
           ],
         ),
@@ -1147,7 +1152,7 @@ if (_showsSidingHeight()) ...[
     final picked = await _picker.pickImage(
       source: ImageSource.camera,
       maxWidth: 1024,
-      imageQuality: 80,
+      imageQuality: 75,
       preferredCameraDevice: CameraDevice.rear,
     );
     if (picked == null) return;

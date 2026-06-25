@@ -577,7 +577,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
     final picked = await _picker.pickImage(
       source: ImageSource.camera,
       maxWidth: 1024,
-      imageQuality: 80,
+      imageQuality: 75,
       preferredCameraDevice: CameraDevice.rear,
     );
 
@@ -710,7 +710,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
           ),
           if (roof.overviewPhoto != null) ...[
             const SizedBox(height: 8),
-            Image.file(roof.overviewPhoto!, height: 140, fit: BoxFit.cover),
+            Image.file(roof.overviewPhoto!, height: 140, cacheWidth: 420, fit: BoxFit.cover),
           ],
 
           const SizedBox(height: 12),
@@ -961,7 +961,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                 final messenger = ScaffoldMessenger.of(context);
                 final images = await _picker.pickMultiImage(
                   maxWidth: 1024,
-                  imageQuality: 80,
+                  imageQuality: 75,
                 );
 
                 if (images.isEmpty) return;

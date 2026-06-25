@@ -906,7 +906,7 @@ String? noAction;
  Future<void> _pickImagesFromGallery() async {
   final pickedFiles = await picker.pickMultiImage(
     maxWidth: 1024,
-    imageQuality: 80,
+    imageQuality: 75,
   );
   setState(() {
     for (var pickedFile in pickedFiles) {
@@ -933,7 +933,7 @@ String? noAction;
   final pickedFile = await picker.pickImage(
     source: ImageSource.camera,
     maxWidth: 1024,
-    imageQuality: 80,
+    imageQuality: 75,
     preferredCameraDevice: CameraDevice.rear,
   );
 
@@ -1929,7 +1929,7 @@ rollExposure: rollExposure,
             if (_shedPhoto != null)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Image.file(_shedPhoto!, height: 100),
+                child: Image.file(_shedPhoto!, height: 100, cacheWidth: 300),
               ),
           ],
 
@@ -1960,7 +1960,7 @@ rollExposure: rollExposure,
    if (_largeStructurePhoto != null)
      Padding(
        padding: const EdgeInsets.symmetric(vertical: 8.0),
-       child: Image.file(_largeStructurePhoto!, height: 100),
+       child: Image.file(_largeStructurePhoto!, height: 100, cacheWidth: 300),
      ),
  ],
               

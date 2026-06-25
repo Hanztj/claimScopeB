@@ -84,7 +84,12 @@ class _GlobalElevationsHubState extends State<GlobalElevationsHub> {
   ///   `"<Category> - Photo <N>"`
   /// Sin thumbnail, sin estado local. El autosaver no se involucra.
   Future<void> _addCategoryPhoto(String category) async {
-    final picked = await _picker.pickImage(source: ImageSource.camera);
+       final picked = await _picker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: 1024,
+      imageQuality: 75,
+      preferredCameraDevice: CameraDevice.rear,
+    );
     if (picked == null) return;
     final n = _nextPhotoIndex(category);
     // Paso 4.5b: label parseable para PDF Photos y ZIP etiquetado.

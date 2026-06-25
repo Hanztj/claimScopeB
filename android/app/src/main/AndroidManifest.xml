@@ -16,6 +16,7 @@
         android:label="claimscope_clean"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        android:largeHeap="true"
 
         <!-- Metadata de ARCore, debe estar dentro de la etiqueta <application> -->
 

@@ -270,7 +270,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
           if (currentFacetOverviewPhoto != null)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: Image.file(currentFacetOverviewPhoto!, height: 100),
+              child: Image.file(currentFacetOverviewPhoto!, height: 100, cacheWidth: 300),
             ),
         ],
         if (!isSingleRoofSection &&
@@ -310,7 +310,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
               if (currentRidgeVentPhoto != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Image.file(currentRidgeVentPhoto!, height: 100),
+                  child: Image.file(currentRidgeVentPhoto!, height: 100, cacheWidth: 300),
                 ),
             ],
           ),
@@ -349,7 +349,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
               if (currentAtrPhoto != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Image.file(currentAtrPhoto!, height: 100),
+                  child: Image.file(currentAtrPhoto!, height: 100, cacheWidth: 300),
                 ),
             ],
           ),
@@ -387,7 +387,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
               if (currentValleyMetalPhoto != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Image.file(currentValleyMetalPhoto!, height: 100),
+                  child: Image.file(currentValleyMetalPhoto!, height: 100, cacheWidth: 300),
                 ),
             ],
           ),
@@ -614,7 +614,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
                   if (ventData['photo'] != null)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Image.file(ventData['photo']!, height: 100),
+                     child: Image.file(ventData['photo']!, height: 100, cacheWidth: 300),
                     ),
                 ],
               ),
@@ -739,7 +739,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
                   if (data['photo'] != null)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Image.file(data['photo'] as File, height: 100),
+                     child: Image.file(data['photo'] as File, height: 100, cacheWidth: 300),
                     ),
                 ],
               ),
@@ -825,6 +825,8 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
                           height: 80,
                           width: 80,
                           fit: BoxFit.cover,
+                          cacheWidth: 240,
+                          cacheHeight: 240,
                         ),
                         Positioned(
                           right: 0,

@@ -1,10 +1,21 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:claimscope_clean/inspection_report_model.dart';
 import 'package:claimscope_clean/utils/photo_labels.dart'; 
+
+class _PdfPhotoItemBytes {
+  final Uint8List bytes;
+  final String label;
+
+  const _PdfPhotoItemBytes({
+    required this.bytes,
+    required this.label,
+  });
+}
 
 class PdfService {
 
@@ -195,14 +206,19 @@ for (var vent in roof.tpoVents) {
 }
 
 for (var i = 0; i < commercialPhotos.length; i += 2) {
+  final firstPhoto = await _loadPdfPhotoItemBytes(commercialPhotos[i]);
+  final secondPhoto = i + 1 < commercialPhotos.length
+      ? await _loadPdfPhotoItemBytes(commercialPhotos[i + 1])
+      : null;
+
   pdfPhotos.addPage(
     pw.Page(
       build: (context) => pw.Column(
         children: [
-          _buildPhotoFrame(commercialPhotos[i]),
-          if (i + 1 < commercialPhotos.length) ...[
+          _buildPhotoFrame(firstPhoto),
+          if (secondPhoto != null) ...[
             pw.SizedBox(height: 20),
-            _buildPhotoFrame(commercialPhotos[i + 1]),
+            _buildPhotoFrame(secondPhoto),
           ],
         ],
       ),
@@ -262,15 +278,20 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
                       
              // --- PDF DE FOTOS: 2 POR PÁGINA ---
      for (var i = 0; i < report.photoReportItems.length; i += 2) {
+      final firstPhoto = await _loadPdfPhotoItemBytes(report.photoReportItems[i]);
+      final secondPhoto = i + 1 < report.photoReportItems.length
+          ? await _loadPdfPhotoItemBytes(report.photoReportItems[i + 1])
+          : null;
+
       pdfPhotos.addPage(
         pw.Page(
           theme: pdfTheme,
           build: (context) => pw.Column(
             children: [
-              _buildPhotoFrame(report.photoReportItems[i]),
-              if (i + 1 < report.photoReportItems.length) ...[ 
+              _buildPhotoFrame(firstPhoto),
+              if (secondPhoto != null) ...[ 
                   pw.SizedBox(height: 20),
-                _buildPhotoFrame(report.photoReportItems[i + 1]),
+                _buildPhotoFrame(secondPhoto),
               ],
             ],
           ),
@@ -1015,7 +1036,14 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
       );
      }
 
-    static pw.Widget _buildPhotoFrame(PhotoItem item) {
+    static Future<_PdfPhotoItemBytes> _loadPdfPhotoItemBytes(PhotoItem item) async {
+      return _PdfPhotoItemBytes(
+        bytes: await item.file.readAsBytes(),
+        label: item.label,
+      );
+    }
+
+    static pw.Widget _buildPhotoFrame(_PdfPhotoItemBytes item) {
     // Paso 4.5b: mostrar labels estructurados de Elevations como texto legible.
     // Commercial/residential existentes conservan su fallback original.
     final caption = formatElevationsPhotoCaption(item.label);
@@ -1029,7 +1057,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
           height: 300, // Altura optimizada para 2 por página A4
           width: double.infinity,
           decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey)),
-          child: pw.Image(pw.MemoryImage(item.file.readAsBytesSync()), fit: pw.BoxFit.cover),
+          child: pw.Image(pw.MemoryImage(item.bytes), fit: pw.BoxFit.cover),
         ),
       ],
       );

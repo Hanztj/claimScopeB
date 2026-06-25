@@ -124,7 +124,7 @@ class ResidentialRoofAccessoriesHub extends StatelessWidget {
                     if (starterEavePhoto != null)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: Image.file(starterEavePhoto!, height: 100),
+                        child: Image.file(starterEavePhoto!, height: 100, cacheWidth: 300),
                       ),
                   ],
                 ),
@@ -151,7 +151,7 @@ class ResidentialRoofAccessoriesHub extends StatelessWidget {
                     if (starterRakePhoto != null)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: Image.file(starterRakePhoto!, height: 100),
+                        child: Image.file(starterRakePhoto!, height: 100, cacheWidth: 300),
                       ),
                   ],
                 ),
@@ -194,7 +194,7 @@ class ResidentialRoofAccessoriesHub extends StatelessWidget {
               if (dripEdgePhoto != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Image.file(dripEdgePhoto!, height: 100),
+                  child: Image.file(dripEdgePhoto!, height: 100, cacheWidth: 300),
                 ),
             ],
           ),
@@ -225,7 +225,7 @@ class ResidentialRoofAccessoriesHub extends StatelessWidget {
               if (iceAndWaterBarrierPhoto != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Image.file(iceAndWaterBarrierPhoto!, height: 100),
+                  child: Image.file(iceAndWaterBarrierPhoto!, height: 100, cacheWidth: 300),
                 ),
             ],
           ),
