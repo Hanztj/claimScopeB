@@ -421,40 +421,43 @@ class UnderlaymentInsulationData {
 }
 
 // ============================================================================
-// Sección 5 — Substrate (sin cambios — paso 5)
+// Sección 5 — Substrate
 // ============================================================================
 class SubstrateData {
-  SubstrateData(); 
+  SubstrateData();
 
-  bool exposed = false;
-  String sheathingType = '';      // OSB, Plywood, Gypsum, Other
-  String sheathingTypeOther = '';
-  String sheathingCondition = ''; 
-  bool studsExposed = false;// Dry/intact, Wet, Damaged, Rotted
-  String studsCondition = '';     // Intact, Damaged, Rotted
-  String notes = '';
-  List<File> photos = [];
+  bool substrateRepairReplacementNeeded = false;
+  String substrateMaterialType = '';
+  String substrateThickness = '';
+  bool entireElevation = false;
+  String howManySf = '';
+  String additionalNotes = '';
+
+  bool get hasAnyData =>
+      substrateRepairReplacementNeeded ||
+      substrateMaterialType.isNotEmpty ||
+      substrateThickness.isNotEmpty ||
+      entireElevation ||
+      howManySf.trim().isNotEmpty ||
+      additionalNotes.trim().isNotEmpty;
 
   Map<String, dynamic> toJson() => {
-        'exposed': exposed,
-        'sheathingType': sheathingType,
-        'sheathingTypeOther': sheathingTypeOther,
-        'sheathingCondition': sheathingCondition,
-        'studsExposed': studsExposed,
-        'studsCondition': studsCondition,
-        'notes': notes,
-        'photos': _filesToPaths(photos),
+        'substrateRepairReplacementNeeded': substrateRepairReplacementNeeded,
+        'substrateMaterialType': substrateMaterialType,
+        'substrateThickness': substrateThickness,
+        'entireElevation': entireElevation,
+        'howManySf': howManySf,
+        'additionalNotes': additionalNotes,
       };
 
   factory SubstrateData.fromJson(Map<String, dynamic> j) => SubstrateData()
-    ..exposed = j['exposed'] as bool? ?? false
-    ..sheathingType = j['sheathingType'] as String? ?? ''
-    ..sheathingTypeOther = j['sheathingTypeOther'] as String? ?? ''
-    ..sheathingCondition = j['sheathingCondition'] as String? ?? ''
-    ..studsExposed = j['studsExposed'] as bool? ?? false
-    ..studsCondition = j['studsCondition'] as String? ?? ''
-    ..notes = j['notes'] as String? ?? ''
-    ..photos = _pathsToFiles(j['photos']);
+    ..substrateRepairReplacementNeeded =
+        j['substrateRepairReplacementNeeded'] as bool? ?? false
+    ..substrateMaterialType = j['substrateMaterialType'] as String? ?? ''
+    ..substrateThickness = j['substrateThickness'] as String? ?? ''
+    ..entireElevation = j['entireElevation'] as bool? ?? false
+    ..howManySf = j['howManySf'] as String? ?? ''
+    ..additionalNotes = j['additionalNotes'] as String? ?? '';
 }
 
 // ============================================================================
@@ -688,7 +691,7 @@ class BuildingElevation {
         accessories.isNotEmpty ||
       //  siding.sidingType.isNotEmpty ||
         underlayment.hasAnyData ||
-        substrate.exposed ||
+        substrate.hasAnyData ||
         eifs.present;
   }
 

@@ -799,9 +799,16 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
       for (final elevation in report.elevations.elevations) {
         final siding = elevation.siding.sidingMain;
         final underlayment = elevation.underlayment;
+        final substrate = elevation.substrate;
         final hasSidingScope = _hasElevationSidingScopeData(elevation.siding);
-        if (!underlayment.hasAnyData && !hasSidingScope) continue;
-        if (!_isUnderlaymentApplicableSiding(siding) && !hasSidingScope) continue;
+        if (!underlayment.hasAnyData && !hasSidingScope && !substrate.hasAnyData) {
+          continue;
+        }
+        if (!_isUnderlaymentApplicableSiding(siding) &&
+            !hasSidingScope &&
+            !substrate.hasAnyData) {
+          continue;
+        }
 
         rows.addAll([
           pw.Text(
@@ -813,6 +820,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
           if (_isUnderlaymentApplicableSiding(siding) &&
               underlayment.hasAnyData)
             ..._buildElevationUnderlaymentRows(siding, underlayment),
+          if (substrate.hasAnyData) ..._buildElevationSubstrateRows(substrate),
           pw.SizedBox(height: 6),
         ]);
       }
@@ -931,6 +939,43 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
         rows.add(_buildDataRow(
           "Additional Notes",
           underlayment.additionalNotes.trim(),
+        ));
+      }
+
+      return rows;
+    }
+
+    static List<pw.Widget> _buildElevationSubstrateRows(dynamic substrate) {
+      final rows = <pw.Widget>[];
+
+      rows.add(_buildDataRow(
+        "Substrate Repair / Replacement Needed",
+        substrate.substrateRepairReplacementNeeded ? "Yes" : "No",
+      ));
+
+      if (substrate.substrateRepairReplacementNeeded) {
+        rows.add(_buildDataRow(
+          "Substrate Material Type",
+          _textOrNA(substrate.substrateMaterialType),
+        ));
+        rows.add(_buildDataRow(
+          "Substrate Thickness",
+          _textOrNA(substrate.substrateThickness),
+        ));
+        rows.add(_buildDataRow(
+          "Replace Quantity",
+          substrate.entireElevation
+              ? "Entire elevation"
+              : (substrate.howManySf.trim().isNotEmpty
+                  ? "${substrate.howManySf.trim()} SF"
+                  : "N/A"),
+        ));
+      }
+
+      if (substrate.additionalNotes.trim().isNotEmpty) {
+        rows.add(_buildDataRow(
+          "Additional Notes",
+          substrate.additionalNotes.trim(),
         ));
       }
 

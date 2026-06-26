@@ -43,6 +43,8 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
   late final TextEditingController _stuccoWholeReplacementCoats;
   late final TextEditingController _sidingNotes;
   late final TextEditingController _underlaymentNotes;
+  late final TextEditingController _substrateHowManySf;
+  late final TextEditingController _substrateNotes;
 
   // ─── Controllers por Trim (gestionados por id de instancia) ───────────
   final Map<TrimEntry, _TrimControllers> _trimCtl = {};
@@ -51,6 +53,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
   
   SidingDamagesData get _s => widget.elevation.siding;
   UnderlaymentInsulationData get _u => widget.elevation.underlayment;
+  SubstrateData get _sub => widget.elevation.substrate;
   List<TrimEntry> get _trims => widget.elevation.trims;
 
   @override
@@ -68,6 +71,8 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     _sidingNotes = TextEditingController(text: _s.additionalNotes);
     _underlaymentNotes =
         TextEditingController(text: _u.additionalNotes);
+    _substrateHowManySf = TextEditingController(text: _sub.howManySf);
+    _substrateNotes = TextEditingController(text: _sub.additionalNotes);
     _syncTrimControllers();
   }
 
@@ -163,6 +168,8 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     // los controllers de Trim para los TrimEntry de la nueva elevación.
     if (oldWidget.elevation != widget.elevation) {
       _underlaymentNotes.text = _u.additionalNotes;
+      _substrateHowManySf.text = _sub.howManySf;
+      _substrateNotes.text = _sub.additionalNotes;
       _syncTrimControllers();
     }
   }
@@ -192,6 +199,8 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
       _stuccoWholeReplacementCoats,
       _sidingNotes,
       _underlaymentNotes,
+      _substrateHowManySf,
+      _substrateNotes,
     ]) {
       c.dispose();
     }
@@ -266,9 +275,10 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
         const SizedBox(height: 8),
         _buildUnderlaymentInsulationTile(),
         const SizedBox(height: 8),
-        // Placeholders compilables para próximas secciones (pasos 5+)
+        _buildSubstrateTile(),
+        const SizedBox(height: 8),
+        // Placeholders compilables para próximas secciones (pasos 6+)
         for (final s in const [
-          'Substrate',
           'EIFS',
           'Windows',
           'Doors',
@@ -441,6 +451,129 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     return siding == 'Brick Veneer' ||
         siding == 'Stone Veneer' ||
         siding == 'Tone Veneer';
+  }
+
+  // =====================================================================
+  // SECCIÓN 5 — SUBSTRATE
+  // =====================================================================
+  Widget _buildSubstrateTile() {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: ExpansionTile(
+        controlAffinity: ListTileControlAffinity.trailing,
+        leading: SectionStatusDot(status: _substrateStatus()),
+        title: _sectionTitleWithClear(
+          'Substrate',
+          () => _confirmClear(
+            title: 'Substrate',
+            onClear: _clearSubstrate,
+          ),
+        ),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+        children: _buildSubstrateFields(),
+      ),
+    );
+  }
+
+  List<Widget> _buildSubstrateFields() {
+    return [
+      _checkbox(
+        'Substrate Repair / Replacement Needed?',
+        _sub.substrateRepairReplacementNeeded,
+        (v) {
+          setState(() {
+            _sub.substrateRepairReplacementNeeded = v;
+            if (!v) {
+              _sub.substrateMaterialType = '';
+              _sub.substrateThickness = '';
+              _sub.entireElevation = false;
+              _sub.howManySf = '';
+              _substrateHowManySf.clear();
+            }
+            _mark();
+          });
+        },
+      ),
+      if (_sub.substrateRepairReplacementNeeded) ...[
+        const SizedBox(height: 8),
+        _dropdown(
+          label: 'Substrate Material Type',
+          value: _sub.substrateMaterialType,
+          options: const ['OSB Sheathing', 'Plywood Sheathing'],
+          onChanged: (v) => setState(() {
+            _sub.substrateMaterialType = v ?? '';
+            _mark();
+          }),
+        ),
+        const SizedBox(height: 8),
+        _dropdown(
+          label: 'Substrate Thickness',
+          value: _sub.substrateThickness,
+          options: const ['1/2"', '5/8"'],
+          onChanged: (v) => setState(() {
+            _sub.substrateThickness = v ?? '';
+            _mark();
+          }),
+        ),
+        const SizedBox(height: 12),
+        const Text(
+          'Replace Quantity:',
+          style: TextStyle(fontWeight: FontWeight.w500),
+        ),
+        _checkbox('Entire elevation', _sub.entireElevation, (v) {
+          setState(() {
+            _sub.entireElevation = v;
+            if (v) {
+              _sub.howManySf = '';
+              _substrateHowManySf.clear();
+            }
+            _mark();
+          });
+        }),
+        if (!_sub.entireElevation)
+          _qtyField(
+            controller: _substrateHowManySf,
+            hint: 'How many SF',
+            unit: 'SF',
+            hintText:
+                'Enter the estimated Area in SF or number of 4x8 sheets to replace',
+            onChanged: (v) {
+              _sub.howManySf = v;
+              _mark();
+            },
+          ),
+      ],
+      const SizedBox(height: 8),
+      _notesField(_substrateNotes, (v) {
+        _sub.additionalNotes = v;
+        _mark();
+      }),
+    ];
+  }
+
+  void _clearSubstrate() {
+    _sub.substrateRepairReplacementNeeded = false;
+    _sub.substrateMaterialType = '';
+    _sub.substrateThickness = '';
+    _sub.entireElevation = false;
+    _sub.howManySf = '';
+    _sub.additionalNotes = '';
+    _substrateHowManySf.clear();
+    _substrateNotes.clear();
+    _mark();
+  }
+
+  SectionStatus _substrateStatus() {
+    if (!_sub.hasAnyData) return SectionStatus.empty;
+    if (!_sub.substrateRepairReplacementNeeded) {
+      return SectionStatus.complete;
+    }
+    final quantityOk = _sub.entireElevation || _sub.howManySf.trim().isNotEmpty;
+    return _sub.substrateMaterialType.isNotEmpty &&
+            _sub.substrateThickness.isNotEmpty &&
+            quantityOk
+        ? SectionStatus.complete
+        : SectionStatus.partial;
   }
 
   // =====================================================================
