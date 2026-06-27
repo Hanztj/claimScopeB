@@ -45,6 +45,8 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
   late final TextEditingController _underlaymentNotes;
   late final TextEditingController _substrateHowManySf;
   late final TextEditingController _substrateNotes;
+  late final TextEditingController _eifsPartialRepairSf;
+  late final TextEditingController _eifsNotes;
 
   // ─── Controllers por Trim (gestionados por id de instancia) ───────────
   final Map<TrimEntry, _TrimControllers> _trimCtl = {};
@@ -54,6 +56,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
   SidingDamagesData get _s => widget.elevation.siding;
   UnderlaymentInsulationData get _u => widget.elevation.underlayment;
   SubstrateData get _sub => widget.elevation.substrate;
+  EifsData get _eifs => widget.elevation.eifs;
   List<TrimEntry> get _trims => widget.elevation.trims;
 
   @override
@@ -73,6 +76,8 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
         TextEditingController(text: _u.additionalNotes);
     _substrateHowManySf = TextEditingController(text: _sub.howManySf);
     _substrateNotes = TextEditingController(text: _sub.additionalNotes);
+    _eifsPartialRepairSf = TextEditingController(text: _eifs.partialRepairSf);
+    _eifsNotes = TextEditingController(text: _eifs.additionalNotes);
     _syncTrimControllers();
   }
 
@@ -170,6 +175,8 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
       _underlaymentNotes.text = _u.additionalNotes;
       _substrateHowManySf.text = _sub.howManySf;
       _substrateNotes.text = _sub.additionalNotes;
+      _eifsPartialRepairSf.text = _eifs.partialRepairSf;
+      _eifsNotes.text = _eifs.additionalNotes;
       _syncTrimControllers();
     }
   }
@@ -201,6 +208,8 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
       _underlaymentNotes,
       _substrateHowManySf,
       _substrateNotes,
+      _eifsPartialRepairSf,
+      _eifsNotes,
     ]) {
       c.dispose();
     }
@@ -277,9 +286,10 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
         const SizedBox(height: 8),
         _buildSubstrateTile(),
         const SizedBox(height: 8),
+        _buildEifsTile(),
+        const SizedBox(height: 8),
         // Placeholders compilables para próximas secciones (pasos 6+)
         for (final s in const [
-          'EIFS',
           'Windows',
           'Doors',
           'Accessories',
@@ -574,6 +584,240 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
             quantityOk
         ? SectionStatus.complete
         : SectionStatus.partial;
+  }
+
+  // =====================================================================
+  // EIFS — EXTERNAL INSULATION FINISHING SYSTEM
+  // =====================================================================
+  Widget _buildEifsTile() {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: ExpansionTile(
+        controlAffinity: ListTileControlAffinity.trailing,
+        leading: SectionStatusDot(status: _eifsStatus()),
+        title: _sectionTitleWithClear(
+          'EIFS / External Insulation Finishing System',
+          () => _confirmClear(
+            title: 'EIFS / External Insulation Finishing System',
+            onClear: _clearEifs,
+          ),
+        ),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+        children: _buildEifsFields(),
+      ),
+    );
+  }
+
+  List<Widget> _buildEifsFields() {
+    return [
+      _checkbox(
+        'EIFS / External Insulation Finishing System',
+        _eifs.present,
+        (v) {
+          setState(() {
+            _eifs.present = v;
+            if (!v) {
+              _clearEifsData(keepPresent: false);
+            }
+            _mark();
+          });
+        },
+      ),
+      if (_eifs.present) ...[
+        const SizedBox(height: 8),
+        _checkbox('Whole elevation', _eifs.wholeReplacement, (v) {
+          setState(() {
+            _eifs.wholeReplacement = v;
+            if (v) {
+              _eifs.partialRepair = false;
+              _eifs.partialRepairSf = '';
+              _eifsPartialRepairSf.clear();
+            }
+            _mark();
+          });
+        }),
+        _checkbox('Partial Repair', _eifs.partialRepair, (v) {
+          setState(() {
+            _eifs.partialRepair = v;
+            if (v) {
+              _eifs.wholeReplacement = false;
+            } else {
+              _eifs.partialRepairSf = '';
+              _eifsPartialRepairSf.clear();
+            }
+            _mark();
+          });
+        }),
+        if (_eifs.partialRepair) ...[
+          const SizedBox(height: 4),
+          _qtyField(
+            controller: _eifsPartialRepairSf,
+            hint: 'How many SF',
+            unit: 'SF',
+            onChanged: (v) {
+              _eifs.partialRepairSf = v;
+              _mark();
+            },
+          ),
+        ],
+        const SizedBox(height: 8),
+        _dropdown(
+          label: 'Substrate',
+          value: _eifs.substrate,
+          options: const ['OSB', 'Plywood', 'CMU'],
+          onChanged: (v) => setState(() {
+            _eifs.substrate = v ?? '';
+            if (!_eifsSubstrateCanRequireReplacement(_eifs.substrate)) {
+              _eifs.substrateRequiresReplacement = null;
+            }
+            _mark();
+          }),
+        ),
+        if (_eifsSubstrateCanRequireReplacement(_eifs.substrate)) ...[
+          const SizedBox(height: 8),
+          _dropdown(
+            label: 'Requires to be replaced?',
+            value: _eifs.substrateRequiresReplacement == null
+                ? ''
+                : (_eifs.substrateRequiresReplacement! ? 'Yes' : 'No'),
+            options: const ['Yes', 'No'],
+            onChanged: (v) => setState(() {
+              _eifs.substrateRequiresReplacement = v == 'Yes';
+              _mark();
+            }),
+          ),
+        ],
+        const SizedBox(height: 8),
+        _dropdown(
+          label: 'Final Texture Finish',
+          value: _eifs.finalTextureFinish,
+          options: const ['Smooth/Flat', 'Sand float', 'Fine Sand', 'Medium/Coarse'],
+          onChanged: (v) => setState(() {
+            _eifs.finalTextureFinish = v ?? '';
+            _mark();
+          }),
+        ),
+        const SizedBox(height: 8),
+        _dropdown(
+          label: 'Finish',
+          value: _eifs.finish,
+          options: const ['Painted', 'natural gray'],
+          onChanged: (v) => setState(() {
+            _eifs.finish = v ?? '';
+            _mark();
+          }),
+        ),
+        const SizedBox(height: 8),
+        _notesField(_eifsNotes, (v) {
+          _eifs.additionalNotes = v;
+          _mark();
+        }),
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: ElevatedButton.icon(
+            onPressed: () => _pickEifsPhoto(extra: false),
+            icon: const Icon(Icons.add_a_photo_outlined),
+            label: const Text('Take Photo'),
+          ),
+        ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            onPressed: () => _pickEifsPhoto(extra: true),
+            child: const Text('Add extra photo'),
+          ),
+        ),
+        if (_eifs.photo != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Image.file(_eifs.photo!, height: 100, cacheWidth: 300),
+          ),
+      ],
+    ];
+  }
+
+  Future<void> _pickEifsPhoto({required bool extra}) async {
+    final picked = await _picker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: 1024,
+      imageQuality: 75,
+      preferredCameraDevice: CameraDevice.rear,
+    );
+    if (picked == null) return;
+
+    final file = File(picked.path);
+    final n = _nextElevationPhotoIndex('EIFS');
+
+    widget.report.addPhoto(
+      file,
+      buildElevationsPhotoLabel(
+        elev: widget.elevation.side.display,
+        category: 'EIFS',
+        label: 'Photo $n',
+      ),
+    );
+
+    setState(() {
+      if (extra) {
+        _eifs.extraPhoto = file;
+      } else {
+        _eifs.photo = file;
+      }
+      _mark();
+    });
+
+    if (extra && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Photo stored'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  void _clearEifs() {
+    _clearEifsData(keepPresent: false);
+    _mark();
+  }
+
+  void _clearEifsData({required bool keepPresent}) {
+    _eifs.present = keepPresent ? _eifs.present : false;
+    _eifs.wholeReplacement = false;
+    _eifs.partialRepair = false;
+    _eifs.partialRepairSf = '';
+    _eifs.substrate = '';
+    _eifs.substrateRequiresReplacement = null;
+    _eifs.finalTextureFinish = '';
+    _eifs.finish = '';
+    _eifs.additionalNotes = '';
+    _eifs.photo = null;
+    _eifs.extraPhoto = null;
+    _eifsPartialRepairSf.clear();
+    _eifsNotes.clear();
+  }
+
+  SectionStatus _eifsStatus() {
+    if (!_eifs.hasAnyData) return SectionStatus.empty;
+    if (!_eifs.present) return SectionStatus.partial;
+
+    final scopeOk = _eifs.wholeReplacement ||
+        (_eifs.partialRepair && _eifs.partialRepairSf.trim().isNotEmpty);
+    final substrateOk = _eifs.substrate.isNotEmpty &&
+        (!_eifsSubstrateCanRequireReplacement(_eifs.substrate) ||
+            _eifs.substrateRequiresReplacement != null);
+
+    return scopeOk &&
+             substrateOk &&
+            _eifs.finalTextureFinish.isNotEmpty &&
+            _eifs.finish.isNotEmpty
+        ? SectionStatus.complete
+        : SectionStatus.partial;
+  }
+
+  bool _eifsSubstrateCanRequireReplacement(String substrate) {
+    return substrate == 'OSB' || substrate == 'Plywood';
   }
 
   // =====================================================================

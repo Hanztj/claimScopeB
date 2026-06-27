@@ -800,13 +800,18 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
         final siding = elevation.siding.sidingMain;
         final underlayment = elevation.underlayment;
         final substrate = elevation.substrate;
+        final eifs = elevation.eifs;
         final hasSidingScope = _hasElevationSidingScopeData(elevation.siding);
-        if (!underlayment.hasAnyData && !hasSidingScope && !substrate.hasAnyData) {
+        if (!underlayment.hasAnyData &&
+            !hasSidingScope &&
+            !substrate.hasAnyData &&
+            !eifs.hasAnyData) {
           continue;
         }
         if (!_isUnderlaymentApplicableSiding(siding) &&
             !hasSidingScope &&
-            !substrate.hasAnyData) {
+            !substrate.hasAnyData &&
+            !eifs.hasAnyData) {
           continue;
         }
 
@@ -821,6 +826,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
               underlayment.hasAnyData)
             ..._buildElevationUnderlaymentRows(siding, underlayment),
           if (substrate.hasAnyData) ..._buildElevationSubstrateRows(substrate),
+          if (eifs.hasAnyData) ..._buildElevationEifsRows(eifs),
           pw.SizedBox(height: 6),
         ]);
       }
@@ -976,6 +982,55 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
         rows.add(_buildDataRow(
           "Additional Notes",
           substrate.additionalNotes.trim(),
+        ));
+      }
+
+      return rows;
+    }
+
+    static List<pw.Widget> _buildElevationEifsRows(dynamic eifs) {
+      final rows = <pw.Widget>[
+        _buildDataRow(
+          "EIFS / External Insulation Finishing System",
+          eifs.present ? "Yes" : "No",
+        ),
+      ];
+
+      if (eifs.present) {
+        if (eifs.wholeReplacement) {
+          rows.add(_buildDataRow("EIFS Scope of Work", "Whole elevation"));
+        } else if (eifs.partialRepair) {
+          rows.add(_buildDataRow("EIFS Scope of Work", "Partial Repair"));
+          rows.add(_buildDataRow(
+            "Partial Repair Area",
+            eifs.partialRepairSf.trim().isNotEmpty
+                ? "${eifs.partialRepairSf.trim()} SF"
+                : "N/A",
+          ));
+        }
+
+        rows.add(_buildDataRow("Substrate", _textOrNA(eifs.substrate)));
+
+        if (eifs.substrate == 'OSB' || eifs.substrate == 'Plywood') {
+          rows.add(_buildDataRow(
+            "Requires to be replaced?",
+            eifs.substrateRequiresReplacement == null
+                ? "N/A"
+                : (eifs.substrateRequiresReplacement ? "Yes" : "No"),
+          ));
+        }
+
+        rows.add(_buildDataRow(
+          "Final Texture Finish",
+          _textOrNA(eifs.finalTextureFinish),
+        ));
+        rows.add(_buildDataRow("Finish", _textOrNA(eifs.finish)));
+      }
+
+      if (eifs.additionalNotes.trim().isNotEmpty) {
+        rows.add(_buildDataRow(
+          "Additional Notes",
+          eifs.additionalNotes.trim(),
         ));
       }
 

@@ -461,37 +461,66 @@ class SubstrateData {
 }
 
 // ============================================================================
-// EIFS (sin cambios — paso 5)
+// EIFS / External Insulation Finishing System
 // ============================================================================
 class EifsData {
   EifsData();
 
   bool present = false;
-  String finishType = '';       // Smooth, Sand, Knockdown, Other
-  String finishTypeOther = '';
-  String condition = '';        // Good, Cracked, Delaminated, Impact damage
-  double affectedSf = 0;
-  String notes = '';
-  List<File> photos = [];
+
+  // Scope of work — mutually exclusive in UI.
+  bool wholeReplacement = false;
+  bool partialRepair = false;
+  String partialRepairSf = '';
+
+  String substrate = ''; // 'OSB' | 'Plywood' | 'CMU'
+  bool? substrateRequiresReplacement; // Only for OSB / Plywood
+  String finalTextureFinish = '';
+  String finish = '';
+  String additionalNotes = '';
+
+  File? photo;
+  File? extraPhoto;
+
+  bool get hasAnyData =>
+      present ||
+      wholeReplacement ||
+      partialRepair ||
+      partialRepairSf.trim().isNotEmpty ||
+      substrate.trim().isNotEmpty ||
+      substrateRequiresReplacement != null ||
+      finalTextureFinish.trim().isNotEmpty ||
+      finish.trim().isNotEmpty ||
+      additionalNotes.trim().isNotEmpty ||
+      photo != null ||
+      extraPhoto != null;
 
   Map<String, dynamic> toJson() => {
         'present': present,
-        'finishType': finishType,
-        'finishTypeOther': finishTypeOther,
-        'condition': condition,
-        'affectedSf': affectedSf,
-        'notes': notes,
-        'photos': _filesToPaths(photos),
+        'wholeReplacement': wholeReplacement,
+        'partialRepair': partialRepair,
+        'partialRepairSf': partialRepairSf,
+        'substrate': substrate,
+        'substrateRequiresReplacement': substrateRequiresReplacement,
+        'finalTextureFinish': finalTextureFinish,
+        'finish': finish,
+        'additionalNotes': additionalNotes,
+        'photo': _fileToPath(photo),
+        'extraPhoto': _fileToPath(extraPhoto),
       };
 
   factory EifsData.fromJson(Map<String, dynamic> j) => EifsData()
     ..present = j['present'] as bool? ?? false
-    ..finishType = j['finishType'] as String? ?? ''
-    ..finishTypeOther = j['finishTypeOther'] as String? ?? ''
-    ..condition = j['condition'] as String? ?? ''
-    ..affectedSf = (j['affectedSf'] as num?)?.toDouble() ?? 0
-    ..notes = j['notes'] as String? ?? ''
-    ..photos = _pathsToFiles(j['photos']);
+    ..wholeReplacement = j['wholeReplacement'] as bool? ?? false
+    ..partialRepair = j['partialRepair'] as bool? ?? false
+    ..partialRepairSf = j['partialRepairSf'] as String? ?? ''
+    ..substrate = j['substrate'] as String? ?? ''
+    ..substrateRequiresReplacement = j['substrateRequiresReplacement'] as bool?
+    ..finalTextureFinish = j['finalTextureFinish'] as String? ?? ''
+    ..finish = j['finish'] as String? ?? ''
+    ..additionalNotes = j['additionalNotes'] as String? ?? ''
+    ..photo = _pathToFile(j['photo'])
+    ..extraPhoto = _pathToFile(j['extraPhoto']);
 }
 
 // ============================================================================
@@ -692,7 +721,7 @@ class BuildingElevation {
       //  siding.sidingType.isNotEmpty ||
         underlayment.hasAnyData ||
         substrate.hasAnyData ||
-        eifs.present;
+        eifs.hasAnyData;
   }
 
   Map<String, dynamic> toJson() => {
