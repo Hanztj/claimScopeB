@@ -51,16 +51,20 @@ class OtherSide extends ElevationSide {
   @override String get key => 'other:$label';
   @override String get display => label;
 }
-
 // ============================================================================
-// Helpers de (de)serialización para File?
+// Helpers de (de)serialización optimizados (Sin toList innecesario)
 // ============================================================================
-String? _fileToPath(File? f) => f?.path;
-File? _pathToFile(dynamic p) => (p is String && p.isNotEmpty) ? File(p) : null;
+/// Clase utilitaria para evitar "unused declaration" y encapsular lógica de archivos
+class FileHelper {
+  static String? fileToPath(File? f) => f?.path;
 
-List<String> _filesToPaths(List<File> xs) => xs.map((f) => f.path).toList();
-List<File> _pathsToFiles(dynamic xs) =>
-    (xs is List) ? xs.whereType<String>().map((p) => File(p)).toList() : <File>[];
+  static File? pathToFile(dynamic p) => (p is String && p.isNotEmpty) ? File(p) : null;
+
+  static Iterable<String> filesToPaths(List<File> xs) => xs.map((f) => f.path);
+
+  static Iterable<File> pathsToFiles(dynamic xs) =>
+      (xs is List) ? xs.whereType<String>().map((p) => File(p)) : <File>[];
+}
 
 // ============================================================================
 // Sección 1 — Emergency Services
@@ -505,8 +509,8 @@ class EifsData {
         'finalTextureFinish': finalTextureFinish,
         'finish': finish,
         'additionalNotes': additionalNotes,
-        'photo': _fileToPath(photo),
-        'extraPhoto': _fileToPath(extraPhoto),
+        'photo': FileHelper.fileToPath(photo),
+        'extraPhoto': FileHelper.fileToPath(extraPhoto),
       };
 
   factory EifsData.fromJson(Map<String, dynamic> j) => EifsData()
@@ -519,8 +523,8 @@ class EifsData {
     ..finalTextureFinish = j['finalTextureFinish'] as String? ?? ''
     ..finish = j['finish'] as String? ?? ''
     ..additionalNotes = j['additionalNotes'] as String? ?? ''
-    ..photo = _pathToFile(j['photo'])
-    ..extraPhoto = _pathToFile(j['extraPhoto']);
+    ..photo = FileHelper.pathToFile(j['photo'])
+    ..extraPhoto = FileHelper.pathToFile(j['extraPhoto']);
 }
 
 // ============================================================================
@@ -571,8 +575,8 @@ class EifsData {
         'sidingTrimSize': sidingTrimSize,
         'skirtingMaterial': skirtingMaterial,
         'skirtingSize': skirtingSize,
-        'photo': _fileToPath(photo),
-        'extraPhoto': _fileToPath(extraPhoto),
+        'photo': FileHelper.fileToPath(photo),
+        'extraPhoto': FileHelper.fileToPath(extraPhoto),
       };
 
   factory TrimEntry.fromJson(Map<String, dynamic> j) {
@@ -590,42 +594,95 @@ class EifsData {
       ..sidingTrimSize = s('sidingTrimSize')
       ..skirtingMaterial = s('skirtingMaterial')
       ..skirtingSize = s('skirtingSize')
-      ..photo = _pathToFile(j['photo'])
-      ..extraPhoto = _pathToFile(j['extraPhoto']);
+      ..photo = FileHelper.pathToFile(j['photo'])
+      ..extraPhoto = FileHelper.pathToFile(j['extraPhoto']);
   }
 }
 
 class WindowEntry {
-  WindowEntry(); 
+  WindowEntry();
 
-  String type = '';          // Single-hung, Double-hung, Casement, Picture, Other
-  String typeOther = '';
-  String frameMaterial = ''; // Vinyl, Aluminum, Wood, Clad, Other
-  String frameMaterialOther = '';
-  String size = '';          // free text e.g. 36x60
-  int qty = 1;
-  String condition = '';     // Good, Glass broken, Frame damaged, Total loss
-  String notes = '';
+  String windowType = '';
+  String materialType = '';
+  List<String> glassEfficiencySelections = [];
+  List<String> componentsSelections = [];
+  String componentOtherSpecify = '';
+  String widthInches = '';
+  String heightInches = '';
+  String quantity = '';
+  String scopeOfWork = '';
+  bool hasShuttersInstalled = false;
+  String shuttersScopeOfWork = '';
+  String shuttersMaterial = '';
+  String shuttersMaterialSpecify = '';
+  String shuttersSize = '';
+  String additionalNotes = '';
   File? photo;
+  File? extraPhoto;
+
+  bool get hasAnyData =>
+      windowType.isNotEmpty ||
+      materialType.isNotEmpty ||
+      glassEfficiencySelections.isNotEmpty ||
+      componentsSelections.isNotEmpty ||
+      componentOtherSpecify.isNotEmpty ||
+      widthInches.isNotEmpty ||
+      heightInches.isNotEmpty ||
+      quantity.isNotEmpty ||
+      scopeOfWork.isNotEmpty ||
+      hasShuttersInstalled ||
+      shuttersScopeOfWork.isNotEmpty ||
+      shuttersMaterial.isNotEmpty ||
+      shuttersSize.isNotEmpty ||
+      additionalNotes.isNotEmpty ||
+      photo != null ||
+      extraPhoto != null;
 
   Map<String, dynamic> toJson() => {
-        'type': type, 'typeOther': typeOther,
-        'frameMaterial': frameMaterial, 'frameMaterialOther': frameMaterialOther,
-        'size': size, 'qty': qty,
-        'condition': condition, 'notes': notes,
-        'photo': _fileToPath(photo),
+        'windowType': windowType,
+        'materialType': materialType,
+        'glassEfficiencySelections': glassEfficiencySelections,
+        'componentsSelections': componentsSelections,
+        'componentOtherSpecify': componentOtherSpecify,
+        'widthInches': widthInches,
+        'heightInches': heightInches,
+        'quantity': quantity,
+        'scopeOfWork': scopeOfWork,
+        'hasShuttersInstalled': hasShuttersInstalled,
+        'shuttersScopeOfWork': shuttersScopeOfWork,
+        'shuttersMaterial': shuttersMaterial,
+        'shuttersMaterialSpecify': shuttersMaterialSpecify,
+        'shuttersSize': shuttersSize,
+        'additionalNotes': additionalNotes,
+        'photo': FileHelper.fileToPath(photo),
+        'extraPhoto': FileHelper.fileToPath(extraPhoto),
       };
 
-  factory WindowEntry.fromJson(Map<String, dynamic> j) => WindowEntry()
-    ..type = j['type'] as String? ?? ''
-    ..typeOther = j['typeOther'] as String? ?? ''
-    ..frameMaterial = j['frameMaterial'] as String? ?? ''
-    ..frameMaterialOther = j['frameMaterialOther'] as String? ?? ''
-    ..size = j['size'] as String? ?? ''
-    ..qty = j['qty'] as int? ?? 1
-    ..condition = j['condition'] as String? ?? ''
-    ..notes = j['notes'] as String? ?? ''
-    ..photo = _pathToFile(j['photo']);
+  factory WindowEntry.fromJson(Map<String, dynamic> j) {
+    String s(String k) => j[k] as String? ?? '';
+    bool b(String k) => j[k] as bool? ?? false;
+    List<String> list(String k) =>
+        ((j[k] as List?) ?? []).whereType<String>().toList();
+
+    return WindowEntry()
+      ..windowType = s('windowType')
+      ..materialType = s('materialType')
+      ..glassEfficiencySelections = list('glassEfficiencySelections')
+      ..componentsSelections = list('componentsSelections')
+      ..componentOtherSpecify = s('componentOtherSpecify')
+      ..widthInches = s('widthInches')
+      ..heightInches = s('heightInches')
+      ..quantity = s('quantity')
+      ..scopeOfWork = s('scopeOfWork')
+      ..hasShuttersInstalled = b('hasShuttersInstalled')
+      ..shuttersScopeOfWork = s('shuttersScopeOfWork')
+      ..shuttersMaterial = s('shuttersMaterial')
+      ..shuttersMaterialSpecify = j['shuttersMaterialSpecify'] ?? ''
+      ..shuttersSize = s('shuttersSize')
+      ..additionalNotes = s('additionalNotes')
+      ..photo = FileHelper.pathToFile(j['photo'])
+      ..extraPhoto = FileHelper.pathToFile(j['extraPhoto']);
+  }
 }
 
 class DoorEntry {
@@ -648,9 +705,9 @@ class DoorEntry {
         'material': material, 'materialOther': materialOther,
         'size': size, 'qty': qty,
         'condition': condition, 'notes': notes,
-        'photoBefore': _fileToPath(photoBefore),
-        'photoAfter': _fileToPath(photoAfter),
-        'photoCloseup': _fileToPath(photoCloseup),
+        'photoBefore': FileHelper.fileToPath(photoBefore),
+        'photoAfter': FileHelper.fileToPath(photoAfter),
+        'photoCloseup': FileHelper.fileToPath(photoCloseup),
       };
 
   factory DoorEntry.fromJson(Map<String, dynamic> j) => DoorEntry()
@@ -662,9 +719,9 @@ class DoorEntry {
     ..qty = j['qty'] as int? ?? 1
     ..condition = j['condition'] as String? ?? ''
     ..notes = j['notes'] as String? ?? ''
-    ..photoBefore = _pathToFile(j['photoBefore'])
-    ..photoAfter = _pathToFile(j['photoAfter'])
-    ..photoCloseup = _pathToFile(j['photoCloseup']);
+    ..photoBefore = FileHelper.pathToFile(j['photoBefore'])
+    ..photoAfter = FileHelper.pathToFile(j['photoAfter'])
+    ..photoCloseup = FileHelper.pathToFile(j['photoCloseup']);
 }
 
 class AccessoryEntry {
@@ -681,7 +738,7 @@ class AccessoryEntry {
         'type': type, 'typeOther': typeOther,
         'qty': qty,
         'condition': condition, 'notes': notes,
-        'photo': _fileToPath(photo),
+        'photo': FileHelper.fileToPath(photo),
       };
 
   factory AccessoryEntry.fromJson(Map<String, dynamic> j) => AccessoryEntry()
@@ -690,7 +747,7 @@ class AccessoryEntry {
     ..qty = j['qty'] as int? ?? 1
     ..condition = j['condition'] as String? ?? ''
     ..notes = j['notes'] as String? ?? ''
-    ..photo = _pathToFile(j['photo']);
+    ..photo = FileHelper.pathToFile(j['photo']);
 }
 
 // ============================================================================
@@ -718,7 +775,6 @@ class BuildingElevation {
         windows.isNotEmpty ||
         doors.isNotEmpty ||
         accessories.isNotEmpty ||
-      //  siding.sidingType.isNotEmpty ||
         underlayment.hasAnyData ||
         substrate.hasAnyData ||
         eifs.hasAnyData;
@@ -726,7 +782,7 @@ class BuildingElevation {
 
   Map<String, dynamic> toJson() => {
         'side': side.toJson(),
-        'overviewPhoto': _fileToPath(overviewPhoto),
+        'overviewPhoto': FileHelper.fileToPath(overviewPhoto), // Usando FileHelper
         'siding': siding.toJson(),
         'trims': trims.map((e) => e.toJson()).toList(),
         'windows': windows.map((e) => e.toJson()).toList(),
@@ -739,10 +795,11 @@ class BuildingElevation {
       };
 
   factory BuildingElevation.fromJson(Map<String, dynamic> j) {
+    // 1. Instanciamos el objeto 'b'
     final b = BuildingElevation(
       ElevationSide.fromJson(j['side'] as Map<String, dynamic>),
     )
-      ..overviewPhoto = _pathToFile(j['overviewPhoto'])
+      ..overviewPhoto = FileHelper.pathToFile(j['overviewPhoto']) // Usando FileHelper
       ..siding = SidingDamagesData.fromJson(
           (j['siding'] as Map?)?.cast<String, dynamic>() ?? {})
       ..underlayment = UnderlaymentInsulationData.fromJson(
@@ -752,18 +809,22 @@ class BuildingElevation {
       ..eifs = EifsData.fromJson(
           (j['eifs'] as Map?)?.cast<String, dynamic>() ?? {})
       ..notes = j['notes'] as String? ?? '';
-    b.trims = ((j['trims'] as List?) ?? [])
-        .map((e) => TrimEntry.fromJson((e as Map).cast<String, dynamic>()))
-        .toList();
-    b.windows = ((j['windows'] as List?) ?? [])
-        .map((e) => WindowEntry.fromJson((e as Map).cast<String, dynamic>()))
-        .toList();
-    b.doors = ((j['doors'] as List?) ?? [])
-        .map((e) => DoorEntry.fromJson((e as Map).cast<String, dynamic>()))
-        .toList();
-    b.accessories = ((j['accessories'] as List?) ?? [])
-        .map((e) => AccessoryEntry.fromJson((e as Map).cast<String, dynamic>()))
-        .toList();
+
+    // 2. Asignamos las listas
+    b.trims = List<TrimEntry>.from(
+      ((j['trims'] as List?) ?? []).map((e) => TrimEntry.fromJson((e as Map).cast<String, dynamic>()))
+    );
+    b.windows = List<WindowEntry>.from(
+      ((j['windows'] as List?) ?? []).map((e) => WindowEntry.fromJson((e as Map).cast<String, dynamic>()))
+    );
+    b.doors = List<DoorEntry>.from(
+      ((j['doors'] as List?) ?? []).map((e) => DoorEntry.fromJson((e as Map).cast<String, dynamic>()))
+    );
+    b.accessories = List<AccessoryEntry>.from(
+      ((j['accessories'] as List?) ?? []).map((e) => AccessoryEntry.fromJson((e as Map).cast<String, dynamic>()))
+    );
+
+    // 3. RETORNO OBLIGATORIO (Soluciona el error del null)
     return b;
   }
 }

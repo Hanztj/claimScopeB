@@ -802,16 +802,20 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
         final substrate = elevation.substrate;
         final eifs = elevation.eifs;
         final hasSidingScope = _hasElevationSidingScopeData(elevation.siding);
+        final windows = elevation.windows; 
+        final hasWindows = windows.any((w) => w.hasAnyData == true);
         if (!underlayment.hasAnyData &&
             !hasSidingScope &&
             !substrate.hasAnyData &&
-            !eifs.hasAnyData) {
+            !eifs.hasAnyData &&
+            !hasWindows) {
           continue;
         }
         if (!_isUnderlaymentApplicableSiding(siding) &&
             !hasSidingScope &&
             !substrate.hasAnyData &&
-            !eifs.hasAnyData) {
+            !eifs.hasAnyData &&
+            !hasWindows) {
           continue;
         }
 
@@ -827,7 +831,8 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
             ..._buildElevationUnderlaymentRows(siding, underlayment),
           if (substrate.hasAnyData) ..._buildElevationSubstrateRows(substrate),
           if (eifs.hasAnyData) ..._buildElevationEifsRows(eifs),
-          pw.SizedBox(height: 6),
+          if (hasWindows) ..._buildElevationWindowRows(windows),
+          pw.SizedBox(height: 6), 
         ]);
       }
 
@@ -1036,6 +1041,105 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
 
       return rows;
     }
+
+ static List<pw.Widget> _buildElevationWindowRows(Iterable windows) {
+  final rows = <pw.Widget>[];
+
+  // .where() no crea una lista nueva, solo filtra al vuelo (Lazy Evaluation). Cero impacto en RAM.
+  final activeWindows = windows.where((w) => w.hasAnyData == true);
+
+  if (activeWindows.isEmpty) return rows;
+
+  rows.add(pw.Text("Windows", style: pw.TextStyle(fontWeight: pw.FontWeight.bold),));
+
+  int i = 1;
+  // Iteramos directamente sobre el flujo original
+  for (final window in activeWindows) {
+    rows.add(_buildDataRow("Window $i", ""));
+    rows.add(_buildDataRow("Window Type", _textOrNA(window.windowType)));
+    rows.add(_buildDataRow("Material Type", _textOrNA(window.materialType)));
+
+    if (window.glassEfficiencySelections?.isNotEmpty == true) {
+      rows.add(_buildDataRow(
+        "Glass & Efficiency",
+        window.glassEfficiencySelections.join(', '),
+      ));
+    }
+
+    if (window.componentsSelections?.isNotEmpty == true) {
+      rows.add(_buildDataRow(
+        "Components & Accessories",
+        window.componentsSelections.join(', '),
+      ));
+    }
+
+    if (window.componentOtherSpecify != null && window.componentOtherSpecify.trim().isNotEmpty) {
+      rows.add(_buildDataRow(
+        "Specify Other Component",
+        window.componentOtherSpecify.trim(),
+      ));
+    }
+
+    if (window.widthInches != null && window.widthInches.trim().isNotEmpty) {
+      rows.add(_buildDataRow("Width", "${window.widthInches.trim()} inches"));
+    }
+
+    if (window.heightInches != null && window.heightInches.trim().isNotEmpty) {
+      rows.add(_buildDataRow("Height", "${window.heightInches.trim()} inches"));
+    }
+
+    if (window.quantity != null && window.quantity.trim().isNotEmpty) {
+      rows.add(_buildDataRow("Quantity", window.quantity.trim()));
+    }
+
+    if (window.scopeOfWork != null && window.scopeOfWork.trim().isNotEmpty) {
+      rows.add(_buildDataRow("Scope of work", window.scopeOfWork.trim()));
+    }
+
+    rows.add(_buildDataRow(
+      "Shutters Installed",
+      window.hasShuttersInstalled == true ? "Yes" : "No",
+    ));
+
+    if (window.hasShuttersInstalled == true) {
+      rows.add(_buildDataRow(
+        "Shutters Scope of work",
+        _textOrNA(window.shuttersScopeOfWork),
+      ));
+
+      if (window.shuttersScopeOfWork == 'Replace') {
+        rows.add(_buildDataRow(
+          "Shutters Material",
+          _textOrNA(window.shuttersMaterial),
+        ));
+
+        // Nuevo campo 'Specify' para Shutters
+        if (window.shuttersMaterial == 'Other' && window.shuttersMaterialSpecify != null && window.shuttersMaterialSpecify.trim().isNotEmpty) {
+          rows.add(_buildDataRow(
+            "Specify Shutters Material",
+            window.shuttersMaterialSpecify.trim(),
+          ));
+        }
+
+        rows.add(_buildDataRow(
+          "Shutters Size",
+          _textOrNA(window.shuttersSize),
+        ));
+      }
+    }
+
+    if (window.additionalNotes != null && window.additionalNotes.trim().isNotEmpty) {
+      rows.add(_buildDataRow(
+        "Additional Notes",
+        window.additionalNotes.trim(),
+      ));
+    }
+    
+    i++; // Incrementamos el contador manual
+  }
+
+  return rows;
+}
 
     static bool _isUnderlaymentApplicableSiding(String siding) {
       return siding.trim().isNotEmpty && siding != 'Stucco';

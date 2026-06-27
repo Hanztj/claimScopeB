@@ -51,6 +51,9 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
   // ─── Controllers por Trim (gestionados por id de instancia) ───────────
   final Map<TrimEntry, _TrimControllers> _trimCtl = {};
 
+  // ─── Controllers por Window (gestionados por id de instancia) ─────────
+  final Map<WindowEntry, _WindowControllers> _windowCtl = {};
+
   final _picker = ImagePicker();
   
   SidingDamagesData get _s => widget.elevation.siding;
@@ -58,6 +61,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
   SubstrateData get _sub => widget.elevation.substrate;
   EifsData get _eifs => widget.elevation.eifs;
   List<TrimEntry> get _trims => widget.elevation.trims;
+  List<WindowEntry> get _windows => widget.elevation.windows;
 
   @override
   void initState() {
@@ -79,6 +83,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     _eifsPartialRepairSf = TextEditingController(text: _eifs.partialRepairSf);
     _eifsNotes = TextEditingController(text: _eifs.additionalNotes);
     _syncTrimControllers();
+    _syncWindowControllers();
   }
 
   void _clearSiding() {
@@ -178,6 +183,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
       _eifsPartialRepairSf.text = _eifs.partialRepairSf;
       _eifsNotes.text = _eifs.additionalNotes;
       _syncTrimControllers();
+      _syncWindowControllers();
     }
   }
 
@@ -190,6 +196,18 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     final stale = _trimCtl.keys.where((k) => !_trims.contains(k)).toList();
     for (final k in stale) {
       _trimCtl.remove(k)?.dispose();
+    }
+  }
+
+  /// Garantiza que exista un `_WindowControllers` por cada `WindowEntry` actual
+  /// y descarta los que ya no están presentes. Idempotente.
+  void _syncWindowControllers() {
+    for (final w in _windows) {
+      _windowCtl.putIfAbsent(w, () => _WindowControllers.from(w));
+    }
+    final stale = _windowCtl.keys.where((k) => !_windows.contains(k)).toList();
+    for (final k in stale) {
+      _windowCtl.remove(k)?.dispose();
     }
   }
 
@@ -215,6 +233,9 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     }
     for (final tc in _trimCtl.values) {
       tc.dispose();
+    }
+    for (final wc in _windowCtl.values) {
+      wc.dispose();
     }
     super.dispose();
   }
@@ -288,9 +309,10 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
         const SizedBox(height: 8),
         _buildEifsTile(),
         const SizedBox(height: 8),
-        // Placeholders compilables para próximas secciones (pasos 6+)
+        _buildWindowSection(),
+        const SizedBox(height: 8),
+        // Placeholders compilables para próximas secciones (pasos 7+)
         for (final s in const [
-          'Windows',
           'Doors',
           'Accessories',
         ])
@@ -1668,6 +1690,386 @@ if (extra && mounted) {
   }
 
   // =====================================================================
+  // ADD WINDOW — patrón visual idéntico al módulo Trim
+  // =====================================================================
+  Widget _buildWindowSection() {
+    return Column(
+      children: [
+        const SizedBox(height: 8),
+        const Text(
+          'Windows',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+        const Divider(),
+        ..._windows.asMap().entries.map((entry) {
+          final idx = entry.key;
+          return _buildWindowCard(idx);
+        }),
+        ElevatedButton(
+          onPressed: () => setState(_addWindowRaw),
+          child: const Text('Add Window'),
+        ),
+      ],
+    );
+  }
+
+  void _addWindowRaw() {
+    final w = WindowEntry();
+    _windows.add(w);
+    _windowCtl[w] = _WindowControllers.from(w);
+    _mark();
+  }
+
+  void _removeWindow(int i) {
+    setState(() {
+      final w = _windows.removeAt(i);
+      _windowCtl.remove(w)?.dispose();
+      _mark();
+    });
+  }
+
+  Widget _buildWindowCard(int i) {
+    final w = _windows[i];
+    final c = _windowCtl.putIfAbsent(w, () => _WindowControllers.from(w));
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Window ${i + 1}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () => _removeWindow(i),
+                ),
+              ],
+            ),
+            _dropdown(
+              label: 'Window Type',
+              value: w.windowType,
+              options: const [
+                'Picture',
+                'Single Hung',
+                'Double Hung',
+                'Horizontal Sliding',
+                'Casement',
+                'Jalousie',
+                'Awning type',
+                'Storefront',
+              ],
+              onChanged: (v) => setState(() {
+                w.windowType = v ?? '';
+                if (w.windowType.isEmpty) {
+                  _clearWindowMaterialDependentFields(w, c);
+                }
+                _mark();
+              }),
+            ),
+            if (w.windowType.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _dropdown(
+                label: 'Material Type',
+                value: w.materialType,
+                options: const [
+                  'Vinyl',
+                  'Aluminum Anodized frame',
+                  'Wood',
+                  'Bronce Anodized frame',
+                ],
+                onChanged: (v) => setState(() {
+                  w.materialType = v ?? '';
+                  if (w.materialType.isEmpty) {
+                    _clearWindowMaterialDependentFields(w, c);
+                  }
+                  _mark();
+                }),
+              ),
+            ],
+            if (w.materialType.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Text(
+                'Glass & Efficiency',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              ..._buildWindowMultiSelect(
+                selected: w.glassEfficiencySelections,
+                options: const [
+                  'Low-E Glass',
+                  'Impact Resistant',
+                  'Single pane',
+                  'Double Pane',
+                  'Triple Pane',
+                ],
+                onChanged: () => setState(_mark),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Components & Accessories',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              ..._buildWindowMultiSelect(
+                selected: w.componentsSelections,
+                options: const [
+                  'Screen',
+                  'Grid',
+                  'Exterior Casing / Trim',
+                  'Interior Casing / Trim',
+                  'Other',
+                ],
+                onChanged: () => setState(() {
+                  if (!w.componentsSelections.contains('Other')) {
+                    w.componentOtherSpecify = '';
+                    c.componentOtherSpecify.clear();
+                  }
+                  _mark();
+                }),
+              ),
+              if (w.componentsSelections.contains('Other')) ...[
+                const SizedBox(height: 8),
+                _textField(
+                  controller: c.componentOtherSpecify,
+                  label: 'Specify',
+                  onChanged: (v) {
+                    w.componentOtherSpecify = v;
+                    _mark();
+                  },
+                ),
+              ],
+              const SizedBox(height: 12),
+              const Text(
+                'Window Dimensions',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              _textField(
+                controller: c.widthInches,
+                label: 'Width (Inches)',
+                onChanged: (v) {
+                  w.widthInches = v;
+                  _mark();
+                },
+              ),
+              const SizedBox(height: 8),
+              _textField(
+                controller: c.heightInches,
+                label: 'Height (Inches)',
+                onChanged: (v) {
+                  w.heightInches = v;
+                  _mark();
+                },
+              ),
+              const SizedBox(height: 8),
+              _textField(
+                controller: c.quantity,
+                label: 'Quantity',
+                hintText: 'Qty of windows with these exact specs',
+                onChanged: (v) {
+                  w.quantity = v;
+                  _mark();
+                },
+              ),
+              const SizedBox(height: 8),
+              _dropdown(
+                label: 'Scope of work',
+                value: w.scopeOfWork,
+                options: const [
+                  'Replace',
+                  'Reglaze',
+                  'Replace bead only',
+                  'Replace Casing/Trim only',
+                  'Remove & Reset',
+                ],
+                onChanged: (v) => setState(() {
+                  w.scopeOfWork = v ?? '';
+                  _mark();
+                }),
+              ),
+              _checkbox(
+                'It has Shutters installed?',
+                w.hasShuttersInstalled,
+                (v) {
+                  setState(() {
+                    w.hasShuttersInstalled = v;
+                    if (!v) {
+                      w.shuttersScopeOfWork = '';
+                      w.shuttersMaterial = '';
+                      w.shuttersSize = '';
+                    }
+                    _mark();
+                  });
+                },
+              ),
+              if (w.hasShuttersInstalled) ...[
+                const SizedBox(height: 8),
+                _dropdown(
+                  label: 'Shutters Scope of work',
+                  value: w.shuttersScopeOfWork,
+                  options: const ['Replace', 'Detach & reset'],
+                  onChanged: (v) => setState(() {
+                    w.shuttersScopeOfWork = v ?? '';
+                    if (w.shuttersScopeOfWork != 'Replace') {
+                      w.shuttersMaterial = '';
+                      w.shuttersSize = '';
+                    }
+                    _mark();
+                  }),
+                ),
+                if (w.shuttersScopeOfWork == 'Replace') ...[
+                  const SizedBox(height: 8),
+                  _dropdown(
+                    label: 'Shutters Material',
+                    value: w.shuttersMaterial,
+                    options: const ['Aluminum', 'Simulated-wood', 'Other'],
+                    onChanged: (v) => setState(() {
+                      w.shuttersMaterial = v ?? '';
+                      _mark();
+                    }),
+                  ),
+                  if (w.shuttersMaterial == 'Other') ...[
+              const SizedBox(height: 8),
+             _textField(
+              controller: c.shuttersMaterialSpecify,
+              label: 'Specify Shutters Material',
+               onChanged: (v) {
+                w.shuttersMaterialSpecify = v;
+               _mark();
+               },
+              ),
+            ],
+                  const SizedBox(height: 8),
+                  _dropdown(
+                    label: 'Shutters Size',
+                    value: w.shuttersSize,
+                    options: const ['Average', 'Small', 'Large'],
+                    onChanged: (v) => setState(() {
+                      w.shuttersSize = v ?? '';
+                      _mark();
+                    }),
+                  ),
+                ],
+              ],
+              const SizedBox(height: 8),
+              _notesField(c.additionalNotes, (v) {
+                w.additionalNotes = v;
+                _mark();
+              }),
+              const SizedBox(height: 8),
+              ElevatedButton(
+                onPressed: () => _pickWindowPhoto(w, extra: false),
+                child: const Text('Take Window Photo'),
+              ),
+              TextButton(
+                onPressed: () => _pickWindowPhoto(w, extra: true),
+                child: const Text('Add extra Window photo'),
+              ),
+              if (w.photo != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Image.file(w.photo!, height: 100, cacheWidth: 300),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildWindowMultiSelect({
+    required List<String> selected,
+    required List<String> options,
+    required VoidCallback onChanged,
+  }) {
+    return options
+        .map(
+          (option) => _checkbox(option, selected.contains(option), (v) {
+            if (v) {
+              if (!selected.contains(option)) selected.add(option);
+            } else {
+              selected.remove(option);
+            }
+            onChanged();
+          }),
+        )
+        .toList();
+  }
+
+  void _clearWindowMaterialDependentFields(
+    WindowEntry w,
+    _WindowControllers c,
+  ) {
+    w.materialType = '';
+    w.glassEfficiencySelections.clear();
+    w.componentsSelections.clear();
+    w.componentOtherSpecify = '';
+    w.widthInches = '';
+    w.heightInches = '';
+    w.quantity = '';
+    w.scopeOfWork = '';
+    w.hasShuttersInstalled = false;
+    w.shuttersScopeOfWork = '';
+    w.shuttersMaterial = '';
+    w.shuttersSize = '';
+    w.additionalNotes = '';
+    c.componentOtherSpecify.clear();
+    c.widthInches.clear();
+    c.heightInches.clear();
+    c.quantity.clear();
+    c.additionalNotes.clear();
+  }
+
+  Future<void> _pickWindowPhoto(WindowEntry w, {required bool extra}) async {
+    final picked = await _picker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: 1024,
+      imageQuality: 75,
+      preferredCameraDevice: CameraDevice.rear,
+    );
+    if (picked == null) return;
+
+    final file = File(picked.path);
+    final n = _nextElevationPhotoIndex('Window');
+
+    widget.report.addPhoto(
+      file,
+      buildElevationsPhotoLabel(
+        elev: widget.elevation.side.display,
+        category: 'Window',
+        label: 'Photo $n',
+      ),
+    );
+
+    setState(() {
+      if (extra) {
+        w.extraPhoto = file;
+      } else {
+        w.photo = file;
+      }
+      _mark();
+    });
+
+    if (extra && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Photo stored'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  // =====================================================================
   // HELPERS UI
   // =====================================================================
   Widget _checkbox(String label, bool value, ValueChanged<bool> onChanged) {
@@ -1800,4 +2202,31 @@ class _TrimControllers {
     ocpMetalGauge.dispose();
     sidingTrimSize.dispose();
   }
+}
+
+// ─── Controllers por WindowEntry ────────────────────────────────────── 
+class _WindowControllers { 
+  final TextEditingController componentOtherSpecify;
+  final TextEditingController widthInches; 
+  final TextEditingController heightInches; 
+  final TextEditingController quantity; 
+  final TextEditingController shuttersMaterialSpecify; // <-- AQUÍ ESTÁ EL NUEVO
+  final TextEditingController additionalNotes;
+
+  _WindowControllers.from(WindowEntry w) 
+      : componentOtherSpecify = TextEditingController(text: w.componentOtherSpecify), 
+        widthInches = TextEditingController(text: w.widthInches),
+        heightInches = TextEditingController(text: w.heightInches), 
+        quantity = TextEditingController(text: w.quantity), 
+        shuttersMaterialSpecify = TextEditingController(text: w.shuttersMaterialSpecify), // <-- INICIALIZADO
+        additionalNotes = TextEditingController(text: w.additionalNotes);
+
+  void dispose() { 
+    componentOtherSpecify.dispose(); 
+    widthInches.dispose(); 
+    heightInches.dispose(); 
+    quantity.dispose(); 
+    shuttersMaterialSpecify.dispose(); // <-- LIMPIADO PARA EVITAR FUGAS DE MEMORIA
+    additionalNotes.dispose(); 
+  } 
 }
