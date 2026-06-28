@@ -864,27 +864,44 @@ class DoorEntry {
 class AccessoryEntry {
   AccessoryEntry();
 
-  String type = '';          // Shutter, Light fixture, Vent, House number, Hose bib, Other
-  String typeOther = '';
-  int qty = 0;
-  String condition = '';
-  String notes = '';
+  String accessoryType = '';
+  String accessoryOtherSpecify = '';
+  String scopeOfWork = '';
+  String count = '';
+  String additionalNotes = '';
   File? photo;
+  File? extraPhoto;
+
+  bool get hasAnyData =>
+      accessoryType.isNotEmpty ||
+      accessoryOtherSpecify.isNotEmpty ||
+      scopeOfWork.isNotEmpty ||
+      count.isNotEmpty ||
+      additionalNotes.isNotEmpty ||
+      photo != null ||
+      extraPhoto != null;
 
   Map<String, dynamic> toJson() => {
-        'type': type, 'typeOther': typeOther,
-        'qty': qty,
-        'condition': condition, 'notes': notes,
+        'accessoryType': accessoryType,
+        'accessoryOtherSpecify': accessoryOtherSpecify,
+        'scopeOfWork': scopeOfWork,
+        'count': count,
+        'additionalNotes': additionalNotes,
         'photo': FileHelper.fileToPath(photo),
+        'extraPhoto': FileHelper.fileToPath(extraPhoto),
       };
 
-  factory AccessoryEntry.fromJson(Map<String, dynamic> j) => AccessoryEntry()
-    ..type = j['type'] as String? ?? ''
-    ..typeOther = j['typeOther'] as String? ?? ''
-    ..qty = j['qty'] as int? ?? 1
-    ..condition = j['condition'] as String? ?? ''
-    ..notes = j['notes'] as String? ?? ''
-    ..photo = FileHelper.pathToFile(j['photo']);
+  factory AccessoryEntry.fromJson(Map<String, dynamic> j) {
+    String s(String k) => j[k] as String? ?? '';
+    return AccessoryEntry()
+      ..accessoryType = s('accessoryType')
+      ..accessoryOtherSpecify = s('accessoryOtherSpecify')
+      ..scopeOfWork = s('scopeOfWork')
+      ..count = s('count')
+      ..additionalNotes = s('additionalNotes')
+      ..photo = FileHelper.pathToFile(j['photo'])
+      ..extraPhoto = FileHelper.pathToFile(j['extraPhoto']);
+  }
 }
 
 // ============================================================================

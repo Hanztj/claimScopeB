@@ -804,14 +804,17 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
         final hasSidingScope = _hasElevationSidingScopeData(elevation.siding);
         final windows = elevation.windows;
         final doors = elevation.doors;
+        final accessories = elevation.accessories;
         final hasWindows = windows.any((w) => w.hasAnyData == true);
         final hasDoors = doors.any((d) => d.hasAnyData == true);
+        final hasAccessories = accessories.any((a) => a.hasAnyData == true);
         if (!underlayment.hasAnyData &&
             !hasSidingScope &&
             !substrate.hasAnyData &&
             !eifs.hasAnyData &&
             !hasWindows &&
-            !hasDoors) {
+            !hasDoors &&
+            !hasAccessories) {
           continue;
         }
         if (!_isUnderlaymentApplicableSiding(siding) &&
@@ -819,7 +822,8 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
             !substrate.hasAnyData &&
             !eifs.hasAnyData &&
             !hasWindows &&
-            !hasDoors) {
+            !hasDoors &&
+            !hasAccessories) {
           continue;
         }
 
@@ -837,6 +841,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
           if (eifs.hasAnyData) ..._buildElevationEifsRows(eifs),
           if (hasWindows) ..._buildElevationWindowRows(windows),
           if (hasDoors) ..._buildElevationDoorRows(doors),
+          if (hasAccessories) ..._buildElevationAccessoryRows(accessories),
           pw.SizedBox(height: 6), 
         ]);
       }
@@ -1234,6 +1239,44 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
 
     if (door.additionalNotes != null && door.additionalNotes.trim().isNotEmpty) {
       rows.add(_buildDataRow("Additional Notes", door.additionalNotes.trim()));
+    }
+
+    i++;
+  }
+
+  return rows;
+}
+
+
+ static List<pw.Widget> _buildElevationAccessoryRows(Iterable accessories) {
+  final rows = <pw.Widget>[];
+  final activeAccessories = accessories.where((a) => a.hasAnyData == true);
+
+  if (activeAccessories.isEmpty) return rows;
+
+  rows.add(pw.Text("Accessories", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)));
+
+  int i = 1;
+  for (final accessory in activeAccessories) {
+    rows.add(_buildDataRow("Accessory $i", ""));
+    rows.add(_buildDataRow("Accessory Type", _textOrNA(accessory.accessoryType)));
+
+    if (accessory.accessoryType == 'Other' &&
+        accessory.accessoryOtherSpecify.trim().isNotEmpty) {
+      rows.add(_buildDataRow(
+        "Specify",
+        accessory.accessoryOtherSpecify.trim(),
+      ));
+    }
+
+    rows.add(_buildDataRow("Scope of work", _textOrNA(accessory.scopeOfWork)));
+
+    if (accessory.count.trim().isNotEmpty) {
+      rows.add(_buildDataRow("Count", accessory.count.trim()));
+    }
+
+    if (accessory.additionalNotes.trim().isNotEmpty) {
+      rows.add(_buildDataRow("Additional Notes", accessory.additionalNotes.trim()));
     }
 
     i++;

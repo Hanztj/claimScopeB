@@ -57,6 +57,9 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
   // ─── Controllers por Door (gestionados por id de instancia) ───────────
   final Map<DoorEntry, _DoorControllers> _doorCtl = {};
 
+  // ─── Controllers por Accessory (gestionados por id de instancia) ──────
+  final Map<AccessoryEntry, _AccessoryControllers> _accessoryCtl = {};
+
   final _picker = ImagePicker();
   
   SidingDamagesData get _s => widget.elevation.siding;
@@ -66,6 +69,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
   List<TrimEntry> get _trims => widget.elevation.trims;
   List<WindowEntry> get _windows => widget.elevation.windows;
   List<DoorEntry> get _doors => widget.elevation.doors;
+  List<AccessoryEntry> get _accessories => widget.elevation.accessories;
 
   @override
   void initState() {
@@ -89,6 +93,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     _syncTrimControllers();
     _syncWindowControllers();
     _syncDoorControllers();
+    _syncAccessoryControllers();
   }
 
   void _clearSiding() {
@@ -190,6 +195,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
       _syncTrimControllers();
       _syncWindowControllers();
       _syncDoorControllers();
+      _syncAccessoryControllers();
     }
   }
 
@@ -231,6 +237,19 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     });
   }
 
+  /// Garantiza que exista un `_AccessoryControllers` por cada
+  /// `AccessoryEntry` actual y descarta los que ya no están presentes.
+  void _syncAccessoryControllers() {
+    for (final a in _accessories) {
+      _accessoryCtl.putIfAbsent(a, () => _AccessoryControllers.from(a));
+    }
+    _accessoryCtl.removeWhere((accessory, controllers) {
+      final stale = !_accessories.contains(accessory);
+      if (stale) controllers.dispose();
+      return stale;
+    });
+  }
+
   @override
   void dispose() {
     for (final c in [
@@ -259,6 +278,9 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     }
     for (final dc in _doorCtl.values) {
       dc.dispose();
+    }
+    for (final ac in _accessoryCtl.values) {
+      ac.dispose();
     }
     super.dispose();
   }
@@ -336,16 +358,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
         const SizedBox(height: 8),
         _buildDoorSection(),
         const SizedBox(height: 8),
-        // Placeholder compilable para próximas secciones
-        Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: const ListTile(
-            leading: Icon(Icons.construction_outlined),
-            title: Text('Accessories'),
-            subtitle: Text('Coming in next steps'),
-            dense: true,
-          ),
-        ),
+        _buildAccessorySection(),
       ],
     );
   }
@@ -2808,6 +2821,197 @@ if (extra && mounted) {
     }
   }
 
+
+  // =====================================================================
+  // ADD ACCESSORY — patrón visual idéntico a Trim / Windows / Doors
+  // =====================================================================
+  Widget _buildAccessorySection() {
+    return Column(
+      children: [
+        const SizedBox(height: 8),
+        const Text(
+          'Accessories',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+        const Divider(),
+        for (var i = 0; i < _accessories.length; i++) _buildAccessoryCard(i),
+        ElevatedButton(
+          onPressed: () => setState(_addAccessoryRaw),
+          child: const Text('Add Accessory'),
+        ),
+      ],
+    );
+  }
+
+  void _addAccessoryRaw() {
+    final a = AccessoryEntry();
+    _accessories.add(a);
+    _accessoryCtl[a] = _AccessoryControllers.from(a);
+    _mark();
+  }
+
+  void _removeAccessory(int i) {
+    setState(() {
+      final a = _accessories.removeAt(i);
+      _accessoryCtl.remove(a)?.dispose();
+      _mark();
+    });
+  }
+
+  Widget _buildAccessoryCard(int i) {
+    final a = _accessories[i];
+    final c = _accessoryCtl.putIfAbsent(a, () => _AccessoryControllers.from(a));
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Accessory ${i + 1}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () => _removeAccessory(i),
+                ),
+              ],
+            ),
+            _dropdown(
+              label: 'Select Accessories',
+              value: a.accessoryType,
+              options: const [
+                'Exterior Lights',
+                'Mailbox',
+                'HVAC',
+                'Exterior Outlet',
+                'J-Vent',
+                'Meter Base',
+                'Electric Box',
+                'Exterior Faucet',
+                'House Numbers/Letters',
+                'Awning',
+                'Shutter Set',
+                'Satellite Dish',
+                'Security camera',
+                'Other',
+              ],
+              onChanged: (v) => setState(() {
+                a.accessoryType = v ?? '';
+                if (a.accessoryType != 'Other') {
+                  a.accessoryOtherSpecify = '';
+                  c.accessoryOtherSpecify.clear();
+                }
+                _mark();
+              }),
+            ),
+            if (a.accessoryType == 'Other') ...[
+              const SizedBox(height: 8),
+              _textField(
+                controller: c.accessoryOtherSpecify,
+                label: 'Specify',
+                onChanged: (v) {
+                  a.accessoryOtherSpecify = v;
+                  _mark();
+                },
+              ),
+            ],
+            const SizedBox(height: 8),
+            _dropdown(
+              label: 'Scope of work',
+              value: a.scopeOfWork,
+              options: const ['Replace', 'Detach & Reset'],
+              onChanged: (v) => setState(() {
+                a.scopeOfWork = v ?? '';
+                _mark();
+              }),
+            ),
+            const SizedBox(height: 8),
+            _textField(
+              controller: c.count,
+              label: 'Count',
+              onChanged: (v) {
+                a.count = v;
+                _mark();
+              },
+            ),
+            const SizedBox(height: 8),
+            _notesField(c.additionalNotes, (v) {
+              a.additionalNotes = v;
+              _mark();
+            }),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () => _pickAccessoryPhoto(a, extra: false),
+              child: const Text('Take Accessory Photo'),
+            ),
+            TextButton(
+              onPressed: () => _pickAccessoryPhoto(a, extra: true),
+              child: const Text('Add extra Accessory photo'),
+            ),
+            if (a.photo != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Image.file(a.photo!, height: 100, cacheWidth: 300),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAccessoryPhoto(
+    AccessoryEntry a, {
+    required bool extra,
+  }) async {
+    final picked = await _picker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: 1024,
+      imageQuality: 75,
+      preferredCameraDevice: CameraDevice.rear,
+    );
+    if (picked == null) return;
+
+    final file = File(picked.path);
+    final n = _nextElevationPhotoIndex('Accessory');
+
+    widget.report.addPhoto(
+      file,
+      buildElevationsPhotoLabel(
+        elev: widget.elevation.side.display,
+        category: 'Accessory',
+        label: 'Photo $n',
+      ),
+    );
+
+    setState(() {
+      if (extra) {
+        a.extraPhoto = file;
+      } else {
+        a.photo = file;
+      }
+      _mark();
+    });
+
+    if (extra && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Photo stored'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   // =====================================================================
   // HELPERS UI
   // =====================================================================
@@ -3005,6 +3209,25 @@ class _DoorControllers {
     rollupGaugeOtherSpecify.dispose();
     rollupSizeOtherSpecify.dispose();
     storefrontOversizeInputSize.dispose();
+    additionalNotes.dispose();
+  }
+}
+
+// ─── Controllers por AccessoryEntry ───────────────────────────────────
+class _AccessoryControllers {
+  final TextEditingController accessoryOtherSpecify;
+  final TextEditingController count;
+  final TextEditingController additionalNotes;
+
+  _AccessoryControllers.from(AccessoryEntry a)
+      : accessoryOtherSpecify =
+            TextEditingController(text: a.accessoryOtherSpecify),
+        count = TextEditingController(text: a.count),
+        additionalNotes = TextEditingController(text: a.additionalNotes);
+
+  void dispose() {
+    accessoryOtherSpecify.dispose();
+    count.dispose();
     additionalNotes.dispose();
   }
 }
