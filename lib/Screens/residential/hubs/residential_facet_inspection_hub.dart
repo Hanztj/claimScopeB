@@ -7,6 +7,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
   final void Function(VoidCallback fn) setState;
  
  final InspectionReport report;
+  final String plan;
 
   final String? roofCoverType;
 
@@ -103,6 +104,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
   const ResidentialFacetInspectionHub({
     super.key,
     required this.setState,
+    required this.plan,
     required this.roofCoverType,
     required this.facets,
     required this.currentFacetIndex,
@@ -914,6 +916,7 @@ if (isSingleRoofSection || isLastFacet)
                 builder: (_) => ElevationsInspectionScreen(
                   report: report,
                   isCommercial: false,
+                  plan: plan,
                 ),
               ),
             );

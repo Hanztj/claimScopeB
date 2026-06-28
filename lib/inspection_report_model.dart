@@ -29,6 +29,7 @@ class InspectionReport {
   // INSPECTION SCOPE
   bool inspectRoof = true;
   bool inspectElevations = false;
+  bool isBasePricePaid = false;
   // Interior inspection removed from project.
   bool inspectInterior = false;
   String interiorScope = '';
@@ -123,6 +124,19 @@ late ElevationsData elevations = ElevationsData.fromJson({});
   void addPhoto(File file, String label) {
     photoReportItems.add(PhotoItem(file: file, label: label));
   }
+
+  Map<String, dynamic> toHfPricingPayload() => {
+        'isBasePricePaid': isBasePricePaid,
+        'isCommercial': isCommercial,
+        'hasShed': hasShed,
+        'hasDetachedStructure': hasDetachedStructure,
+        'commercialBuildings': commercialBuildings
+            .map((building) => {
+                  'roofs': building.roofs.map((roof) => {}).toList(),
+                })
+            .toList(),
+        'elevations': elevations.toJson(),
+      };
 }
 
 class PhotoItem {

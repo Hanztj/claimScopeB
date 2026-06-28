@@ -19,6 +19,7 @@ import 'package:claimscope_clean/Services/pdf_service.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:claimscope_clean/Services/email_service.dart';
 import '../utils/labeled_photos_zip.dart';
+import '../utils/hf_pricing_helper.dart';
 import '../Screens/widgets/submission_options_dialog.dart'; 
 import '../catalogs/flashing_catalog.dart'; 
 import '/screens/elevations/elevations_inspection_screen.dart'; 
@@ -41,14 +42,9 @@ class CommercialRoofSectionScreen extends StatefulWidget {
   State<CommercialRoofSectionScreen> createState() => _CommercialRoofSectionScreenState();
  }
 
- class BuildingPricing {
-  /// Roof sections con cubierta DISTINTA a la principal de ESTE edificio.
-  final int extraRoofSections;
-  const BuildingPricing({required this.extraRoofSections});
- }
-
  class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScreen> {
   late final CommercialRoofSectionData roof;
+  bool _submitRoofOnly = false;
 
  Future<void> _showSubmissionOptions(File techPdf, File photoPdf) {
   return showSubmissionOptions(
@@ -386,43 +382,12 @@ class CommercialRoofSectionScreen extends StatefulWidget {
        // Solo Premium: almacenar + email (sin cobro HF)
         // HF Estimates por email (Basic & Premium) – aquí sí habrá cobro HF
           //--Helper price calculation function
-       double? _calculateHfEmailPrice({
-  required bool rushOrder,
-  required List<BuildingPricing> buildings,
- }) {
-  const double basePrice        = 100.0; // UNA sola vez
-  const double rushOrderFee     = 25.0;
-  const double perSectionFee    = 30.0;  // por sección extra (por edificio)
-  const double sectionsCapFee   = 120.0; // 4+ secciones extra en un edificio (fijo)
-  const double perBuildingAddon = 50.0;  // por edificio adicional (2do, 3ro)
-  const int    buildingsLimit   = 4;     // 4+ edificios → web
-
-  final int buildingsCount = buildings.length;
-  if (buildingsCount == 0) return null;
-  if (buildingsCount >= buildingsLimit) return null; // redirigir a HF web
-
-  double total = basePrice;
-
-  // Secciones de cubierta distinta, por edificio (cap 4+ por edificio = $120)
-  for (final b in buildings) {
-    if (b.extraRoofSections >= 4) {
-      total += sectionsCapFee;
-    } else if (b.extraRoofSections > 0) {
-      total += b.extraRoofSections * perSectionFee;
-    }
-  }
-
-  // Edificios adicionales (a partir del 2do, hasta 3 adicionales)
-  if (buildingsCount > 1) {
-    total += (buildingsCount - 1) * perBuildingAddon;
-  }
-
-  if (rushOrder) total += rushOrderFee;
-
-  if (widget.plan == 'basic')   total *= 0.90;
-  if (widget.plan == 'premium') total *= 0.85;
-
-  return total;
+       double? _calculateHfEmailPrice({required bool rushOrder}) {
+  return calculateCommercialHfEstimatePrice(
+    report: widget.report,
+    rushOrder: rushOrder,
+    plan: widget.plan,
+  );
  }
 
    Future<void> _sendToHfByEmail(File techPdf, File photoPdf,
@@ -436,14 +401,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
   }
 
              final messenger = ScaffoldMessenger.of(context);
-             final total = _calculateHfEmailPrice(
-  rushOrder: rushOrder,
-  buildings: widget.report.commercialBuildings.map((b) => 
-    BuildingPricing(
-      extraRoofSections: b.roofs.length,
-    )
-  ).toList(),
- );
+             final total = _calculateHfEmailPrice(rushOrder: rushOrder);
             
   showDialog(
   context: context,
@@ -496,6 +454,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
         'claimNumber': widget.report.claimNumber,
         'address': '${widget.report.address}, ${widget.report.city}, ${widget.report.state} ${widget.report.zip}',
         'dateInspected': widget.report.dateInspected,
+        'report': widget.report.toHfPricingPayload(),
         'successUrl': 'claimscope://success',
         'cancelUrl': 'claimscope://cancel',
       });
@@ -511,6 +470,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
           if (!success) {
             throw Exception("Stripe Checkout could not be opened.");
           }
+          widget.report.isBasePricePaid = true;
                } catch (e) {
       debugPrint('HF Xactimate failed: $e');
       if (mounted) {
@@ -987,6 +947,33 @@ class CommercialRoofSectionScreen extends StatefulWidget {
             ),
           ),
           const SizedBox(height: 16),
+          Builder(
+            builder: (context) {
+              final buildings = widget.report.commercialBuildings;
+              final isLastBuilding = widget.buildingIndex >= buildings.length - 1;
+              final building = buildings[widget.buildingIndex];
+              final isLastRoof = widget.roofIndex >= building.roofs.length - 1;
+              final isFinalStep = isLastBuilding && isLastRoof;
+
+              if (!isFinalStep || !widget.report.inspectElevations) {
+                return const SizedBox.shrink();
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Submit Roof inspection first/only?'),
+                    value: _submitRoofOnly,
+                    onChanged: (value) {
+                      setState(() => _submitRoofOnly = value ?? false);
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
           SizedBox(
             width: double.infinity,
             child: Builder(
@@ -1537,13 +1524,14 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                     }
 
 if (isFinalStep) {
-  if (widget.report.inspectElevations) {
+  if (widget.report.inspectElevations && !_submitRoofOnly) {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (_) => ElevationsInspectionScreen(
           report: widget.report,
           isCommercial: true,
+          plan: widget.plan,
         ),
       ),
     );
@@ -1591,7 +1579,7 @@ if (isFinalStep) {
                       );
                     }
                   },
-                  child: Text(isFinalStep ? 'Submit Inspection' : 'Save & Continue'),
+                  child: Text(isFinalStep ? (widget.report.inspectElevations ? (_submitRoofOnly ? 'Submit Inspection' : 'Save & Continue') : 'Submit Inspection') : 'Save & Continue'),
                 );
               },
             ),

@@ -5,6 +5,7 @@ const { defineSecret, defineString } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const Stripe = require("stripe");
 const nodemailer = require("nodemailer");
+const crypto = require("crypto");
 
 // 2. INICIALIZACIÓN (Solo una vez)
 admin.initializeApp();
@@ -28,6 +29,64 @@ function sanitizeAttachmentFilename(input, fallback) {
   if (!s) return fallback;
   return s.replace(/[\\/\:\*\?"<>\|]/g, "").trim() || fallback;
 }
+
+function buildHfReportKey(userId, claimNumber, address, dateInspected) {
+  const raw = [userId || "", claimNumber || "", address || "", dateInspected || ""].join("|");
+  return crypto.createHash("sha256").update(raw).digest("hex");
+}
+
+function hasNonEmptyValue(value) {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (typeof value === "boolean") return value === true;
+  if (typeof value === "number") return Number.isFinite(value) && value !== 0;
+  if (Array.isArray(value)) return value.some(hasNonEmptyValue);
+  if (typeof value === "object") return Object.values(value).some(hasNonEmptyValue);
+  return false;
+}
+
+function elevationEntryHasAnyData(entry) {
+  if (!entry || typeof entry !== "object") return false;
+  return Object.entries(entry).some(([key, value]) => {
+    if (key === "side") return false;
+    return hasNonEmptyValue(value);
+  });
+}
+
+function hasChargeableElevationDetailsFromReport(report) {
+  const elevations = report?.elevations?.elevations;
+  if (!Array.isArray(elevations)) return false;
+  return elevations.some(elevationEntryHasAnyData);
+}
+
+function applyPlanDiscount(total, plan) {
+  if (plan === "basic") return total * 0.90;
+  if (plan === "premium") return total * 0.85;
+  return total;
+}
+
+function calculateResidentialBasePrice(report) {
+  let total = 70;
+  if (report?.hasShed) total += 10;
+  if (report?.hasDetachedStructure) total += 15;
+  return total;
+}
+
+function calculateCommercialBasePrice(report) {
+  const buildings = Array.isArray(report?.commercialBuildings) ? report.commercialBuildings : [];
+  if (buildings.length === 0 || buildings.length >= 4) return null;
+
+  let total = 100;
+  for (const building of buildings) {
+    const roofSections = Array.isArray(building?.roofs) ? building.roofs.length : 0;
+    if (roofSections >= 4) total += 120;
+    else if (roofSections > 0) total += roofSections * 30;
+  }
+
+  if (buildings.length > 1) total += (buildings.length - 1) * 50;
+  return total;
+}
+
 // 4. WEBHOOK STRIPE (V2)
 exports.stripeWebhook = onRequest(
     { secrets: [stripeSecretKey, webhookSecret, emailPass] },
@@ -64,6 +123,24 @@ exports.stripeWebhook = onRequest(
     const techPdfUrl = session.metadata.techPdfUrl;
     const photoPdfUrl = session.metadata.photoPdfUrl;
     const userEmail = session.metadata.userEmail;
+
+    if (session.metadata.basePriceCharged === "true" &&
+        session.metadata.userId &&
+        session.metadata.reportKey) {
+      await admin
+        .firestore()
+        .collection("users")
+        .doc(session.metadata.userId)
+        .collection("hfEstimateBasePayments")
+        .doc(session.metadata.reportKey)
+        .set({
+          paidAt: admin.firestore.FieldValue.serverTimestamp(),
+          sessionId: session.id,
+          claimNumber: session.metadata.claimNumber || "",
+          address: session.metadata.address || "",
+          dateInspected: session.metadata.dateInspected || "",
+        }, { merge: true });
+    }
 
     const toEmail = 'contact@hfestimates.com'; // Email fijo para recibir notificaciones de pedidos
 
@@ -268,10 +345,8 @@ exports.createHfEstimatesCheckoutSession = onCall(
       techPdfUrl,
       photoPdfUrl,
       rushOrder,
-      hasShed,
-      hasDetachedStructure,
       isCommercial,
-      plan, // 'basic' o 'premium'
+      plan,
       clientName,
       claimNumber,
       address,
@@ -281,30 +356,58 @@ exports.createHfEstimatesCheckoutSession = onCall(
       cancelUrl,
     } = request.data;
 
+    const report = request.data.report || {};
+
     if (!techPdfUrl || !photoPdfUrl) {
       throw new HttpsError("invalid-argument", "Faltan URLs de PDFs.");
     }
 
     const stripeClient = Stripe(stripeSecretKey.value());
+    const userId = request.auth.uid;
+    const reportKey = buildHfReportKey(userId, claimNumber, address, dateInspected);
+    const basePaymentRef = admin
+      .firestore()
+      .collection("users")
+      .doc(userId)
+      .collection("hfEstimateBasePayments")
+      .doc(reportKey);
 
-    // ----- Pricing (USD) -----
-    const basePrice = 70;
-    const shedAddon = 10;
-    const structureAddon = 15;
-    const rushFee = 15;
-    const commercialExtra = 20;
+    const basePaymentSnap = await basePaymentRef.get();
+    const baseAlreadyPaid = basePaymentSnap.exists;
+    const chargeableElevations = hasChargeableElevationDetailsFromReport(report);
 
-    let total = basePrice;
-    if (hasShed) total += shedAddon;
-    if (hasDetachedStructure) total += structureAddon;
-    if (isCommercial) total += commercialExtra;
-    if (rushOrder) total += rushFee;
+    const residentialRushFee = 15;
+    const commercialRushFee = 25;
+    const elevationsAddon = 55;
 
-    // Discounts: basic 10%, premium 15%
-    if (plan === "basic") total *= 0.90;
-    if (plan === "premium") total *= 0.85;
+    let total = 0;
+    let basePriceCharged = false;
 
-    // Stripe requiere centavos como entero
+    if (!baseAlreadyPaid) {
+      const baseTotal = isCommercial
+        ? calculateCommercialBasePrice(report)
+        : calculateResidentialBasePrice(report);
+
+      if (baseTotal === null) {
+        throw new HttpsError(
+          "failed-precondition",
+          "This commercial report requires a custom HF Estimates order."
+        );
+      }
+
+      total += baseTotal;
+      basePriceCharged = true;
+    }
+
+    if (chargeableElevations) total += elevationsAddon;
+    if (rushOrder) total += isCommercial ? commercialRushFee : residentialRushFee;
+
+    total = applyPlanDiscount(total, plan);
+
+    if (total <= 0) {
+      throw new HttpsError("failed-precondition", "No payable HF Estimates items were detected.");
+    }
+
     const amountCents = Math.round(total * 100);
 
     const session = await stripeClient.checkout.sessions.create({
@@ -330,13 +433,18 @@ exports.createHfEstimatesCheckoutSession = onCall(
 
       metadata: {
         kind: "hf_estimate_email",
+        userId,
+        reportKey,
+        basePriceCharged: basePriceCharged ? "true" : "false",
+        baseAlreadyPaid: baseAlreadyPaid ? "true" : "false",
+        chargeableElevations: chargeableElevations ? "true" : "false",
         techPdfUrl,
         photoPdfUrl,
         userEmail: userEmail || request.auth.token.email || "",
         plan: plan || "",
         rushOrder: rushOrder ? "true" : "false",
-        hasShed: hasShed ? "true" : "false",
-        hasDetachedStructure: hasDetachedStructure ? "true" : "false",
+        hasShed: report?.hasShed ? "true" : "false",
+        hasDetachedStructure: report?.hasDetachedStructure ? "true" : "false",
         isCommercial: isCommercial ? "true" : "false",
         clientName: clientName || "",
         claimNumber: claimNumber || "",
@@ -348,6 +456,7 @@ exports.createHfEstimatesCheckoutSession = onCall(
     return { url: session.url };
   }
 );
+
 //5.2 Create Xactimate API Checkout Session (Placeholder)
 //Xactimate code removed from project
 exports.createHfEstimatesXactimateCheckoutSession = onCall(

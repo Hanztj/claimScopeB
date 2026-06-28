@@ -15,6 +15,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:claimscope_clean/screens/my_reports_screen.dart';
  // Para ArchiveFile y ZipEncoder
 import 'package:claimscope_clean/utils/labeled_photos_zip.dart';
+import 'package:claimscope_clean/utils/hf_pricing_helper.dart';
 import 'package:claimscope_clean/catalogs/roof_catalog.dart';
 import 'package:claimscope_clean/catalogs/roof_components_catalog.dart';
 import 'package:claimscope_clean/screens/residential/hubs/residential_shingles_hub.dart';
@@ -395,30 +396,12 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
         // HF Estimates por email (Basic & Premium) – aquí sí habrá cobro HF
           //--Helper price calculation function
         double _calculateHfEmailPrice({required bool rushOrder}) {
-    
-                          const double basePrice = 70.0;        // precio base por roof estimate
-                          const double shedAddon = 10.0;        // extra si hay shed
-                          const double structureAddon = 15.0;   // extra si hay estructura grande
-                          const double rushFee = 15.0;          // rush order
-                          const double commercialExtra = 20.0;  // extra para comercial
-  
-                                double total = basePrice;
-  
-                                if (hasShed) {total += shedAddon;
-                                }
-                                if (hasDetachedStructure) {total += structureAddon;
-                                }
-                                if (widget.isCommercial) {total += commercialExtra;
-                                }
-                                if (rushOrder) {total += rushFee;
-                                }
-  
-                          // Descuento 10% para el plan básico, 15% para el premium (aplicado al total después de sumar addons y rush)
-                            if (widget.plan == 'basic') total *= 0.90;   // 10%
-                            if (widget.plan == 'premium') total *= 0.85; // 15% total
-  
-                              return total;
-                              }
+          return calculateResidentialHfEstimatePrice(
+            report: widget.report,
+            rushOrder: rushOrder,
+            plan: widget.plan,
+          );
+        }
 
    Future<void> _sendToHfByEmail(File techPdf, File photoPdf,
         {required bool rushOrder}) async{  
@@ -480,6 +463,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
     'claimNumber': widget.report.claimNumber,
     'address': '${widget.report.address}, ${widget.report.city}, ${widget.report.state} ${widget.report.zip}',
     'dateInspected': widget.report.dateInspected,
+    'report': widget.report.toHfPricingPayload(),
     'successUrl': 'claimscope://success',
     'cancelUrl': 'claimscope://cancel',
   });
@@ -494,6 +478,7 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
           if (!success) {
             throw Exception("Stripe Checkout could not be opened.");
           }
+          widget.report.isBasePricePaid = true;
                } catch (e) {
       debugPrint('Send to HF failed: $e');
       if (mounted) {
@@ -2062,6 +2047,7 @@ rollExposure: rollExposure,
                 ResidentialFacetInspectionHub(
                   setState: setState,
                   report: widget.report,
+                  plan: widget.plan,
                   roofCoverType: roofCoverType,
                   facets: _facets,
                   currentFacetIndex: _currentFacetIndex,

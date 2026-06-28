@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:claimscope_clean/roof_inspection_form.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -92,7 +93,8 @@ if (!inspectRoof) {
       MaterialPageRoute(
         builder: (_) => ElevationsInspectionScreen(
           report: report,
-          isCommercial: !isResidential, // ✅ Agregamos el parámetro requerido
+          isCommercial: !isResidential,
+          plan: normalizedPlan,
         ),
       ),
     );
@@ -458,7 +460,14 @@ if (!inspectRoof) {
               TextFormField(
                 controller: zip,
                 decoration: const InputDecoration(labelText: 'Zip Code *'),
-                validator: (v) => v!.isEmpty ? 'Required' : null,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                validator: (v) {
+                  final value = v?.trim() ?? '';
+                  if (value.isEmpty) return 'Required';
+                  if (value.length < 5) return 'Zip Code must be at least 5 digits';
+                  return null;
+                },
               ),
               const SizedBox(height: 20),
               const Text(
