@@ -54,6 +54,9 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
   // ─── Controllers por Window (gestionados por id de instancia) ─────────
   final Map<WindowEntry, _WindowControllers> _windowCtl = {};
 
+  // ─── Controllers por Door (gestionados por id de instancia) ───────────
+  final Map<DoorEntry, _DoorControllers> _doorCtl = {};
+
   final _picker = ImagePicker();
   
   SidingDamagesData get _s => widget.elevation.siding;
@@ -62,6 +65,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
   EifsData get _eifs => widget.elevation.eifs;
   List<TrimEntry> get _trims => widget.elevation.trims;
   List<WindowEntry> get _windows => widget.elevation.windows;
+  List<DoorEntry> get _doors => widget.elevation.doors;
 
   @override
   void initState() {
@@ -84,6 +88,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     _eifsNotes = TextEditingController(text: _eifs.additionalNotes);
     _syncTrimControllers();
     _syncWindowControllers();
+    _syncDoorControllers();
   }
 
   void _clearSiding() {
@@ -184,6 +189,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
       _eifsNotes.text = _eifs.additionalNotes;
       _syncTrimControllers();
       _syncWindowControllers();
+      _syncDoorControllers();
     }
   }
 
@@ -211,6 +217,20 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     }
   }
 
+
+  /// Garantiza que exista un `_DoorControllers` por cada `DoorEntry` actual
+  /// y descarta los que ya no están presentes. Idempotente.
+  void _syncDoorControllers() {
+    for (final d in _doors) {
+      _doorCtl.putIfAbsent(d, () => _DoorControllers.from(d));
+    }
+    _doorCtl.removeWhere((door, controllers) {
+      final stale = !_doors.contains(door);
+      if (stale) controllers.dispose();
+      return stale;
+    });
+  }
+
   @override
   void dispose() {
     for (final c in [
@@ -236,6 +256,9 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     }
     for (final wc in _windowCtl.values) {
       wc.dispose();
+    }
+    for (final dc in _doorCtl.values) {
+      dc.dispose();
     }
     super.dispose();
   }
@@ -311,20 +334,18 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
         const SizedBox(height: 8),
         _buildWindowSection(),
         const SizedBox(height: 8),
-        // Placeholders compilables para próximas secciones (pasos 7+)
-        for (final s in const [
-          'Doors',
-          'Accessories',
-        ])
-          Card(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: ListTile(
-              leading: const Icon(Icons.construction_outlined),
-              title: Text(s),
-              subtitle: const Text('Coming in next steps'),
-              dense: true,
-            ),
+        _buildDoorSection(),
+        const SizedBox(height: 8),
+        // Placeholder compilable para próximas secciones
+        Card(
+          margin: const EdgeInsets.only(bottom: 8),
+          child: const ListTile(
+            leading: Icon(Icons.construction_outlined),
+            title: Text('Accessories'),
+            subtitle: Text('Coming in next steps'),
+            dense: true,
           ),
+        ),
       ],
     );
   }
@@ -2069,6 +2090,724 @@ if (extra && mounted) {
     }
   }
 
+
+
+  // =====================================================================
+  // ADD DOOR — patrón visual idéntico a Windows/Trim
+  // =====================================================================
+  Widget _buildDoorSection() {
+    return Column(
+      children: [
+        const SizedBox(height: 8),
+        const Text(
+          'Doors',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+        const Divider(),
+        for (var i = 0; i < _doors.length; i++) _buildDoorCard(i),
+        ElevatedButton(
+          onPressed: () => setState(_addDoorRaw),
+          child: const Text('Add Door'),
+        ),
+      ],
+    );
+  }
+
+  void _addDoorRaw() {
+    final d = DoorEntry();
+    _doors.add(d);
+    _doorCtl[d] = _DoorControllers.from(d);
+    _mark();
+  }
+
+  void _removeDoor(int i) {
+    final d = _doors.removeAt(i);
+    _doorCtl.remove(d)?.dispose();
+    setState(_mark);
+  }
+
+
+  Widget _buildDoorCard(int i) {
+    final d = _doors[i];
+    final c = _doorCtl.putIfAbsent(d, () => _DoorControllers.from(d));
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Door ${i + 1}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () => _removeDoor(i),
+                ),
+              ],
+            ),
+            _dropdown(
+              label: 'Door / Type',
+              value: d.doorType,
+              options: const [
+                'Sliding Patio Door',
+                'Exterior Door / Entry Door',
+                'Garage Door',
+                'Storefront door',
+                'Roll-up Door',
+              ],
+              onChanged: (v) => setState(() {
+                d.doorType = v ?? '';
+                _clearDoorTypeDependentFields(d, c);
+                _mark();
+              }),
+            ),
+            if (d.doorType == 'Sliding Patio Door') ..._buildSlidingPatioDoorFields(d, c),
+            if (d.doorType == 'Exterior Door / Entry Door') ..._buildEntryDoorFields(d, c),
+            if (d.doorType == 'Garage Door') ..._buildGarageDoorFields(d, c),
+            if (d.doorType == 'Storefront door') ..._buildStorefrontDoorFields(d, c),
+            if (d.doorType == 'Roll-up Door') ..._buildRollupDoorFields(d, c),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildSlidingPatioDoorFields(
+    DoorEntry d,
+    _DoorControllers c,
+  ) {
+    return [
+      const SizedBox(height: 8),
+      _dropdown(
+        label: 'Material',
+        value: d.patioMaterial,
+        options: const ['Vinyl', 'Aluminum', 'Wood', 'Fiberglass'],
+        onChanged: (v) => setState(() {
+          d.patioMaterial = v ?? '';
+          if (d.patioMaterial != 'Aluminum') {
+            d.patioAluminumFinish = '';
+          }
+          _mark();
+        }),
+      ),
+      if (d.patioMaterial == 'Aluminum') ...[
+        const SizedBox(height: 8),
+        _dropdown(
+          label: 'Aluminum Finish',
+          value: d.patioAluminumFinish,
+          options: const ['Anodized', 'White', 'Bronze'],
+          onChanged: (v) => setState(() {
+            d.patioAluminumFinish = v ?? '';
+            _mark();
+          }),
+        ),
+      ],
+      const SizedBox(height: 8),
+      _dropdown(
+        label: 'Stile',
+        value: d.patioStyle,
+        options: const ['Average', 'High grade'],
+        onChanged: (v) => setState(() {
+          d.patioStyle = v ?? '';
+          _mark();
+        }),
+      ),
+      const SizedBox(height: 8),
+      _dropdown(
+        label: 'Size',
+        value: d.patioSize,
+        options: const [
+          '5-0/6-8',
+          '5-0/8-0',
+          '6-0/6-8',
+          '6-0/8-0',
+          '8-0/6-8',
+          '8-0/8-0',
+          '10-0/6-8',
+          '10-0/8-0',
+          '12-0/6-8',
+          '12-0/8-0',
+        ],
+        onChanged: (v) => setState(() {
+          d.patioSize = v ?? '';
+          _mark();
+        }),
+      ),
+      const SizedBox(height: 8),
+      _dropdown(
+        label: 'Scope of work',
+        value: d.patioScopeOfWork,
+        options: const [
+          'Replace',
+          'D&R / Detach & Reset',
+          'Replacement Glass Only',
+        ],
+        onChanged: (v) => setState(() {
+          d.patioScopeOfWork = v ?? '';
+          _mark();
+        }),
+      ),
+      ..._buildDoorNotesAndPhotos(
+        d: d,
+        c: c,
+        takePhotoLabel: 'Take Sliding Patio Door Photo',
+        extraPhotoLabel: 'Add extra Sliding Patio Door photo',
+      ),
+    ];
+  }
+
+  List<Widget> _buildEntryDoorFields(
+    DoorEntry d,
+    _DoorControllers c,
+  ) {
+    final isStormDoor = d.entryDoorType == 'Storm Door';
+    final isSingleExteriorDoor = d.entryDoorType == 'Single Exterior Door';
+
+    return [
+      const SizedBox(height: 8),
+      _dropdown(
+        label: 'Entry/Exterior Door',
+        value: d.entryDoorType,
+        options: const [
+          'Single Exterior Door',
+          'Double Exterior Door',
+          'Storm Door',
+        ],
+        onChanged: (v) => setState(() {
+          d.entryDoorType = v ?? '';
+          if (d.entryDoorType == 'Storm Door') {
+            d.isFrenchDoor = false;
+            d.hasLite = false;
+            d.liteType = '';
+            d.liteScopeOfWork = '';
+          }
+          if (d.entryDoorType != 'Single Exterior Door') {
+            d.hasScreen = false;
+            d.screenScopeOfWork = '';
+          }
+          _mark();
+        }),
+      ),
+      const SizedBox(height: 8),
+      _dropdown(
+        label: 'Material',
+        value: d.entryMaterial,
+        options: const ['Metal', 'Wood'],
+        onChanged: (v) => setState(() {
+          d.entryMaterial = v ?? '';
+          _mark();
+        }),
+      ),
+      const SizedBox(height: 8),
+      _dropdown(
+        label: 'Style',
+        value: d.entryStyle,
+        options: const ['High grade', 'Premium grade', 'Deluxe grade'],
+        onChanged: (v) => setState(() {
+          d.entryStyle = v ?? '';
+          _mark();
+        }),
+      ),
+      if (!isStormDoor)
+        _checkbox('Is a French Door?', d.isFrenchDoor, (v) {
+          setState(() {
+            d.isFrenchDoor = v;
+            _mark();
+          });
+        }),
+      const SizedBox(height: 8),
+      _dropdown(
+        label: 'Scope of work',
+        value: d.entryScopeOfWork,
+        options: const [
+          'Replace All',
+          'Replace Slab only',
+          'Frame & trim only',
+          'Detach & Reset',
+        ],
+        onChanged: (v) => setState(() {
+          d.entryScopeOfWork = v ?? '';
+          _mark();
+        }),
+      ),
+      if (!isStormDoor) ...[
+        _checkbox('Has lite?', d.hasLite, (v) {
+          setState(() {
+            d.hasLite = v;
+            if (!v) {
+              d.liteType = '';
+              d.liteScopeOfWork = '';
+            }
+            _mark();
+          });
+        }),
+        if (d.hasLite) ...[
+          const SizedBox(height: 8),
+          _dropdown(
+            label: 'Lite Type',
+            value: d.liteType,
+            options: const ['Side lite', 'Full lite', 'Half lite'],
+            onChanged: (v) => setState(() {
+              d.liteType = v ?? '';
+              _mark();
+            }),
+          ),
+          const SizedBox(height: 8),
+          _dropdown(
+            label: 'Lite Scope of work',
+            value: d.liteScopeOfWork,
+            options: const ['Replace', 'Detach & reset', 'No action required'],
+            onChanged: (v) => setState(() {
+              d.liteScopeOfWork = v ?? '';
+              _mark();
+            }),
+          ),
+        ],
+      ],
+      if (isSingleExteriorDoor) ...[
+        _checkbox('Has Screen?', d.hasScreen, (v) {
+          setState(() {
+            d.hasScreen = v;
+            if (!v) d.screenScopeOfWork = '';
+            _mark();
+          });
+        }),
+        if (d.hasScreen) ...[
+          const SizedBox(height: 8),
+          _dropdown(
+            label: 'Screen Scope of work',
+            value: d.screenScopeOfWork,
+            options: const ['Replace', 'Detach & reset', 'No action required'],
+            onChanged: (v) => setState(() {
+              d.screenScopeOfWork = v ?? '';
+              _mark();
+            }),
+          ),
+        ],
+      ],
+      const SizedBox(height: 8),
+      _textField(
+        controller: c.entryQuantity,
+        label: 'Quantity',
+        hintText: 'Qty of doors with these exact specs',
+        onChanged: (v) {
+          d.entryQuantity = v;
+          _mark();
+        },
+      ),
+      ..._buildDoorNotesAndPhotos(
+        d: d,
+        c: c,
+        takePhotoLabel: 'Take Exterior Door Photo',
+        extraPhotoLabel: 'Add extra Exterior Door photo',
+      ),
+    ];
+  }
+
+  List<Widget> _buildGarageDoorFields(
+    DoorEntry d,
+    _DoorControllers c,
+  ) {
+    return [
+      const SizedBox(height: 8),
+      _dropdown(
+        label: 'Style',
+        value: d.garageStyle,
+        options: const [
+          'Standard grade',
+          'High grade',
+          'Premium grade',
+          'Deluxe grade',
+        ],
+        onChanged: (v) => setState(() {
+          d.garageStyle = v ?? '';
+          _mark();
+        }),
+      ),
+      _checkbox('With Windows', d.garageWithWindows, (v) {
+        setState(() {
+          d.garageWithWindows = v;
+          if (!v) {
+            d.garageWindowsCount = '';
+            c.garageWindowsCount.clear();
+          }
+          _mark();
+        });
+      }),
+      if (d.garageWithWindows) ...[
+        const SizedBox(height: 8),
+        _textField(
+          controller: c.garageWindowsCount,
+          label: 'How many?',
+          onChanged: (v) {
+            d.garageWindowsCount = v;
+            _mark();
+          },
+        ),
+      ],
+      const SizedBox(height: 8),
+      _dropdown(
+        label: 'Garage Door Size',
+        value: d.garageDoorSize,
+        options: const [
+          '8x7',
+          '8x8',
+          '8x9',
+          '8x10',
+          '8x11',
+          '8x12',
+          '9x7',
+          '9x8',
+          '9x10',
+          '9x11',
+          '9x12',
+          '10x7',
+          '10x8',
+          '10x9',
+          '10x11',
+          '10x12',
+          '12x7',
+          '12x8',
+          '16x7',
+          '16x8',
+          '18x7',
+          '18x8',
+        ],
+        onChanged: (v) => setState(() {
+          d.garageDoorSize = v ?? '';
+          _mark();
+        }),
+      ),
+      const SizedBox(height: 8),
+      _dropdown(
+        label: 'Scope of work',
+        value: d.garageScopeOfWork,
+        options: const [
+          'Replace',
+          'Replace windows only',
+          'Panel Only / Section Replacement',
+          'Detach & Reset',
+        ],
+        onChanged: (v) => setState(() {
+          d.garageScopeOfWork = v ?? '';
+          if (d.garageScopeOfWork != 'Panel Only / Section Replacement') {
+            d.garagePanelSectionCount = '';
+            c.garagePanelSectionCount.clear();
+          }
+          _mark();
+        }),
+      ),
+      if (d.garageScopeOfWork == 'Panel Only / Section Replacement') ...[
+        const SizedBox(height: 8),
+        _textField(
+          controller: c.garagePanelSectionCount,
+          label: 'How many?',
+          onChanged: (v) {
+            d.garagePanelSectionCount = v;
+            _mark();
+          },
+        ),
+      ],
+      ..._buildDoorNotesAndPhotos(
+        d: d,
+        c: c,
+        takePhotoLabel: 'Take Garage Door Photo',
+        extraPhotoLabel: 'Add extra Garage Door photo',
+      ),
+    ];
+  }
+
+  List<Widget> _buildStorefrontDoorFields(
+    DoorEntry d,
+    _DoorControllers c,
+  ) {
+    return [
+      _checkbox('Sliding door?', d.storefrontSlidingDoor, (v) {
+        setState(() {
+          d.storefrontSlidingDoor = v;
+          _mark();
+        });
+      }),
+      _checkbox('Oversize?', d.storefrontOversize, (v) {
+        setState(() {
+          d.storefrontOversize = v;
+          if (!v) {
+            d.storefrontOversizeInputSize = '';
+            c.storefrontOversizeInputSize.clear();
+          }
+          _mark();
+        });
+      }),
+      if (d.storefrontOversize) ...[
+        const SizedBox(height: 8),
+        _textField(
+          controller: c.storefrontOversizeInputSize,
+          label: 'Input size',
+          onChanged: (v) {
+            d.storefrontOversizeInputSize = v;
+            _mark();
+          },
+        ),
+      ],
+      const SizedBox(height: 8),
+      _dropdown(
+        label: 'Type',
+        value: d.storefrontType,
+        options: const [
+          'Aluminum anodized frame',
+          'Bronze anodized frame',
+          'Hardwood veneer frame',
+          'Single pane',
+          'Double pane',
+        ],
+        onChanged: (v) => setState(() {
+          d.storefrontType = v ?? '';
+          _mark();
+        }),
+      ),
+      _checkbox('Curved?', d.storefrontCurved, (v) {
+        setState(() {
+          d.storefrontCurved = v;
+          _mark();
+        });
+      }),
+      const SizedBox(height: 8),
+      _dropdown(
+        label: 'Scope of work',
+        value: d.storefrontScopeOfWork,
+        options: const [
+          'Replace',
+          'D&R / Detach & Reset',
+          'Replacement Glass Only',
+        ],
+        onChanged: (v) => setState(() {
+          d.storefrontScopeOfWork = v ?? '';
+          _mark();
+        }),
+      ),
+      ..._buildDoorNotesAndPhotos(
+        d: d,
+        c: c,
+        takePhotoLabel: 'Take Storefront Door Photo',
+        extraPhotoLabel: 'Add extra Storefront Door photo',
+      ),
+    ];
+  }
+
+  List<Widget> _buildRollupDoorFields(
+    DoorEntry d,
+    _DoorControllers c,
+  ) {
+    return [
+      const SizedBox(height: 8),
+      _dropdown(
+        label: 'Material Door Gauge',
+        value: d.rollupGauge,
+        options: const ['22 gauge', '26 gauge', 'Other'],
+        onChanged: (v) => setState(() {
+          d.rollupGauge = v ?? '';
+          if (d.rollupGauge != 'Other') {
+            d.rollupGaugeOtherSpecify = '';
+            c.rollupGaugeOtherSpecify.clear();
+          }
+          _mark();
+        }),
+      ),
+      if (d.rollupGauge == 'Other') ...[
+        const SizedBox(height: 8),
+        _textField(
+          controller: c.rollupGaugeOtherSpecify,
+          label: 'Specify',
+          onChanged: (v) {
+            d.rollupGaugeOtherSpecify = v;
+            _mark();
+          },
+        ),
+      ],
+      const SizedBox(height: 8),
+      _dropdown(
+        label: 'Roll-up Door Size',
+        value: d.rollupSize,
+        options: const [
+          '4x8',
+          '8x8',
+          '8x10',
+          '10x8',
+          '10x10',
+          '10x12',
+          '10x14',
+          '10x16',
+          '10x18',
+          '12x10',
+          '12x12',
+          '12x14',
+          '12x16',
+          '12x18',
+          '14x12',
+          '14x14',
+          '14x16',
+          '14x18',
+          'Other',
+        ],
+        onChanged: (v) => setState(() {
+          d.rollupSize = v ?? '';
+          if (d.rollupSize != 'Other') {
+            d.rollupSizeOtherSpecify = '';
+            c.rollupSizeOtherSpecify.clear();
+          }
+          _mark();
+        }),
+      ),
+      if (d.rollupSize == 'Other') ...[
+        const SizedBox(height: 8),
+        _textField(
+          controller: c.rollupSizeOtherSpecify,
+          label: 'Specify',
+          onChanged: (v) {
+            d.rollupSizeOtherSpecify = v;
+            _mark();
+          },
+        ),
+      ],
+      const SizedBox(height: 8),
+      _dropdown(
+        label: 'Scope of Work',
+        value: d.rollupScopeOfWork,
+        options: const ['Replace', 'D&R'],
+        onChanged: (v) => setState(() {
+          d.rollupScopeOfWork = v ?? '';
+          _mark();
+        }),
+      ),
+      ..._buildDoorNotesAndPhotos(
+        d: d,
+        c: c,
+        takePhotoLabel: 'Take Roll-up Door Photo',
+        extraPhotoLabel: 'Add extra Roll-up Door photo',
+      ),
+    ];
+  }
+
+  List<Widget> _buildDoorNotesAndPhotos({
+    required DoorEntry d,
+    required _DoorControllers c,
+    required String takePhotoLabel,
+    required String extraPhotoLabel,
+  }) {
+    return [
+      const SizedBox(height: 8),
+      _notesField(c.additionalNotes, (v) {
+        d.additionalNotes = v;
+        _mark();
+      }),
+      const SizedBox(height: 8),
+      ElevatedButton(
+        onPressed: () => _pickDoorPhoto(d, extra: false),
+        child: Text(takePhotoLabel),
+      ),
+      TextButton(
+        onPressed: () => _pickDoorPhoto(d, extra: true),
+        child: Text(extraPhotoLabel),
+      ),
+      if (d.photo != null)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Image.file(d.photo!, height: 100, cacheWidth: 300),
+        ),
+    ];
+  }
+
+  void _clearDoorTypeDependentFields(
+    DoorEntry d,
+    _DoorControllers c,
+  ) {
+    d.entryDoorType = '';
+    d.entryMaterial = '';
+    d.entryStyle = '';
+    d.isFrenchDoor = false;
+    d.entryScopeOfWork = '';
+    d.hasLite = false;
+    d.liteType = '';
+    d.liteScopeOfWork = '';
+    d.hasScreen = false;
+    d.screenScopeOfWork = '';
+    d.entryQuantity = '';
+    d.patioMaterial = '';
+    d.patioAluminumFinish = '';
+    d.patioStyle = '';
+    d.patioSize = '';
+    d.patioScopeOfWork = '';
+    d.garageStyle = '';
+    d.garageWithWindows = false;
+    d.garageWindowsCount = '';
+    d.garageDoorSize = '';
+    d.garageScopeOfWork = '';
+    d.garagePanelSectionCount = '';
+    d.rollupGauge = '';
+    d.rollupGaugeOtherSpecify = '';
+    d.rollupSize = '';
+    d.rollupSizeOtherSpecify = '';
+    d.rollupScopeOfWork = '';
+    d.storefrontSlidingDoor = false;
+    d.storefrontOversize = false;
+    d.storefrontOversizeInputSize = '';
+    d.storefrontType = '';
+    d.storefrontCurved = false;
+    d.storefrontScopeOfWork = '';
+    d.additionalNotes = '';
+    c.clear();
+  }
+
+  Future<void> _pickDoorPhoto(DoorEntry d, {required bool extra}) async {
+    final picked = await _picker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: 1024,
+      imageQuality: 75,
+      preferredCameraDevice: CameraDevice.rear,
+    );
+    if (picked == null) return;
+
+    final file = File(picked.path);
+    final n = _nextElevationPhotoIndex('Door');
+
+    widget.report.addPhoto(
+      file,
+      buildElevationsPhotoLabel(
+        elev: widget.elevation.side.display,
+        category: 'Door',
+        label: 'Photo $n',
+      ),
+    );
+
+    setState(() {
+      if (extra) {
+        d.extraPhoto = file;
+      } else {
+        d.photo = file;
+      }
+      _mark();
+    });
+
+    if (extra && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Photo stored'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   // =====================================================================
   // HELPERS UI
   // =====================================================================
@@ -2229,4 +2968,43 @@ class _WindowControllers {
     shuttersMaterialSpecify.dispose(); // <-- LIMPIADO PARA EVITAR FUGAS DE MEMORIA
     additionalNotes.dispose(); 
   } 
+}
+// ─── Controllers por DoorEntry ────────────────────────────────────────
+class _DoorControllers {
+  final TextEditingController entryQuantity;
+  final TextEditingController garageWindowsCount;
+  final TextEditingController garagePanelSectionCount;
+  final TextEditingController rollupGaugeOtherSpecify;
+  final TextEditingController rollupSizeOtherSpecify;
+  final TextEditingController storefrontOversizeInputSize;
+  final TextEditingController additionalNotes;
+
+  _DoorControllers.from(DoorEntry d)
+      : entryQuantity = TextEditingController(text: d.entryQuantity),
+        garageWindowsCount = TextEditingController(text: d.garageWindowsCount),
+        garagePanelSectionCount = TextEditingController(text: d.garagePanelSectionCount),
+        rollupGaugeOtherSpecify = TextEditingController(text: d.rollupGaugeOtherSpecify),
+        rollupSizeOtherSpecify = TextEditingController(text: d.rollupSizeOtherSpecify),
+        storefrontOversizeInputSize = TextEditingController(text: d.storefrontOversizeInputSize),
+        additionalNotes = TextEditingController(text: d.additionalNotes);
+
+  void clear() {
+    entryQuantity.clear();
+    garageWindowsCount.clear();
+    garagePanelSectionCount.clear();
+    rollupGaugeOtherSpecify.clear();
+    rollupSizeOtherSpecify.clear();
+    storefrontOversizeInputSize.clear();
+    additionalNotes.clear();
+  }
+
+  void dispose() {
+    entryQuantity.dispose();
+    garageWindowsCount.dispose();
+    garagePanelSectionCount.dispose();
+    rollupGaugeOtherSpecify.dispose();
+    rollupSizeOtherSpecify.dispose();
+    storefrontOversizeInputSize.dispose();
+    additionalNotes.dispose();
+  }
 }

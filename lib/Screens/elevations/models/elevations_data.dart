@@ -686,42 +686,179 @@ class WindowEntry {
 }
 
 class DoorEntry {
-  DoorEntry(); 
+  DoorEntry();
 
-  String type = '';          // Entry, Patio, Sliding, Garage, Other
-  String typeOther = '';
-  String material = '';      // Steel, Fiberglass, Wood, Aluminum, Other
-  String materialOther = '';
-  String size = '';
-  int qty = 0;
-  String condition = '';
-  String notes = '';
-  File? photoBefore;
-  File? photoAfter;
-  File? photoCloseup;
+  String doorType = '';
+  File? photo;
+  File? extraPhoto;
+
+  // Exterior Door / Entry Door
+  String entryDoorType = '';
+  String entryMaterial = '';
+  String entryStyle = '';
+  bool isFrenchDoor = false;
+  String entryScopeOfWork = '';
+  bool hasLite = false;
+  String liteType = '';
+  String liteScopeOfWork = '';
+  bool hasScreen = false;
+  String screenScopeOfWork = '';
+  String entryQuantity = '';
+
+  // Sliding Patio Door
+  String patioMaterial = '';
+  String patioAluminumFinish = '';
+  String patioStyle = '';
+  String patioSize = '';
+  String patioScopeOfWork = '';
+
+  // Garage Door
+  String garageStyle = '';
+  bool garageWithWindows = false;
+  String garageWindowsCount = '';
+  String garageDoorSize = '';
+  String garageScopeOfWork = '';
+  String garagePanelSectionCount = '';
+
+  // Roll-up Door
+  String rollupGauge = '';
+  String rollupGaugeOtherSpecify = '';
+  String rollupSize = '';
+  String rollupSizeOtherSpecify = '';
+  String rollupScopeOfWork = '';
+
+  // Storefront door
+  bool storefrontSlidingDoor = false;
+  bool storefrontOversize = false;
+  String storefrontOversizeInputSize = '';
+  String storefrontType = '';
+  bool storefrontCurved = false;
+  String storefrontScopeOfWork = '';
+
+  String additionalNotes = '';
+
+  bool get hasAnyData =>
+      doorType.isNotEmpty ||
+      photo != null ||
+      extraPhoto != null ||
+      entryDoorType.isNotEmpty ||
+      entryMaterial.isNotEmpty ||
+      entryStyle.isNotEmpty ||
+      isFrenchDoor ||
+      entryScopeOfWork.isNotEmpty ||
+      hasLite ||
+      liteType.isNotEmpty ||
+      liteScopeOfWork.isNotEmpty ||
+      hasScreen ||
+      screenScopeOfWork.isNotEmpty ||
+      entryQuantity.isNotEmpty ||
+      patioMaterial.isNotEmpty ||
+      patioAluminumFinish.isNotEmpty ||
+      patioStyle.isNotEmpty ||
+      patioSize.isNotEmpty ||
+      patioScopeOfWork.isNotEmpty ||
+      garageStyle.isNotEmpty ||
+      garageWithWindows ||
+      garageWindowsCount.isNotEmpty ||
+      garageDoorSize.isNotEmpty ||
+      garageScopeOfWork.isNotEmpty ||
+      garagePanelSectionCount.isNotEmpty ||
+      rollupGauge.isNotEmpty ||
+      rollupGaugeOtherSpecify.isNotEmpty ||
+      rollupSize.isNotEmpty ||
+      rollupSizeOtherSpecify.isNotEmpty ||
+      rollupScopeOfWork.isNotEmpty ||
+      storefrontSlidingDoor ||
+      storefrontOversize ||
+      storefrontOversizeInputSize.isNotEmpty ||
+      storefrontType.isNotEmpty ||
+      storefrontCurved ||
+      storefrontScopeOfWork.isNotEmpty ||
+      additionalNotes.isNotEmpty;
 
   Map<String, dynamic> toJson() => {
-        'type': type, 'typeOther': typeOther,
-        'material': material, 'materialOther': materialOther,
-        'size': size, 'qty': qty,
-        'condition': condition, 'notes': notes,
-        'photoBefore': FileHelper.fileToPath(photoBefore),
-        'photoAfter': FileHelper.fileToPath(photoAfter),
-        'photoCloseup': FileHelper.fileToPath(photoCloseup),
+        'doorType': doorType,
+        'photo': FileHelper.fileToPath(photo),
+        'extraPhoto': FileHelper.fileToPath(extraPhoto),
+        'entryDoorType': entryDoorType,
+        'entryMaterial': entryMaterial,
+        'entryStyle': entryStyle,
+        'isFrenchDoor': isFrenchDoor,
+        'entryScopeOfWork': entryScopeOfWork,
+        'hasLite': hasLite,
+        'liteType': liteType,
+        'liteScopeOfWork': liteScopeOfWork,
+        'hasScreen': hasScreen,
+        'screenScopeOfWork': screenScopeOfWork,
+        'entryQuantity': entryQuantity,
+        'patioMaterial': patioMaterial,
+        'patioAluminumFinish': patioAluminumFinish,
+        'patioStyle': patioStyle,
+        'patioSize': patioSize,
+        'patioScopeOfWork': patioScopeOfWork,
+        'garageStyle': garageStyle,
+        'garageWithWindows': garageWithWindows,
+        'garageWindowsCount': garageWindowsCount,
+        'garageDoorSize': garageDoorSize,
+        'garageScopeOfWork': garageScopeOfWork,
+        'garagePanelSectionCount': garagePanelSectionCount,
+        'rollupGauge': rollupGauge,
+        'rollupGaugeOtherSpecify': rollupGaugeOtherSpecify,
+        'rollupSize': rollupSize,
+        'rollupSizeOtherSpecify': rollupSizeOtherSpecify,
+        'rollupScopeOfWork': rollupScopeOfWork,
+        'storefrontSlidingDoor': storefrontSlidingDoor,
+        'storefrontOversize': storefrontOversize,
+        'storefrontOversizeInputSize': storefrontOversizeInputSize,
+        'storefrontType': storefrontType,
+        'storefrontCurved': storefrontCurved,
+        'storefrontScopeOfWork': storefrontScopeOfWork,
+        'additionalNotes': additionalNotes,
       };
 
-  factory DoorEntry.fromJson(Map<String, dynamic> j) => DoorEntry()
-    ..type = j['type'] as String? ?? ''
-    ..typeOther = j['typeOther'] as String? ?? ''
-    ..material = j['material'] as String? ?? ''
-    ..materialOther = j['materialOther'] as String? ?? ''
-    ..size = j['size'] as String? ?? ''
-    ..qty = j['qty'] as int? ?? 1
-    ..condition = j['condition'] as String? ?? ''
-    ..notes = j['notes'] as String? ?? ''
-    ..photoBefore = FileHelper.pathToFile(j['photoBefore'])
-    ..photoAfter = FileHelper.pathToFile(j['photoAfter'])
-    ..photoCloseup = FileHelper.pathToFile(j['photoCloseup']);
+  factory DoorEntry.fromJson(Map<String, dynamic> j) {
+    String s(String k) => j[k] as String? ?? '';
+    bool b(String k) => j[k] as bool? ?? false;
+
+    return DoorEntry()
+      ..doorType = s('doorType')
+      ..photo = FileHelper.pathToFile(j['photo'])
+      ..extraPhoto = FileHelper.pathToFile(j['extraPhoto'])
+      ..entryDoorType = s('entryDoorType')
+      ..entryMaterial = s('entryMaterial')
+      ..entryStyle = s('entryStyle')
+      ..isFrenchDoor = b('isFrenchDoor')
+      ..entryScopeOfWork = s('entryScopeOfWork')
+      ..hasLite = b('hasLite')
+      ..liteType = s('liteType')
+      ..liteScopeOfWork = s('liteScopeOfWork')
+      ..hasScreen = b('hasScreen')
+      ..screenScopeOfWork = s('screenScopeOfWork')
+      ..entryQuantity = s('entryQuantity')
+      ..patioMaterial = s('patioMaterial')
+      ..patioAluminumFinish = s('patioAluminumFinish')
+      ..patioStyle = s('patioStyle')
+      ..patioSize = s('patioSize')
+      ..patioScopeOfWork = s('patioScopeOfWork')
+      ..garageStyle = s('garageStyle')
+      ..garageWithWindows = b('garageWithWindows')
+      ..garageWindowsCount = s('garageWindowsCount')
+      ..garageDoorSize = s('garageDoorSize')
+      ..garageScopeOfWork = s('garageScopeOfWork')
+      ..garagePanelSectionCount = s('garagePanelSectionCount')
+      ..rollupGauge = s('rollupGauge')
+      ..rollupGaugeOtherSpecify = s('rollupGaugeOtherSpecify')
+      ..rollupSize = s('rollupSize')
+      ..rollupSizeOtherSpecify = s('rollupSizeOtherSpecify')
+      ..rollupScopeOfWork = s('rollupScopeOfWork')
+      ..storefrontSlidingDoor = b('storefrontSlidingDoor')
+      ..storefrontOversize = b('storefrontOversize')
+      ..storefrontOversizeInputSize = s('storefrontOversizeInputSize')
+      ..storefrontType = s('storefrontType')
+      ..storefrontCurved = b('storefrontCurved')
+      ..storefrontScopeOfWork = s('storefrontScopeOfWork')
+      ..additionalNotes = s('additionalNotes');
+  }
 }
 
 class AccessoryEntry {

@@ -802,20 +802,24 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
         final substrate = elevation.substrate;
         final eifs = elevation.eifs;
         final hasSidingScope = _hasElevationSidingScopeData(elevation.siding);
-        final windows = elevation.windows; 
+        final windows = elevation.windows;
+        final doors = elevation.doors;
         final hasWindows = windows.any((w) => w.hasAnyData == true);
+        final hasDoors = doors.any((d) => d.hasAnyData == true);
         if (!underlayment.hasAnyData &&
             !hasSidingScope &&
             !substrate.hasAnyData &&
             !eifs.hasAnyData &&
-            !hasWindows) {
+            !hasWindows &&
+            !hasDoors) {
           continue;
         }
         if (!_isUnderlaymentApplicableSiding(siding) &&
             !hasSidingScope &&
             !substrate.hasAnyData &&
             !eifs.hasAnyData &&
-            !hasWindows) {
+            !hasWindows &&
+            !hasDoors) {
           continue;
         }
 
@@ -832,6 +836,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
           if (substrate.hasAnyData) ..._buildElevationSubstrateRows(substrate),
           if (eifs.hasAnyData) ..._buildElevationEifsRows(eifs),
           if (hasWindows) ..._buildElevationWindowRows(windows),
+          if (hasDoors) ..._buildElevationDoorRows(doors),
           pw.SizedBox(height: 6), 
         ]);
       }
@@ -1136,6 +1141,102 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
     }
     
     i++; // Incrementamos el contador manual
+  }
+
+  return rows;
+}
+
+ static List<pw.Widget> _buildElevationDoorRows(Iterable doors) {
+  final rows = <pw.Widget>[];
+  final activeDoors = doors.where((d) => d.hasAnyData == true);
+
+  if (activeDoors.isEmpty) return rows;
+
+  rows.add(pw.Text("Doors", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)));
+
+  int i = 1;
+  for (final door in activeDoors) {
+    rows.add(_buildDataRow("Door $i", ""));
+    rows.add(_buildDataRow("Door / Type", _textOrNA(door.doorType)));
+
+    if (door.doorType == 'Sliding Patio Door') {
+      rows.add(_buildDataRow("Material", _textOrNA(door.patioMaterial)));
+      if (door.patioMaterial == 'Aluminum') {
+        rows.add(_buildDataRow("Aluminum Finish", _textOrNA(door.patioAluminumFinish)));
+      }
+      rows.add(_buildDataRow("Stile", _textOrNA(door.patioStyle)));
+      rows.add(_buildDataRow("Size", _textOrNA(door.patioSize)));
+      rows.add(_buildDataRow("Scope of work", _textOrNA(door.patioScopeOfWork)));
+    }
+
+    if (door.doorType == 'Exterior Door / Entry Door') {
+      rows.add(_buildDataRow("Entry/Exterior Door", _textOrNA(door.entryDoorType)));
+      rows.add(_buildDataRow("Material", _textOrNA(door.entryMaterial)));
+      rows.add(_buildDataRow("Style", _textOrNA(door.entryStyle)));
+      if (door.entryDoorType != 'Storm Door') {
+        rows.add(_buildDataRow("Is a French Door", door.isFrenchDoor == true ? "Yes" : "No"));
+      }
+      rows.add(_buildDataRow("Scope of work", _textOrNA(door.entryScopeOfWork)));
+      if (door.entryDoorType != 'Storm Door') {
+        rows.add(_buildDataRow("Has lite", door.hasLite == true ? "Yes" : "No"));
+        if (door.hasLite == true) {
+          rows.add(_buildDataRow("Lite Type", _textOrNA(door.liteType)));
+          rows.add(_buildDataRow("Lite Scope of work", _textOrNA(door.liteScopeOfWork)));
+        }
+      }
+      if (door.entryDoorType == 'Single Exterior Door') {
+        rows.add(_buildDataRow("Has Screen", door.hasScreen == true ? "Yes" : "No"));
+        if (door.hasScreen == true) {
+          rows.add(_buildDataRow("Screen Scope of work", _textOrNA(door.screenScopeOfWork)));
+        }
+      }
+      if (door.entryQuantity != null && door.entryQuantity.trim().isNotEmpty) {
+        rows.add(_buildDataRow("Quantity", door.entryQuantity.trim()));
+      }
+    }
+
+    if (door.doorType == 'Garage Door') {
+      rows.add(_buildDataRow("Style", _textOrNA(door.garageStyle)));
+      rows.add(_buildDataRow("With Windows", door.garageWithWindows == true ? "Yes" : "No"));
+      if (door.garageWithWindows == true && door.garageWindowsCount.trim().isNotEmpty) {
+        rows.add(_buildDataRow("How many windows", door.garageWindowsCount.trim()));
+      }
+      rows.add(_buildDataRow("Garage Door Size", _textOrNA(door.garageDoorSize)));
+      rows.add(_buildDataRow("Scope of work", _textOrNA(door.garageScopeOfWork)));
+      if (door.garageScopeOfWork == 'Panel Only / Section Replacement' &&
+          door.garagePanelSectionCount.trim().isNotEmpty) {
+        rows.add(_buildDataRow("Panel / Section Count", door.garagePanelSectionCount.trim()));
+      }
+    }
+
+    if (door.doorType == 'Storefront door') {
+      rows.add(_buildDataRow("Sliding door", door.storefrontSlidingDoor == true ? "Yes" : "No"));
+      rows.add(_buildDataRow("Oversize", door.storefrontOversize == true ? "Yes" : "No"));
+      if (door.storefrontOversize == true && door.storefrontOversizeInputSize.trim().isNotEmpty) {
+        rows.add(_buildDataRow("Input size", door.storefrontOversizeInputSize.trim()));
+      }
+      rows.add(_buildDataRow("Type", _textOrNA(door.storefrontType)));
+      rows.add(_buildDataRow("Curved", door.storefrontCurved == true ? "Yes" : "No"));
+      rows.add(_buildDataRow("Scope of work", _textOrNA(door.storefrontScopeOfWork)));
+    }
+
+    if (door.doorType == 'Roll-up Door') {
+      rows.add(_buildDataRow("Material Door Gauge", _textOrNA(door.rollupGauge)));
+      if (door.rollupGauge == 'Other' && door.rollupGaugeOtherSpecify.trim().isNotEmpty) {
+        rows.add(_buildDataRow("Gauge Specify", door.rollupGaugeOtherSpecify.trim()));
+      }
+      rows.add(_buildDataRow("Roll-up Door Size", _textOrNA(door.rollupSize)));
+      if (door.rollupSize == 'Other' && door.rollupSizeOtherSpecify.trim().isNotEmpty) {
+        rows.add(_buildDataRow("Size Specify", door.rollupSizeOtherSpecify.trim()));
+      }
+      rows.add(_buildDataRow("Scope of Work", _textOrNA(door.rollupScopeOfWork)));
+    }
+
+    if (door.additionalNotes != null && door.additionalNotes.trim().isNotEmpty) {
+      rows.add(_buildDataRow("Additional Notes", door.additionalNotes.trim()));
+    }
+
+    i++;
   }
 
   return rows;
