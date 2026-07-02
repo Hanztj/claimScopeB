@@ -1,0 +1,30 @@
+import 'dart:io';
+
+import 'package:image_picker/image_picker.dart';
+
+import '../inspection_report_model.dart';
+
+typedef GalleryPhotoAttachedCallback = void Function(File file, String label);
+
+Future<int> pickAndAttachGalleryPhotos({
+  required ImagePicker picker,
+  required InspectionReport report,
+  required String Function() labelBuilder,
+  GalleryPhotoAttachedCallback? onPhotoAttached,
+}) async {
+  final pickedFiles = await picker.pickMultiImage(
+    maxWidth: 1024,
+    imageQuality: 75,
+  );
+
+  if (pickedFiles.isEmpty) return 0;
+
+  for (final pickedFile in pickedFiles) {
+    final file = File(pickedFile.path);
+    final label = labelBuilder();
+    report.addPhoto(file, label);
+    onPhotoAttached?.call(file, label);
+  }
+
+  return pickedFiles.length;
+}

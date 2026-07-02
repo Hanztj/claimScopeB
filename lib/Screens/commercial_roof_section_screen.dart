@@ -15,6 +15,7 @@ import 'package:claimscope_clean/services/pdf_service.dart';
 import 'package:claimscope_clean/services/inspection_submission_service.dart';
 import '../catalogs/flashing_catalog.dart'; 
 import '/screens/elevations/elevations_inspection_screen.dart'; 
+import 'package:claimscope_clean/utils/gallery_photo_helper.dart';
 
 class CommercialRoofSectionScreen extends StatefulWidget {
   final String plan;
@@ -128,6 +129,28 @@ class CommercialRoofSectionScreen extends StatefulWidget {
         content: Text('Photo stored'),
         duration: Duration(seconds: 2),
       ),
+    );
+  }
+
+
+  Future<void> _pickCommercialGalleryPhotos({
+    required String buildingName,
+    required String roofName,
+  }) async {
+    final count = await pickAndAttachGalleryPhotos(
+      picker: _picker,
+      report: widget.report,
+      labelBuilder: () => buildCommercialPhotoLabel(
+        building: buildingName,
+        roof: roofName,
+        label: 'User Image',
+      ),
+    );
+
+    if (count == 0 || !mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Photos added')),
     );
   }
 
@@ -485,28 +508,9 @@ class CommercialRoofSectionScreen extends StatefulWidget {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () async {
-                final messenger = ScaffoldMessenger.of(context);
-                final images = await _picker.pickMultiImage(
-                  maxWidth: 1024,
-                  imageQuality: 75,
-                );
-
-                if (images.isEmpty) return;
-
-                for (final x in images) {
-                  widget.report.addPhoto(
-                    File(x.path),
-                    buildCommercialPhotoLabel(
-                      building: buildingName,
-                      roof: roofName,
-                      label: 'User Image',
-                    ),
-                  );
-                }
-
-                if (!mounted) return;
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('Photos added')),
+                await _pickCommercialGalleryPhotos(
+                  buildingName: buildingName,
+                  roofName: roofName,
                 );
               },
               icon: const Icon(Icons.add_photo_alternate),
@@ -559,28 +563,9 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                           width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () async {
-                            final messenger = ScaffoldMessenger.of(context);
-                            final images = await _picker.pickMultiImage(
-                              maxWidth: 1024,
-                              imageQuality: 75,
-                            );
-
-                            if (images.isEmpty) return;
-
-                            for (final x in images) {
-                              widget.report.addPhoto(
-                                File(x.path),
-                                buildCommercialPhotoLabel(
-                                  building: buildingName,
-                                  roof: roofName,
-                                  label: 'User Image',
-                                ),
-                              );
-                            }
-
-                            if (!mounted) return;
-                            messenger.showSnackBar(
-                              const SnackBar(content: Text('Photos added')),
+                            await _pickCommercialGalleryPhotos(
+                              buildingName: buildingName,
+                              roofName: roofName,
                             );
                           },
                             child: const Text('Add Images from Gallery'),

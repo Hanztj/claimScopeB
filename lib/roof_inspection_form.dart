@@ -18,6 +18,7 @@ import 'package:claimscope_clean/screens/residential/hubs/residential_facet_insp
 import 'package:claimscope_clean/screens/residential/hubs/residential_roll_roofing_hub.dart';
 import 'package:claimscope_clean/catalogs/flashing_catalog.dart';
 import 'package:claimscope_clean/services/inspection_submission_service.dart';
+import 'package:claimscope_clean/utils/gallery_photo_helper.dart';
 
 
  enum FacetOrientation {
@@ -494,16 +495,24 @@ String? noAction;
     _initializeCurrentFacet();
   }
  Future<void> _pickImagesFromGallery() async {
-  final pickedFiles = await picker.pickMultiImage(
-    maxWidth: 1024,
-    imageQuality: 75,
+  final attachedPhotos = <Map<String, Object>>[];
+  final count = await pickAndAttachGalleryPhotos(
+    picker: picker,
+    report: widget.report,
+    labelBuilder: () => 'User Image',
+    onPhotoAttached: (file, label) {
+      attachedPhotos.add({'file': file, 'label': label});
+    },
   );
+
+  if (count == 0 || !mounted) return;
+
   setState(() {
-    for (var pickedFile in pickedFiles) {
-      final img = File(pickedFile.path);
+    for (final photo in attachedPhotos) {
+      final img = photo['file'] as File;
+      final label = photo['label'] as String;
       photoReportImages.add(img);
-      inspectionData.add({'label': 'User Image', 'path': img.path});
-      widget.report.addPhoto(img, 'User Image');
+      inspectionData.add({'label': label, 'path': img.path});
     }
   });
  }
