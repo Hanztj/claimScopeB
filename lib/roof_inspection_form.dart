@@ -2,20 +2,13 @@ import 'package:claimscope_clean/screens/residential/hubs/residential_tile_hub.d
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:claimscope_clean/services/stripe_service.dart';
 import 'package:claimscope_clean/services/pdf_service.dart';
-//firebase imports here
+import 'package:claimscope_clean/services/stripe_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:claimscope_clean/services/email_service.dart';
-import 'package:claimscope_clean/inspection_report_model.dart';
-import 'package:cloud_functions/cloud_functions.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:claimscope_clean/screens/my_reports_screen.dart';
+//firebase imports here
+import 'package:claimscope_clean/inspection_report_model.dart';
  // Para ArchiveFile y ZipEncoder
-import 'package:claimscope_clean/utils/labeled_photos_zip.dart';
-import 'package:claimscope_clean/utils/hf_pricing_helper.dart';
 import 'package:claimscope_clean/catalogs/roof_catalog.dart';
 import 'package:claimscope_clean/catalogs/roof_components_catalog.dart';
 import 'package:claimscope_clean/screens/residential/hubs/residential_shingles_hub.dart';
@@ -24,7 +17,7 @@ import 'package:claimscope_clean/screens/residential/hubs/residential_metal_hub.
 import 'package:claimscope_clean/screens/residential/hubs/residential_facet_inspection_hub.dart';
 import 'package:claimscope_clean/screens/residential/hubs/residential_roll_roofing_hub.dart';
 import 'package:claimscope_clean/catalogs/flashing_catalog.dart';
-import 'screens/widgets/submission_options_dialog.dart';  
+import 'package:claimscope_clean/services/inspection_submission_service.dart';
 
 
  enum FacetOrientation {
@@ -53,448 +46,6 @@ import 'screens/widgets/submission_options_dialog.dart';
                     
  // Añadir dentro de class _RoofInspectionFormState extends State<RoofInspectionForm> {
 
-Future<void> _showSubmissionOptions(File techPdf, File photoPdf) {
-  return showSubmissionOptions(
-    context: context,
-    techPdf: techPdf,
-    photoPdf: photoPdf,
-    plan: widget.plan,
-    onSendToHf: _confirmRushAndSendToHfByEmail,
-    onSendToMyEmail: _sendReportViaEmail,
-    onSendToCustomEmail: _sendReportToCustomEmail,
-    onStoreInCloud: _storeReportInCloud,
-    onGenerateLabeledZip: () => generateLabeledPhotosZip(widget.report),
-  );
-}
-
-Future<T> _runWithBlockingProgress<T>(
-  String message,
-  Future<T> Function() task,
-) async {
-  showDialog<void>(
-    context: context,
-    barrierDismissible: false,
-    builder: (_) => PopScope(
-      canPop: false, // Bloquea el botón de atrás / gesto predictivo de Android
-      onPopInvokedWithResult: (didPop, result ) async {
-        if (didPop) {
-          // Si el usuario intenta salir del diálogo, no hacemos nada
-          return;
-        }
-      },
-      child: AlertDialog(
-        content: Row(
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(width: 16),
-            Expanded(child: Text(message)),
-          ],
-        ),
-      ),
-    ),
-  );
-
-  try {
-    return await task();
-  } finally {
-    if (mounted) {
-      Navigator.of(context, rootNavigator: true).pop();
-    }
-  }
-}
-                 
- Widget _buildFlashingSubfields(Map<String, dynamic> data) {
-  final String? type = data['type'];
-
-  if (type == null) return const SizedBox.shrink();
-
-  final fields = flashingFieldsForResidentialType(type);
-
-   return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      ...fields.map((field) {
-        return buildDropdown(
-          field.label,
-          field.options,
-          data[field.key],
-          (val) => setState(() => data[field.key] = val),
-        );
-      }),
-     
-      if (type == 'Flashing kick-out divert' ||
-          type == 'Skylight flashing kit (dome)' ||
-          type == 'Skylight step flashing kit')
-
-        TextFormField(
-          initialValue: data['count'] as String? ?? '',
-          decoration: const InputDecoration(labelText: 'Count'),
-          keyboardType: TextInputType.number,
-          onChanged: (val) => data['count'] = val,
-          onSaved: (val) => data['count'] = val ?? '',
-        ),
-    ],
-  );
- }
-     
- // Paso adicional: preguntar por Rush Order ANTES de calcular precio / cobrar / enviar
- void _confirmRushAndSendToHfByEmail(File techPdf, File photoPdf) {
-  bool rush = false;
-
-  showDialog(
-    context: context,
-    builder: (rushDialogContext) {
-      return StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            title: const Text('Rush Order? (+\$15)'),
-            content: CheckboxListTile(
-              title: const Text('Is this a rush order? (+\$15)'),
-              value: rush,
-              onChanged: (val) {
-                setState(() {
-                  rush = val ?? false;
-                });
-              },
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(rushDialogContext).pop(),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(rushDialogContext).pop();
-   
-                  _sendToHfByEmail(techPdf, photoPdf, rushOrder: rush);
-                },
-                child: const Text('Continue'),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
- } 
-
- // Function helper email 
-  bool _isProbablyValidEmail(String value) {
-  final email = value.trim();
-  if (email.isEmpty) return false;
-  if (email.contains(' ')) return false;
-
-  final at = email.indexOf('@');
-  if (at <= 0) return false; // no puede empezar con @
-  if (at != email.lastIndexOf('@')) return false; // solo un @
-
-  final dot = email.lastIndexOf('.');
-  if (dot <= at + 1) return false; // debe haber un . después del @
-  if (dot == email.length - 1) return false; // no termina con .
-
-  return true;
-}
- // Solo Premium+Extra : preguntar si quiere almacenar en la nube (sin cobro HF)
-
-Future<bool> _askStoreReportInCloud() async {
-  if (widget.plan != 'premium') return false;
-
-  final navigator = Navigator.of(context);
-
-  final result = await showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: const Text('Store report in Cloud?'),
-      content: const Text(
-        'Do you want to store this inspection report in your account (Cloud)?',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => navigator.pop(false),
-          child: const Text('No'),
-        ),
-        TextButton(
-          onPressed: () => navigator.pop(true),
-          child: const Text('Yes'),
-        ),
-      ],
-    ),
-  );
-
-  return result ?? false;
-}
-Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
-  final messenger = ScaffoldMessenger.of(context);
-  final navigator = Navigator.of(context);
-  final user = FirebaseAuth.instance.currentUser;
-
-  if (user == null) {
-    messenger.showSnackBar(
-      const SnackBar(
-        content: Text('User not authenticated.'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
-
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (_) => const AlertDialog(
-      content: Row(
-        children: [
-          SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2)),
-          SizedBox(width: 16),
-          Expanded(child: Text('Storing report in Cloud...')),
-        ],
-      ),
-    ),
-  );
-
-  try {
-    final firestore = FirebaseFirestore.instance;
-    final storage = FirebaseStorage.instance;
-
-    final reportRef = firestore
-        .collection('users')
-        .doc(user.uid)
-        .collection('inspectionReports')
-        .doc(); // doc().id generado
-
-    final reportId = reportRef.id;
-    final techFilename = techPdf.uri.pathSegments.last;
-    final photoFilename = photoPdf.uri.pathSegments.last;
-
-    final techPath = 'user_reports/${user.uid}/$reportId/$techFilename';
-    final photoPath = 'user_reports/${user.uid}/$reportId/$photoFilename';
-
-    await storage.ref(techPath).putFile(techPdf);
-    await storage.ref(photoPath).putFile(photoPdf);
-
-    final expiresAt = Timestamp.fromDate(
-      DateTime.now().add(const Duration(days: 60)),
-    );
-
-    await reportRef.set({
-      'createdAt': FieldValue.serverTimestamp(),
-      'expiresAt': expiresAt,
-      'claimNumber': widget.report.claimNumber,
-      'clientName': widget.report.clientName,
-      'techPath': techPath,
-      'photoPath': photoPath,
-    });
-
-    if (!mounted) return;
-    navigator.pop();
-
-    messenger.showSnackBar(
-      const SnackBar(
-        content: Text('Report stored in Cloud.'),
-        backgroundColor: Colors.green,
-      ),
-    );
-  } catch (e) {
-    if (!mounted) return;
-    navigator.pop();
-
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text('Error storing report: $e'),
-        backgroundColor: Colors.red,
-      ),
-    );
-  }
- }
-
-                            Future<void> _sendReportViaEmail(File techPdf, File photoPdf, {String? extraEmail}) async {
-                            // Aquí se llamara un servicio backend
-                               final messenger = ScaffoldMessenger.of(context);
-                               final user = FirebaseAuth.instance.currentUser;
-                               if (user == null || user.email == null || user.email!.isEmpty) {
-                                     messenger.showSnackBar(
-                                const SnackBar(content: Text('User not authenticated')),
-                                );
-                               return;
-                                }
-                                    
-                                    final toEmails = <String>[user.email!];
-                                if (widget.plan == 'premium' && extraEmail != null && extraEmail.trim().isNotEmpty) {
-                                 toEmails.add(extraEmail.trim());
-                               }     
-                                    
-                                try {
-                               await _runWithBlockingProgress<void>(
-                                 'Sending email...',
-                                 () => EmailService.sendEmailWithReports(
-                                   toEmails: toEmails,
-                                   techPdf: techPdf,
-                                   photoPdf: photoPdf,
-                                 ),
-                               );
-
-                               if (!mounted) return;
-
-                              messenger.showSnackBar(
-                               const SnackBar(content: Text('Email sent successfully')),
-                              );
-                               final shouldStore = await _askStoreReportInCloud();
-                               if (shouldStore) {
-                               await _storeReportInCloud(techPdf, photoPdf);
-                              }
-                               
-                               } catch (e) {
-                              if (!mounted) return;
-
-                               messenger.showSnackBar(
-                               SnackBar(content: Text('Error sending email: $e')),
-                             );
-                              }
-                             }
-   // Solo Premium: enviar a otros correos (sin cobro HF)
-   void _sendReportToCustomEmail(File techPdf, File photoPdf) {
-   final extraEmailController = TextEditingController();
-
-   showDialog(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: const Text('Send to another email'),
-      content: TextField(
-        controller: extraEmailController,
-        keyboardType: TextInputType.emailAddress,
-        decoration: const InputDecoration(
-          labelText: 'Recipient email',
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () async {
-            final extraEmail = extraEmailController.text.trim();
-            Navigator.pop(ctx);
-            if (!_isProbablyValidEmail(extraEmail)) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Please enter a valid email.'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-              return;
-            }
-            await _sendReportViaEmail(techPdf, photoPdf, extraEmail: extraEmail);
-          },
-          child: const Text('Send'),
-        ),
-      ],
-    ),
-    );
-         }
-       // Solo Premium: almacenar + email (sin cobro HF)
-        // HF Estimates por email (Basic & Premium) – aquí sí habrá cobro HF
-          //--Helper price calculation function
-        double _calculateHfEmailPrice({required bool rushOrder}) {
-          return calculateResidentialHfEstimatePrice(
-            report: widget.report,
-            rushOrder: rushOrder,
-            plan: widget.plan,
-          );
-        }
-
-   Future<void> _sendToHfByEmail(File techPdf, File photoPdf,
-        {required bool rushOrder}) async{  
-            final shouldStore = await _askStoreReportInCloud();
-  if (!mounted) return;
-
-  if (shouldStore) {
-    await _storeReportInCloud(techPdf, photoPdf);
-    if (!mounted) return;
-  }
-
-             final messenger = ScaffoldMessenger.of(context);
-             final total = _calculateHfEmailPrice(rushOrder: rushOrder);
-            
-  showDialog(
-  context: context,
-  barrierDismissible: false,
-  builder: (_) => const AlertDialog(
-    content: Row(
-      children: [
-        CircularProgressIndicator(),
-        SizedBox(width: 16),
-        Expanded(child: Text('Please wait… preparing checkout')),
-      ],
-    ),
-  ),
-);
-        try{    
-  messenger.showSnackBar(
-    SnackBar(content: Text('Preparing HF order... Total: \$${total.toStringAsFixed(2)}',
-      ),
-      duration: const Duration(seconds: 3),
-    ),
-  );
-  
-       //Upload PDFs to cloud storage and get URLs 
-  final storage =  FirebaseStorage.instance;
-  final timeStamp = DateTime.now().millisecondsSinceEpoch;
-  final uid = FirebaseAuth.instance.currentUser!.uid;
-
-  final techUploadTask = await storage.ref('temp_reports/$uid/hf_orders/$timeStamp/tech.pdf').putFile(techPdf);
-  final photoUploadTask = await storage.ref('temp_reports/$uid/hf_orders/$timeStamp/photos.pdf').putFile(photoPdf);
-
-  final techUrl = await techUploadTask.ref.getDownloadURL();
-  final photoUrl = await photoUploadTask.ref.getDownloadURL();
-
-    //Xactimate code removed from project
-  final callable = FirebaseFunctions.instance.httpsCallable('createHfEstimatesCheckoutSession');
-
-       final result = await callable.call({
-    'techPdfUrl': techUrl,
-    'photoPdfUrl': photoUrl,
-    'rushOrder': rushOrder,
-    'hasShed': hasShed,
-    'hasDetachedStructure': hasDetachedStructure,
-    'plan': widget.plan, // 'basic' / 'premium'
-    'userEmail': FirebaseAuth.instance.currentUser?.email,
-    'clientName': widget.report.clientName,
-    'claimNumber': widget.report.claimNumber,
-    'address': '${widget.report.address}, ${widget.report.city}, ${widget.report.state} ${widget.report.zip}',
-    'dateInspected': widget.report.dateInspected,
-    'report': widget.report.toHfPricingPayload(),
-    'successUrl': 'claimscope://success',
-    'cancelUrl': 'claimscope://cancel',
-  });
-     final sessionUrl = result.data['url'] as String?;
-     if (sessionUrl == null) {
-    throw Exception("The function did not return the Stripe URL.");
-  }
-
-  // Abrir la URL de Stripe Checkout
-        final url = Uri.parse(sessionUrl);
-        final success= await launchUrl(url, mode: LaunchMode.externalApplication);
-          if (!success) {
-            throw Exception("Stripe Checkout could not be opened.");
-          }
-          widget.report.isBasePricePaid = true;
-               } catch (e) {
-      debugPrint('Send to HF failed: $e');
-      if (mounted) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: const Color.fromARGB(255, 244, 54, 54),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-      
-    } finally {if (mounted) Navigator.of(context, rootNavigator: true).pop();
-   }
-        }
-
        Future<void> _takeExtraPhotoForLabel(String label) async {
   await _takePhoto(
     label,
@@ -507,6 +58,38 @@ Future<void> _storeReportInCloud(File techPdf, File photoPdf) async {
       duration: Duration(seconds: 2),
     ),
   );
+  }
+
+  Widget _buildFlashingSubfields(Map<String, dynamic> data) {
+    final String? type = data['type'] as String?;
+
+    if (type == null) return const SizedBox.shrink();
+
+    final fields = flashingFieldsForResidentialType(type);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ...fields.map((field) {
+          return buildDropdown(
+            field.label,
+            field.options,
+            data[field.key] as String?,
+            (val) => setState(() => data[field.key] = val),
+          );
+        }),
+        if (type == 'Flashing kick-out divert' ||
+            type == 'Skylight flashing kit (dome)' ||
+            type == 'Skylight step flashing kit')
+          TextFormField(
+            initialValue: data['count'] as String? ?? '',
+            decoration: const InputDecoration(labelText: 'Count'),
+            keyboardType: TextInputType.number,
+            onChanged: (val) => data['count'] = val,
+            onSaved: (val) => data['count'] = val ?? '',
+          ),
+      ],
+    );
   }
 
     // Input variables for main form
@@ -1214,7 +797,14 @@ widget.report.rollGravelBallastPresent = gravelBallastPresent;
         Navigator.pop(context); // Quitar Cargando
 
         // Mostrar opciones de envío
-        _showSubmissionOptions(pdfs['tech']!, pdfs['photos']!);
+        await InspectionSubmissionService.showOptions(
+          context: context,
+          report: widget.report,
+          plan: widget.plan,
+          isCommercial: widget.isCommercial,
+          techPdf: pdfs['tech']!,
+          photoPdf: pdfs['photos']!,
+        );
       } catch (e) {
         if (!mounted) return;
         Navigator.pop(context);
