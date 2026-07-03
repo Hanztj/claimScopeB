@@ -27,7 +27,13 @@ const pricePremium = defineString("STRIPE_PRICE_PREMIUM", {
 function sanitizeAttachmentFilename(input, fallback) {
   const s = String(input || "").trim();
   if (!s) return fallback;
-  return s.replace(/[\\/\:\*\?"<>\|]/g, "").trim() || fallback;
+  // Keep this server-side sanitizer separate from Dart, but aligned with the
+  // same rule used by lib/utils/filename_sanitizer.dart.
+  s = s.replace(/[\\/\:\*\?"<>\|]/g, "");
+  s = s.replace(/\s+/g, " ").trim();
+
+  return s || fallback;
+
 }
 
 function buildHfReportKey(userId, claimNumber, address, dateInspected) {

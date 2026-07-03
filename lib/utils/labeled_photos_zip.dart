@@ -4,6 +4,7 @@ import 'package:archive/archive.dart';
 import 'package:image/image.dart' as img;
 
 import '../inspection_report_model.dart';
+import 'filename_sanitizer.dart';
 import 'photo_labels.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -144,16 +145,6 @@ Future<File> writeZipToFile({
   final out = File('${outputDir.path}/$safeName');
   await out.writeAsBytes(zipBytes, flush: true);
   return out;
-}
-String sanitizeFilename(String input) {
-  var s = input.trim();
-
-  if (s.isEmpty) return 'UNKNOWN';
-
-  s = s.replaceAll(RegExp(r'[\/\\\:\*\?\"\<\>\|]'), '');
-  s = s.replaceAll(RegExp(r'\s+'), ' ').trim();
-
-  return s.isEmpty ? 'UNKNOWN' : s;
 }
 
 Future<File> generateLabeledPhotosZip(

@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:claimscope_clean/inspection_report_model.dart';
 import 'package:claimscope_clean/utils/photo_labels.dart'; 
+import 'package:claimscope_clean/utils/filename_sanitizer.dart';
 
 class _PdfPhotoItemBytes {
   final Uint8List bytes;
@@ -298,14 +299,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
         ),
       );
     }}
-     // Guardar archivos PDF
-    String sanitizeFilename(String input) {
-    var s = input.trim();
-    if (s.isEmpty) return 'UNKNOWN';
-    s = s.replaceAll(RegExp(r'[\/\\\:\*\?\"\<\>\|]'), '');
-    s = s.replaceAll(RegExp(r'\s+'), ' ').trim();
-    return s.isEmpty ? 'UNKNOWN' : s;
-    }
+    // Guardar archivos PDF
 
     // Guardar archivos PDF
     // Guardar archivos PDF - Versión unificada
