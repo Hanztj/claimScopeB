@@ -73,32 +73,79 @@ class ResidentialRoofAccessoriesHub extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final bool isHeavyRoof = roofCoverType != null && (
-      roofCoverType!.toLowerCase().trim().contains('tile') || 
-      roofCoverType!.toLowerCase().trim().contains('slate') || 
-      roofCoverType!.toLowerCase().trim().contains('shake')
+    final normalizedRoofType = roofCoverType?.toLowerCase().trim();
+    final bool isHeavyRoof = normalizedRoofType != null && (
+      normalizedRoofType.contains('tile') || 
+      normalizedRoofType.contains('slate') || 
+      normalizedRoofType.contains('shake')
     );
+    final bool showDripEdgeAndIceWater = !isCommercial &&
+        (normalizedRoofType == 'shingles' || isHeavyRoof);
+    final bool showStarterRow = !isCommercial &&
+        (normalizedRoofType == 'shingles' || normalizedRoofType == 'other');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Starter Row Questions (GLOBAL)
-          if (!isHeavyRoof && starterRowInstalled)
-        CheckboxListTile(
-          title: const Text('Starter Row Installed?'),
-          value: starterRowInstalled,
-          onChanged: (val) {
-            setState(() {
-              onStarterRowInstalledChanged(val ?? false);
-              if (val != true) {
-                onStarterEaveInstalledChanged(false);
-                onStarterRakeInstalledChanged(false);
-              }
-            });
-          },
-        ),
 
-        if (!isHeavyRoof && starterRowInstalled)
+        // Drip Edge
+        if (showDripEdgeAndIceWater)
+          CheckboxListTile(
+            title: const Text('Drip Edge Installed?'),
+            value: hasDripEdge,
+            onChanged: (val) {
+              setState(() {
+                onHasDripEdgeChanged(val ?? false);
+                if (val != true) {
+                  onClearDripEdge();
+                }
+              });
+            },
+          ),
+
+        if (showDripEdgeAndIceWater && hasDripEdge)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              buildDropdown(
+                'Drip Edge Type',
+                ['Standard', 'Gutter Apron', 'Copper'],
+                dripEdgeType,
+                (val) => setState(() => onDripEdgeTypeChanged(val)),
+              ),
+              ElevatedButton(
+                onPressed: () => takePhoto('Drip Edge Photo', isGlobal: true),
+                child: const Text("Take Drip Edge Photo"),
+              ),
+              TextButton(
+                onPressed: () => takeExtraPhotoForLabel('Drip Edge extra photo'),
+                child: const Text('Add extra Drip Edge photo'),
+              ),
+              if (dripEdgePhoto != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Image.file(dripEdgePhoto!, height: 100, cacheWidth: 300),
+                ),
+            ],
+          ),
+
+        // Starter Row Questions (GLOBAL)
+        if (showStarterRow)
+          CheckboxListTile(
+            title: const Text('Starter Row Installed?'),
+            value: starterRowInstalled,
+            onChanged: (val) {
+              setState(() {
+                onStarterRowInstalledChanged(val ?? false);
+                if (val != true) {
+                  onStarterEaveInstalledChanged(false);
+                  onStarterRakeInstalledChanged(false);
+                }
+              });
+            },
+          ),
+
+        if (showStarterRow && starterRowInstalled)
           Column(
             children: [
               CheckboxListTile(
@@ -158,49 +205,8 @@ class ResidentialRoofAccessoriesHub extends StatelessWidget {
             ],
           ),
 
-      // Modificado: Ahora se muestra si es Shingles O si es HeavyRoof
-      if (!isCommercial && (['Shingles'].contains(roofCoverType) || isHeavyRoof))
-          CheckboxListTile(
-            title: const Text('Drip Edge Installed?'),
-            value: hasDripEdge,
-            onChanged: (val) {
-              setState(() {
-                onHasDripEdgeChanged(val ?? false);
-                if (val != true) {
-                  onClearDripEdge();
-                }
-              });
-            },
-          ),
-
-        if (!isCommercial && (['Shingles'].contains(roofCoverType) || isHeavyRoof) && hasDripEdge)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              buildDropdown(
-                'Drip Edge Type',
-                ['Standard', 'Gutter Apron', 'Copper'],
-                dripEdgeType,
-                (val) => setState(() => onDripEdgeTypeChanged(val)),
-              ),
-              ElevatedButton(
-                onPressed: () => takePhoto('Drip Edge Photo', isGlobal: true),
-                child: const Text("Take Drip Edge Photo"),
-              ),
-              TextButton(
-                onPressed: () => takeExtraPhotoForLabel('Drip Edge extra photo'),
-                child: const Text('Add extra Drip Edge photo'),
-              ),
-              if (dripEdgePhoto != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Image.file(dripEdgePhoto!, height: 100, cacheWidth: 300),
-                ),
-            ],
-          ),
-
-        // Ice & Water Barrier (currently only used for Shingles)
-        if (!isCommercial && (['Shingles'].contains(roofCoverType)|| isHeavyRoof))
+        // Ice & Water Barrier (currently only used for Shingles/heavy roof flow)
+        if (showDripEdgeAndIceWater)
           CheckboxListTile(
             title: const Text('Ice & Water Barrier Installed?'),
             value: iceAndWaterBarrierInstalled,
@@ -211,7 +217,7 @@ class ResidentialRoofAccessoriesHub extends StatelessWidget {
             },
           ),
 
-        if (!isCommercial && (['Shingles'].contains(roofCoverType) || isHeavyRoof) && iceAndWaterBarrierInstalled)
+        if (showDripEdgeAndIceWater && iceAndWaterBarrierInstalled)
           Column(
             children: [
               ElevatedButton(

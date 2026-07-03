@@ -577,8 +577,10 @@ String? noAction;
       } else if (label == 'Ridge Vent Photo') {
       } else if (label == 'Starter Row Eave Photo') {
         starterEavePhoto = img;
+        widget.report.starterEavePhoto = img;
       } else if (label == 'Starter Row Rake Photo') {
         starterRakePhoto = img;
+        widget.report.starterRakePhoto = img;
       } else if (label == 'Ice & Water Barrier Photo') {
         iceAndWaterBarrierPhoto = img;
         widget.report.iceAndWaterBarrierPhoto = img;
@@ -1601,23 +1603,36 @@ rollExposure: rollExposure,
                 starterRowInstalled: starterRowInstalled,
                 onStarterRowInstalledChanged: (val) {
                   starterRowInstalled = val;
+                  widget.report.starterRowInstalled = starterRowInstalled;
                   if (!starterRowInstalled) {
                     starterEaveInstalled = false;
+                    widget.report.starterEaveInstalled = false;
                     starterEavePhoto = null;
+                    widget.report.starterEavePhoto = null;
                     starterRakeInstalled = false;
+                    widget.report.starterRakeInstalled = false;
                     starterRakePhoto = null;
+                    widget.report.starterRakePhoto = null;
                   }
                 },
                 starterEaveInstalled: starterEaveInstalled,
                 onStarterEaveInstalledChanged: (val) {
                   starterEaveInstalled = val;
-                  if (!starterEaveInstalled) starterEavePhoto = null;
+                  widget.report.starterEaveInstalled = starterEaveInstalled;
+                  if (!starterEaveInstalled) {
+                    starterEavePhoto = null;
+                    widget.report.starterEavePhoto = null;
+                  }
                 },
                 starterEavePhoto: starterEavePhoto,
                 starterRakeInstalled: starterRakeInstalled,
                 onStarterRakeInstalledChanged: (val) {
                   starterRakeInstalled = val;
-                  if (!starterRakeInstalled) starterRakePhoto = null;
+                  widget.report.starterRakeInstalled = starterRakeInstalled;
+                  if (!starterRakeInstalled) {
+                    starterRakePhoto = null;
+                    widget.report.starterRakePhoto = null;
+                  }
                 },
                 starterRakePhoto: starterRakePhoto,
                 hasDripEdge: hasDripEdge,
