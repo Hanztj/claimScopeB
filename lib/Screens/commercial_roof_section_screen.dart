@@ -16,6 +16,7 @@ import 'package:claimscope_clean/services/inspection_submission_service.dart';
 import '../catalogs/flashing_catalog.dart'; 
 import '/screens/elevations/elevations_inspection_screen.dart'; 
 import 'package:claimscope_clean/utils/gallery_photo_helper.dart';
+import 'package:claimscope_clean/utils/required_photo_validation.dart';
 
 class CommercialRoofSectionScreen extends StatefulWidget {
   final String plan;
@@ -152,6 +153,17 @@ class CommercialRoofSectionScreen extends StatefulWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Photos added')),
     );
+  }
+
+  bool _showRequiredPhotoError(String? message) {
+    if (message == null) return false;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return true;
   }
 
   void _sync() {
@@ -600,13 +612,11 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                     widget.report.isCommercial = true;
                     roof.reportType = 'commercial';
 
-                    if (roof.overviewPhoto == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please add an overview photo.'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
+                    if (_showRequiredPhotoError(firstMissingRequiredPhoto([
+                      () => roof.overviewPhoto == null
+                          ? 'Please add an overview photo.'
+                          : null,
+                    ]))) {
                       return;
                     }
                       if (roof.roofType == null) {
@@ -643,13 +653,11 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                     
                        if (_isFlatSystem) {
                       if (roof.coreSamplePerformed) {
-                        if (roof.coreSamplePhoto == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Please add a core sample photo.'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
+                        if (_showRequiredPhotoError(firstMissingRequiredPhoto([
+                          () => roof.coreSamplePhoto == null
+                              ? 'Please add a core sample photo.'
+                              : null,
+                        ]))) {
                           return;
                         }
                       } 
@@ -775,13 +783,11 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                             return;
                           }
                         }
-                        if (flashing.photo == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Take the main photo for Flashing ${i + 1}.'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
+                        if (_showRequiredPhotoError(firstMissingRequiredPhoto([
+                          () => flashing.photo == null
+                              ? 'Take the main photo for Flashing ${i + 1}.'
+                              : null,
+                        ]))) {
                           return;
                         }
                       }
@@ -817,13 +823,11 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                           );
                           return;
                         }
-                        if (vent.photo == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Take the main photo for Vent ${i + 1}.'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
+                        if (_showRequiredPhotoError(firstMissingRequiredPhoto([
+                          () => vent.photo == null
+                              ? 'Take the main photo for Vent ${i + 1}.'
+                              : null,
+                        ]))) {
                           return;
                         }
                       }
@@ -849,13 +853,11 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                       }
 
                       for (var i = 0; i < roof.hvacUnits.length; i++) {
-                        if (roof.hvacUnits[i].photo == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Take the main photo for HVAC ${i + 1}.'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
+                        if (_showRequiredPhotoError(firstMissingRequiredPhoto([
+                          () => roof.hvacUnits[i].photo == null
+                              ? 'Take the main photo for HVAC ${i + 1}.'
+                              : null,
+                        ]))) {
                           return;
                         }
                       }
@@ -874,37 +876,31 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                     }
                         if (_isFlatSystem) {
                       for (var i = 0; i < roof.tpoFlashings.length; i++) {
-                        if (roof.tpoFlashings[i].photo == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Take the main photo for Flashing ${i + 1}.'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
+                        if (_showRequiredPhotoError(firstMissingRequiredPhoto([
+                          () => roof.tpoFlashings[i].photo == null
+                              ? 'Take the main photo for Flashing ${i + 1}.'
+                              : null,
+                        ]))) {
                           return;
                         }
                       }
 
                       for (var i = 0; i < roof.tpoVents.length; i++) {
-                        if (roof.tpoVents[i].photo == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Take the main photo for Vent ${i + 1}.'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
+                        if (_showRequiredPhotoError(firstMissingRequiredPhoto([
+                          () => roof.tpoVents[i].photo == null
+                              ? 'Take the main photo for Vent ${i + 1}.'
+                              : null,
+                        ]))) {
                           return;
                         }
                       }
 
                       for (var i = 0; i < roof.hvacUnits.length; i++) {
-                        if (roof.hvacUnits[i].photo == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Take the main photo for HVAC ${i + 1}.'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
+                        if (_showRequiredPhotoError(firstMissingRequiredPhoto([
+                          () => roof.hvacUnits[i].photo == null
+                              ? 'Take the main photo for HVAC ${i + 1}.'
+                              : null,
+                        ]))) {
                           return;
                         }
                       }
@@ -933,13 +929,11 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                           );
                           return;
                         }
-                        if (flashing.photo == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Take the main photo for Flashing ${i + 1}.'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
+                        if (_showRequiredPhotoError(firstMissingRequiredPhoto([
+                          () => flashing.photo == null
+                              ? 'Take the main photo for Flashing ${i + 1}.'
+                              : null,
+                        ]))) {
                           return;
                         }
                       }
@@ -966,38 +960,32 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                           );
                           return;
                         }
-                        if (vent.photo == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Take the main photo for Vent ${i + 1}.'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
+                        if (_showRequiredPhotoError(firstMissingRequiredPhoto([
+                          () => vent.photo == null
+                              ? 'Take the main photo for Vent ${i + 1}.'
+                              : null,
+                        ]))) {
                           return;
                         }
                       }
 
                       for (var i = 0; i < roof.hvacUnits.length; i++) {
-                        if (roof.hvacUnits[i].photo == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Take the main photo for HVAC ${i + 1}.'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
+                        if (_showRequiredPhotoError(firstMissingRequiredPhoto([
+                          () => roof.hvacUnits[i].photo == null
+                              ? 'Take the main photo for HVAC ${i + 1}.'
+                              : null,
+                        ]))) {
                           return;
                         }
                       }
                     }
                     
                       for (var i = 0; i < roof.mechanicalUnits.length; i++) {
-                        if (roof.mechanicalUnits[i].photo == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Take the main photo for Mechanical ${i + 1}.'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
+                        if (_showRequiredPhotoError(firstMissingRequiredPhoto([
+                          () => roof.mechanicalUnits[i].photo == null
+                              ? 'Take the main photo for Mechanical ${i + 1}.'
+                              : null,
+                        ]))) {
                           return;
                         }
                       }

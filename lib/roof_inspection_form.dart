@@ -19,6 +19,7 @@ import 'package:claimscope_clean/screens/residential/hubs/residential_roll_roofi
 import 'package:claimscope_clean/catalogs/flashing_catalog.dart';
 import 'package:claimscope_clean/services/inspection_submission_service.dart';
 import 'package:claimscope_clean/utils/gallery_photo_helper.dart';
+import 'package:claimscope_clean/utils/required_photo_validation.dart';
 
 
  enum FacetOrientation {
@@ -244,9 +245,12 @@ String? noAction;
         return 'Select the facet orientation before continuing.';
       }
 
-      if (_currentFacetOverviewPhoto == null) {
-        return 'Take the main overview photo for this facet before continuing.';
-      }
+      final missingFacetPhoto = firstMissingRequiredPhoto([
+        () => _currentFacetOverviewPhoto == null
+            ? 'Take the main overview photo for this facet before continuing.'
+            : null,
+      ]);
+      if (missingFacetPhoto != null) return missingFacetPhoto;
     }
 
     for (var i = 0; i < _currentFacetFlashingsData.length; i++) {
@@ -265,9 +269,12 @@ String? noAction;
         }
       }
 
-      if (flashing['photo'] == null) {
-        return 'Take the main photo for Flashing ${i + 1} before continuing.';
-      }
+      final missingFlashingPhoto = firstMissingRequiredPhoto([
+        () => flashing['photo'] == null
+            ? 'Take the main photo for Flashing ${i + 1} before continuing.'
+            : null,
+      ]);
+      if (missingFlashingPhoto != null) return missingFlashingPhoto;
 
       final requiredFields = flashingFieldsForResidentialType(type);
       for (final field in requiredFields) {
@@ -298,9 +305,12 @@ String? noAction;
           return 'Specify the vent type for Vent ${i + 1}.';
         }
       }
-      if (vent['photo'] == null) {
-        return 'Take the main photo for Vent ${i + 1} before continuing.';
-      }
+      final missingVentPhoto = firstMissingRequiredPhoto([
+        () => vent['photo'] == null
+            ? 'Take the main photo for Vent ${i + 1} before continuing.'
+            : null,
+      ]);
+      if (missingVentPhoto != null) return missingVentPhoto;
     }
 
     for (var i = 0; i < _currentFacetOtherElementsData.length; i++) {
@@ -318,9 +328,12 @@ String? noAction;
         }
       }
 
-      if (element['photo'] == null) {
-        return 'Take the main photo for Element ${i + 1} before continuing.';
-      }
+      final missingElementPhoto = firstMissingRequiredPhoto([
+        () => element['photo'] == null
+            ? 'Take the main photo for Element ${i + 1} before continuing.'
+            : null,
+      ]);
+      if (missingElementPhoto != null) return missingElementPhoto;
     }
 
     return null;
@@ -607,53 +620,73 @@ String? noAction;
   });
  }
 
+  void _showRequiredPhotoError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
   // --- SUBMIT FORM CORREGIDO ---
   void submitForm() async {
-         
-    if (frontElevationPhoto == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Take the main Front Elevation Photo before submitting.'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
+          // 1. Flashings
+          final flashingMissing = _currentFacetFlashingsData.any((f) => 
+          (f['shouldBeChanged'] == true) && (f['photo'] == null));
 
-    if (hasDripEdge && dripEdgePhoto == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Take the main Drip Edge Photo before submitting.'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
+          // 2. Vents
+          final ventMissing = _currentFacetVentsData.any((v) => 
+          (v['shouldBeChanged'] == true) && (v['photo'] == null));
 
-  if (starterRowInstalled && starterEaveInstalled && starterEavePhoto == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Take the main Starter Row Eave Photo before submitting.'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
+          // 3. Other Elements
+          final otherMissing = _currentFacetOtherElementsData.any((o) => 
+          (o['shouldBeChanged'] == true) && (o['photo'] == null));
 
-  if (starterRowInstalled && starterRakeInstalled && starterRakePhoto == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Take the main Starter Row Rake Photo before submitting.'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
+    final missingRequiredPhoto = firstMissingRequiredPhoto([
+      () => frontElevationPhoto == null
+          ? 'Take the main Front Elevation Photo before submitting.'
+          : null,
+      () => hasDripEdge && dripEdgePhoto == null
+          ? 'Take the main Drip Edge Photo before submitting.'
+          : null,
+      () => starterRowInstalled && starterEaveInstalled && starterEavePhoto == null
+          ? 'Take the main Starter Row Eave Photo before submitting.'
+          : null,
+      () => starterRowInstalled && starterRakeInstalled && starterRakePhoto == null
+          ? 'Take the main Starter Row Rake Photo before submitting.'
+          : null,
+          () => hasShed && _shedPhoto == null
+          ? 'Take the main Shed Photo before submitting.'
+          : null,  
+          () => hasDetachedStructure && _largeStructurePhoto == null
+          ? 'Take the main Detached Structure Photo before submitting.'
+          : null,
+          () => _currentFacetOverviewPhoto == null 
+          ? 'Take the overview photo for this facet before submitting.' 
+          : null,
+          () => _currentHasRidgeVent && _currentRidgeVentPhoto == null
+          ? 'Take Ridge Vent Photo before submitting.'
+          : null,
+          () => _currentAtrPerformed && _currentAtrPhoto == null
+          ? 'Take ATR Photo before submitting.'
+          : null,
+          () => _currentHasValleyMetal && _currentValleyMetalPhoto == null
+          ? 'Take Valley Metal Photo before submitting.'
+          : null,
+          () => flashingMissing ? 'Take photo for all selected Flashings.' : null,
+          () => ventMissing ? 'Take photo for all selected Vents.' : null,
+          () => otherMissing ? 'Take photo for all selected Other Elements.' : null,
+             ]);
+
+    if (missingRequiredPhoto != null) {
+      _showRequiredPhotoError(missingRequiredPhoto);
+      return;
+    }
 
           // Validación personalizada de reemplazo de techo/sheathing
   if (roofCoverType == 'Shingles') {
-    final partialShinglesText =
-        _partialReplacementSqftController.text.trim();
+    final partialShinglesText =  _partialReplacementSqftController.text.trim();
 
     final hasFullShingles = fullRoofReplacementRequired;
     final hasPartialShingles = partialShinglesText.isNotEmpty;
@@ -671,8 +704,7 @@ String? noAction;
 
     if (sheathingRequiredToBeChanged) {
 
-final partialSheathingText =
-          _sheathingPartialSqftController.text.trim();
+final partialSheathingText =  _sheathingPartialSqftController.text.trim();
 
       final hasFullSheathing = sheathingFullReplacementRequired;
       final hasPartialSheathing = partialSheathingText.isNotEmpty;
@@ -810,7 +842,7 @@ widget.report.rollGravelBallastPresent = gravelBallastPresent;
           context: context,
           report: widget.report,
           plan: widget.plan,
-          isCommercial: widget.isCommercial,
+          isCommercial: false,
           techPdf: pdfs['tech']!,
           photoPdf: pdfs['photos']!,
         );
