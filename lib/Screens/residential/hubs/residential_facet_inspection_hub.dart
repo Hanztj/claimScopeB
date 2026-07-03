@@ -82,6 +82,12 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
   final VoidCallback submitForm;
   final bool isSingleRoofSection;
 
+  final void Function({
+    File? file,
+    List<String>? labels,
+    List<String>? labelPrefixes,
+  }) clearPhotoArtifacts;
+
   final Future<void> Function(
     String label, {
     bool isFacetPhoto,
@@ -163,6 +169,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
     required this.onDeleteCurrentFacet,
     required this.submitForm,
     this.isSingleRoofSection = false,
+    required this.clearPhotoArtifacts,
     required this.takePhoto,
     required this.takeExtraPhotoForLabel,
     required this.buildDropdown,
@@ -186,6 +193,12 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
     }
 
     return '$fallback ${index + 1}';
+  }
+
+  void _clearMappedPhoto(Map<String, dynamic> data) {
+    final photo = data['photo'];
+    clearPhotoArtifacts(file: photo is File ? photo : null);
+    data['photo'] = null;
   }
     
   @override
@@ -466,8 +479,14 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
                   CheckboxListTile(
                     title: const Text('Should be changed?'),
                     value: data['shouldBeChanged'],
-                    onChanged: (val) =>
-                        setState(() => data['shouldBeChanged'] = val ?? false),
+                    onChanged: (val) {
+                      setState(() {
+                        data['shouldBeChanged'] = val ?? false;
+                        if (data['shouldBeChanged'] != true) {
+                          _clearMappedPhoto(data);
+                        }
+                      });
+                    },
                          ),
                                            if (data['type'] == 'Chimney flashing') ...[
                     CheckboxListTile(
@@ -580,8 +599,14 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
                   CheckboxListTile(
                     title: const Text('Should be Changed?'),
                     value: ventData['shouldBeChanged'],
-                    onChanged: (val) =>
-                        setState(() => ventData['shouldBeChanged'] = val!),
+                    onChanged: (val) {
+                      setState(() {
+                        ventData['shouldBeChanged'] = val ?? false;
+                        if (ventData['shouldBeChanged'] != true) {
+                          _clearMappedPhoto(ventData);
+                        }
+                      });
+                    },
                   ),
                   if (ventData['type'] != 'Other')
                     TextFormField(
@@ -740,6 +765,8 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
                         data['shouldBeChanged'] = val ?? false;
                         if (data['shouldBeChanged'] == true) {
                           data['detachAndResetOnly'] = false;
+                        } else {
+                          _clearMappedPhoto(data);
                         }
                       });
                     },
@@ -752,6 +779,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
                         data['detachAndResetOnly'] = val ?? false;
                         if (data['detachAndResetOnly'] == true) {
                           data['shouldBeChanged'] = false;
+                          _clearMappedPhoto(data);
                         }
                       });
                     },

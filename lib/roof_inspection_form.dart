@@ -574,7 +574,6 @@ String? noAction;
       } else if (label == 'Drip Edge Photo') {
         dripEdgePhoto = img;
         widget.report.dripEdgePhoto = img;
-      } else if (label == 'Ridge Vent Photo') {
       } else if (label == 'Starter Row Eave Photo') {
         starterEavePhoto = img;
         widget.report.starterEavePhoto = img;
@@ -598,7 +597,10 @@ String? noAction;
         _facets[facetIndex]['overviewPicture'] = img;
         _currentFacetOverviewPhoto = img;
       }   
-      else if (label == 'ATR Photo') {
+      else if (label == 'Ridge Vent Photo') {
+        _facets[facetIndex]['ridgeVentPhoto'] = img;
+        _currentRidgeVentPhoto = img;
+      } else if (label == 'ATR Photo') {
         _facets[facetIndex]['atrPhoto'] = img;
         _currentAtrPhoto = img;
       } else if (label == 'Valley Metal Photo') {
@@ -621,6 +623,61 @@ String? noAction;
     }
   });
  }
+
+
+  bool _photoLabelMatches(
+    String? label,
+    Set<String> exactLabels,
+    List<String>? labelPrefixes,
+  ) {
+    if (label == null) return false;
+    if (exactLabels.contains(label)) return true;
+    for (final prefix in labelPrefixes ?? const <String>[]) {
+      if (label.startsWith(prefix)) return true;
+    }
+    return false;
+  }
+
+  void _clearPhotoArtifacts({
+    File? file,
+    List<String>? labels,
+    List<String>? labelPrefixes,
+  }) {
+    final exactLabels = (labels ?? const <String>[]).toSet();
+    final pathsToRemove = <String>{};
+    if (file != null) {
+      pathsToRemove.add(file.path);
+    }
+
+    for (final item in widget.report.photoReportItems) {
+      if (pathsToRemove.contains(item.file.path) ||
+          _photoLabelMatches(item.label, exactLabels, labelPrefixes)) {
+        pathsToRemove.add(item.file.path);
+      }
+    }
+
+    for (final item in inspectionData) {
+      final path = item['path'];
+      final label = item['label'];
+      if ((path != null && pathsToRemove.contains(path)) ||
+          _photoLabelMatches(label, exactLabels, labelPrefixes)) {
+        if (path != null) {
+          pathsToRemove.add(path);
+        }
+      }
+    }
+
+    widget.report.photoReportItems.removeWhere((item) =>
+        pathsToRemove.contains(item.file.path) ||
+        _photoLabelMatches(item.label, exactLabels, labelPrefixes));
+    photoReportImages.removeWhere((image) => pathsToRemove.contains(image.path));
+    inspectionData.removeWhere((item) {
+      final path = item['path'];
+      final label = item['label'];
+      return (path != null && pathsToRemove.contains(path)) ||
+          _photoLabelMatches(label, exactLabels, labelPrefixes);
+    });
+  }
 
   void _showRequiredPhotoError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -1429,8 +1486,17 @@ rollExposure: rollExposure,
         fastenerPullTestPerformed,
 
     onFastenerPullTestPerformedChanged: (val) =>
-        setState(() =>
-            fastenerPullTestPerformed = val),
+        setState(() {
+          fastenerPullTestPerformed = val;
+          if (fastenerPullTestPerformed != true) {
+            _clearPhotoArtifacts(
+              labels: const [
+                'Fastener Pull Test',
+                'Fastener Pull Test extra photo',
+              ],
+            );
+          }
+        }),
 
     fastenerPullTestResult:
         fastenerPullTestResult,
@@ -1484,15 +1550,39 @@ rollExposure: rollExposure,
         iceWaterBarrierInstalled,
 
     onIceWaterBarrierInstalledChanged:
-        (val) => setState(() =>
-            iceWaterBarrierInstalled = val),
+        (val) => setState(() {
+            iceWaterBarrierInstalled = val;
+            widget.report.iceAndWaterBarrierInstalled = iceWaterBarrierInstalled ?? false;
+            if (iceWaterBarrierInstalled != true) {
+              _clearPhotoArtifacts(
+                file: iceAndWaterBarrierPhoto,
+                labels: const [
+                  'Ice & Water Barrier Photo',
+                  'Ice & Water Barrier extra photo',
+                ],
+              );
+              iceAndWaterBarrierPhoto = null;
+              widget.report.iceAndWaterBarrierPhoto = null;
+            }
+          }),
 
     // Drip Edge
     dripEdgeInstalled: dripEdgeInstalled,
 
     onDripEdgeInstalledChanged: (val) =>
-        setState(() =>
-            dripEdgeInstalled = val),
+        setState(() {
+            dripEdgeInstalled = val;
+            if (dripEdgeInstalled != true) {
+              _clearPhotoArtifacts(
+                file: dripEdgePhoto,
+                labels: const ['Drip Edge Photo', 'Drip Edge extra photo'],
+              );
+              dripEdgeType = null;
+              dripEdgePhoto = null;
+              widget.report.dripEdgeType = null;
+              widget.report.dripEdgePhoto = null;
+            }
+          }),
 
     dripEdgeType: dripEdgeType,
 
@@ -1542,6 +1632,10 @@ rollExposure: rollExposure,
                    hasShed = val ?? false;
                    widget.report.hasShed = hasShed;
                    if (!hasShed) {
+                     _clearPhotoArtifacts(
+                       file: _shedPhoto,
+                       labels: const ['Shed Photo', 'Shed extra photo'],
+                     );
                      _shedPhoto = null;
                      widget.report.shedPhoto = null;
                    }
@@ -1573,6 +1667,10 @@ rollExposure: rollExposure,
       hasDetachedStructure = val ?? false;
       widget.report.hasDetachedStructure = hasDetachedStructure;
       if (!hasDetachedStructure) {
+        _clearPhotoArtifacts(
+          file: _largeStructurePhoto,
+          labels: const ['Large Structure Photo', 'Large Structure extra photo'],
+        );
         _largeStructurePhoto = null;
         widget.report.largeStructurePhoto = null;
       }
@@ -1605,6 +1703,20 @@ rollExposure: rollExposure,
                   starterRowInstalled = val;
                   widget.report.starterRowInstalled = starterRowInstalled;
                   if (!starterRowInstalled) {
+                    _clearPhotoArtifacts(
+                      file: starterEavePhoto,
+                      labels: const [
+                        'Starter Row Eave Photo',
+                        'Starter Row Eave extra photo',
+                      ],
+                    );
+                    _clearPhotoArtifacts(
+                      file: starterRakePhoto,
+                      labels: const [
+                        'Starter Row Rake Photo',
+                        'Starter Row Rake extra photo',
+                      ],
+                    );
                     starterEaveInstalled = false;
                     widget.report.starterEaveInstalled = false;
                     starterEavePhoto = null;
@@ -1620,6 +1732,13 @@ rollExposure: rollExposure,
                   starterEaveInstalled = val;
                   widget.report.starterEaveInstalled = starterEaveInstalled;
                   if (!starterEaveInstalled) {
+                    _clearPhotoArtifacts(
+                      file: starterEavePhoto,
+                      labels: const [
+                        'Starter Row Eave Photo',
+                        'Starter Row Eave extra photo',
+                      ],
+                    );
                     starterEavePhoto = null;
                     widget.report.starterEavePhoto = null;
                   }
@@ -1630,6 +1749,13 @@ rollExposure: rollExposure,
                   starterRakeInstalled = val;
                   widget.report.starterRakeInstalled = starterRakeInstalled;
                   if (!starterRakeInstalled) {
+                    _clearPhotoArtifacts(
+                      file: starterRakePhoto,
+                      labels: const [
+                        'Starter Row Rake Photo',
+                        'Starter Row Rake extra photo',
+                      ],
+                    );
                     starterRakePhoto = null;
                     widget.report.starterRakePhoto = null;
                   }
@@ -1638,6 +1764,7 @@ rollExposure: rollExposure,
                 hasDripEdge: hasDripEdge,
                 onHasDripEdgeChanged: (val) {
                   hasDripEdge = val;
+                  widget.report.hasDripEdge = hasDripEdge;
                 },
                 dripEdgeType: dripEdgeType,
                 onDripEdgeTypeChanged: (val) {
@@ -1646,6 +1773,10 @@ rollExposure: rollExposure,
                 },
                 dripEdgePhoto: dripEdgePhoto,
                 onClearDripEdge: () {
+                  _clearPhotoArtifacts(
+                    file: dripEdgePhoto,
+                    labels: const ['Drip Edge Photo', 'Drip Edge extra photo'],
+                  );
                   dripEdgeType = null;
                   dripEdgePhoto = null;
                   widget.report.dripEdgeType = null;
@@ -1654,8 +1785,17 @@ rollExposure: rollExposure,
                 iceAndWaterBarrierInstalled: iceAndWaterBarrierInstalled,
                 onIceAndWaterBarrierInstalledChanged: (val) {
                   iceAndWaterBarrierInstalled = val;
+                  widget.report.iceAndWaterBarrierInstalled = iceAndWaterBarrierInstalled;
                   if (!iceAndWaterBarrierInstalled) {
+                    _clearPhotoArtifacts(
+                      file: iceAndWaterBarrierPhoto,
+                      labels: const [
+                        'Ice & Water Barrier Photo',
+                        'Ice & Water Barrier extra photo',
+                      ],
+                    );
                     iceAndWaterBarrierPhoto = null;
+                    widget.report.iceAndWaterBarrierPhoto = null;
                   }
                 },
                 iceAndWaterBarrierPhoto: iceAndWaterBarrierPhoto,
@@ -1735,6 +1875,7 @@ rollExposure: rollExposure,
                   onCurrentHasRidgeVentChanged: (val) {
                     _currentHasRidgeVent = val;
                     if (!_currentHasRidgeVent) {
+                      _clearPhotoArtifacts(file: _currentRidgeVentPhoto);
                       _currentRidgeVentType = null;
                       _currentRidgeVentPhoto = null;
                       _facets[_currentFacetIndex]['ridgeVentType'] = null;
@@ -1753,9 +1894,13 @@ rollExposure: rollExposure,
                   onCurrentAtrPerformedChanged: (val) {
                     _currentAtrPerformed = val;
                     if (!val) {
+                      _clearPhotoArtifacts(file: _currentAtrPhoto);
                       _currentAtrResult = null;
                       _currentAtrPhoto = null;
+                      _facets[_currentFacetIndex]['atrResult'] = null;
+                      _facets[_currentFacetIndex]['atrPhoto'] = null;
                     }
+                    _facets[_currentFacetIndex]['atrPerformed'] = _currentAtrPerformed;
                   },
                   atrResults: atrResults,
                   currentAtrResult: _currentAtrResult,
@@ -1767,9 +1912,13 @@ rollExposure: rollExposure,
                   onCurrentHasValleyMetalChanged: (val) {
                     _currentHasValleyMetal = val;
                     if (!val) {
+                      _clearPhotoArtifacts(file: _currentValleyMetalPhoto);
                       _currentValleyMetalType = null;
                       _currentValleyMetalPhoto = null;
+                      _facets[_currentFacetIndex]['valleyMetalType'] = null;
+                      _facets[_currentFacetIndex]['valleyMetalPhoto'] = null;
                     }
+                    _facets[_currentFacetIndex]['hasValleyMetal'] = _currentHasValleyMetal;
                   },
                   valleyMetalTypes: valleyMetalTypes,
                   currentValleyMetalType: _currentValleyMetalType,
@@ -1856,6 +2005,7 @@ rollExposure: rollExposure,
                   isSingleRoofSection: isRollRoofing,
                   takePhoto: _takePhoto,
                   takeExtraPhotoForLabel: _takeExtraPhotoForLabel,
+                  clearPhotoArtifacts: _clearPhotoArtifacts,
                   buildDropdown: buildDropdown,
                 ),
               ], // final children of Column
