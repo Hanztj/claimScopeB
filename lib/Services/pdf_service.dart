@@ -796,6 +796,11 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
       if (!report.inspectElevations) return [];
 
       final rows = <pw.Widget>[];
+      final globalRows = _buildGlobalElevationsRows(report);
+      if (globalRows.isNotEmpty) {
+        rows.addAll(globalRows);
+      }
+
       for (final elevation in report.elevations.elevations) {
         final siding = elevation.siding.sidingMain;
         final underlayment = elevation.underlayment;
@@ -842,7 +847,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
           if (hasWindows) ..._buildElevationWindowRows(windows),
           if (hasDoors) ..._buildElevationDoorRows(doors),
           if (hasAccessories) ..._buildElevationAccessoryRows(accessories),
-          pw.SizedBox(height: 6), 
+          pw.SizedBox(height: 6),
         ]);
       }
 
@@ -854,6 +859,173 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
         ...rows,
         pw.SizedBox(height: 10),
       ];
+    }
+
+    static List<pw.Widget> _buildGlobalElevationsRows(InspectionReport report) {
+      final rows = <pw.Widget>[];
+      final emergencyServices = report.elevations.emergencyServices;
+      final guttersSoffitFascia = report.elevations.guttersSoffitFascia;
+
+      final emergencyRows = _buildEmergencyServicesRows(emergencyServices);
+      final guttersRows = _buildGuttersAndDownspoutsRows(guttersSoffitFascia);
+      final fasciaRows = _buildFasciaRows(guttersSoffitFascia);
+      final soffitRows = _buildSoffitRows(guttersSoffitFascia);
+      final notes = (guttersSoffitFascia.additionalNotes as String?) ?? '';
+
+      if (emergencyRows.isEmpty &&
+          guttersRows.isEmpty &&
+          fasciaRows.isEmpty &&
+          soffitRows.isEmpty &&
+          notes.trim().isEmpty) {
+        return rows;
+      }
+
+      rows.add(pw.Text(
+        "Global Elevation Items",
+        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+      ));
+      rows.add(pw.SizedBox(height: 3));
+      rows.addAll(emergencyRows);
+      rows.addAll(guttersRows);
+      rows.addAll(fasciaRows);
+      rows.addAll(soffitRows);
+      if (notes.trim().isNotEmpty) {
+        rows.add(_buildDataRow("Additional Notes", notes.trim()));
+      }
+      rows.add(pw.SizedBox(height: 6));
+
+      return rows;
+    }
+
+    static List<pw.Widget> _buildEmergencyServicesRows(dynamic emergencyServices) {
+      if (emergencyServices.hasAnyData != true) return [];
+
+      final rows = <pw.Widget>[
+        pw.Text("Emergency Services", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+        _buildDataRow(
+          "Emergency Services performed",
+          emergencyServices.enabled == true ? "Yes" : "No",
+        ),
+      ];
+
+      if (emergencyServices.twpEnabled == true) {
+        rows.add(_buildDataRow("Temporary Wall Protection", "Yes"));
+        rows.add(_buildDataRow("Type", _textOrNA(emergencyServices.twpType)));
+        if (emergencyServices.twpSf.trim().isNotEmpty) {
+          rows.add(_buildDataRow("How many SF", emergencyServices.twpSf.trim()));
+        }
+      }
+
+      if (emergencyServices.twdpEnabled == true) {
+        rows.add(_buildDataRow("Temporary Window/Door Protection", "Yes"));
+        if (emergencyServices.twdpSf.trim().isNotEmpty) {
+          rows.add(_buildDataRow("How many SF", emergencyServices.twdpSf.trim()));
+        }
+      }
+
+      if (emergencyServices.pwEnabled == true) {
+        rows.add(_buildDataRow("Power Washing required", "Yes"));
+        rows.add(_buildDataRow("Area", _textOrNA(emergencyServices.pwArea)));
+        if (emergencyServices.pwArea == 'Partial' &&
+            emergencyServices.pwSf.trim().isNotEmpty) {
+          rows.add(_buildDataRow("How many SF", emergencyServices.pwSf.trim()));
+        }
+      }
+
+      if (emergencyServices.additionalNotes.trim().isNotEmpty) {
+        rows.add(_buildDataRow(
+          "Additional Notes",
+          emergencyServices.additionalNotes.trim(),
+        ));
+      }
+
+      rows.add(pw.SizedBox(height: 5));
+      return rows;
+    }
+
+    static List<pw.Widget> _buildGuttersAndDownspoutsRows(dynamic data) {
+      if (data.guttersHasData != true) return [];
+
+      final rows = <pw.Widget>[
+        pw.Text("Gutters & Downspouts", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+        _buildDataRow("Material Type", _textOrNA(data.gutMaterial)),
+      ];
+
+      if (data.gutMaterial == 'Other' && data.gutMaterialOther.trim().isNotEmpty) {
+        rows.add(_buildDataRow("Specify Other Material", data.gutMaterialOther.trim()));
+      }
+
+      rows.add(_buildDataRow("Shape Type", _textOrNA(data.gutShape)));
+      rows.add(_buildDataRow("Size", _textOrNA(data.gutSize)));
+      rows.add(_buildDataRow("Has gutter screen?", data.gutScreen == true ? "Yes" : "No"));
+      if (data.gutScreen == true) {
+        rows.add(_buildDataRow("Gutter screen style", _textOrNA(data.gutScreenStyle)));
+      }
+      rows.add(_buildDataRow("Has Scupper?", data.gutScupper == true ? "Yes" : "No"));
+      if (data.gutScupper == true && data.gutScupperQty.trim().isNotEmpty) {
+        rows.add(_buildDataRow("Scupper quantity", data.gutScupperQty.trim()));
+      }
+      rows.add(_buildDataRow("Scope of Work", _textOrNA(data.gutScope)));
+      if (data.gutLf.trim().isNotEmpty) {
+        rows.add(_buildDataRow("How many LF", data.gutLf.trim()));
+      }
+      rows.add(_buildDataRow("Requires to be painted?", data.gutPaint == true ? "Yes" : "No"));
+      rows.add(pw.SizedBox(height: 5));
+
+      return rows;
+    }
+
+    static List<pw.Widget> _buildFasciaRows(dynamic data) {
+      if (data.fasciaHasData != true) return [];
+
+      final rows = <pw.Widget>[
+        pw.Text("Fascia", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+        _buildDataRow("Material Type", _textOrNA(data.facMaterial)),
+      ];
+
+      if (data.facMaterial == 'Wood') {
+        rows.add(_buildDataRow("Wood Subtype", _textOrNA(data.facWoodSubtype)));
+      }
+      rows.add(_buildDataRow("Size", _textOrNA(data.facSize)));
+      rows.add(_buildDataRow("Scope of Work", _textOrNA(data.facScope)));
+      rows.add(_buildDataRow("Quantity", _textOrNA(data.facQuantity)));
+      if (data.facQuantity == 'Partial' && data.facLf.trim().isNotEmpty) {
+        rows.add(_buildDataRow("How many LF", data.facLf.trim()));
+      }
+      rows.add(_buildDataRow("Requires to be painted?", data.facPaint == true ? "Yes" : "No"));
+      rows.add(pw.SizedBox(height: 5));
+
+      return rows;
+    }
+
+    static List<pw.Widget> _buildSoffitRows(dynamic data) {
+      if (data.soffitHasData != true) return [];
+
+      final rows = <pw.Widget>[
+        pw.Text("Soffit", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+        _buildDataRow("Material Type", _textOrNA(data.sofMaterial)),
+      ];
+
+      if (data.sofMaterial == 'Other' && data.sofMaterialOther.trim().isNotEmpty) {
+        rows.add(_buildDataRow("Specify Other Material", data.sofMaterialOther.trim()));
+      }
+      rows.add(_buildDataRow("Size", _textOrNA(data.sofSize)));
+      if (data.sofSize == 'Other' && data.sofSizeOther.trim().isNotEmpty) {
+        rows.add(_buildDataRow("Specify Other Size", data.sofSizeOther.trim()));
+      }
+      rows.add(_buildDataRow("Scope of Work", _textOrNA(data.sofScope)));
+      rows.add(_buildDataRow("Quantity", _textOrNA(data.sofQuantity)));
+      if (data.sofQuantity == 'Partial' && data.sofLf.trim().isNotEmpty) {
+        rows.add(_buildDataRow("How many LF", data.sofLf.trim()));
+      }
+      rows.add(_buildDataRow("Has Vents?", data.sofVents == true ? "Yes" : "No"));
+      if (data.sofVents == true && data.sofVentsQty.trim().isNotEmpty) {
+        rows.add(_buildDataRow("Vents quantity", data.sofVentsQty.trim()));
+      }
+      rows.add(_buildDataRow("Requires to be painted?", data.sofPaint == true ? "Yes" : "No"));
+      rows.add(pw.SizedBox(height: 5));
+
+      return rows;
     }
 
     static List<pw.Widget> _buildElevationSidingScopeRows(dynamic siding) {
