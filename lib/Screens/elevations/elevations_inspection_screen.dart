@@ -6,6 +6,7 @@ import 'package:claimscope_clean/screens/elevations/models/elevations_data.dart'
 import 'package:claimscope_clean/screens/elevations/state/elevations_autosaver.dart';
 import 'package:claimscope_clean/screens/elevations/widgets/elevation_tab_strip.dart';
 import 'package:claimscope_clean/services/inspection_submission_service.dart';
+import 'package:claimscope_clean/utils/required_photo_validation.dart';
 import 'package:flutter/material.dart';
 
 /// Shell único para residential + commercial.
@@ -58,9 +59,93 @@ class _ElevationsInspectionScreenState extends State<ElevationsInspectionScreen>
 
   void _onChange() => _saver.markDirty();
 
+  String? _firstMissingElementPhotoMessage() {
+    final checks = <RequiredPhotoCheck>[];
+
+    for (final elevation in widget.report.elevations.elevations) {
+      final side = elevation.side.display;
+
+      checks.add(() {
+        if (elevation.eifs.hasAnyData && elevation.eifs.photo == null) {
+          return '$side Elev. - EIFS: Take the main EIFS Photo before submitting.';
+        }
+        return null;
+      });
+
+      for (var i = 0; i < elevation.trims.length; i++) {
+        final trim = elevation.trims[i];
+        checks.add(() {
+          if (_trimHasAnyData(trim) && trim.photo == null) {
+            return '$side Elev. - Trim ${i + 1}: Take the main Trim Photo before submitting.';
+          }
+          return null;
+        });
+      }
+
+      for (var i = 0; i < elevation.windows.length; i++) {
+        final window = elevation.windows[i];
+        checks.add(() {
+          if (window.hasAnyData && window.photo == null) {
+            return '$side Elev. - Window ${i + 1}: Take the main Window Photo before submitting.';
+          }
+          return null;
+        });
+      }
+
+      for (var i = 0; i < elevation.doors.length; i++) {
+        final door = elevation.doors[i];
+        checks.add(() {
+          if (door.hasAnyData && door.photo == null) {
+            return '$side Elev. - Door ${i + 1}: Take the main Door Photo before submitting.';
+          }
+          return null;
+        });
+      }
+
+      for (var i = 0; i < elevation.accessories.length; i++) {
+        final accessory = elevation.accessories[i];
+        checks.add(() {
+          if (accessory.hasAnyData && accessory.photo == null) {
+            return '$side Elev. - Accessory ${i + 1}: Take the main Accessory Photo before submitting.';
+          }
+          return null;
+        });
+      }
+    }
+
+    return firstMissingRequiredPhoto(checks);
+  }
+
+  bool _trimHasAnyData(TrimEntry trim) {
+    return trim.trimType.isNotEmpty ||
+        trim.otherSpecify.isNotEmpty ||
+        trim.action.isNotEmpty ||
+        trim.ocpMaterial.isNotEmpty ||
+        trim.ocpInsulated ||
+        trim.ocpMetalGauge.isNotEmpty ||
+        trim.jTrimMaterial.isNotEmpty ||
+        trim.sidingTrimMaterial.isNotEmpty ||
+        trim.sidingTrimSize.isNotEmpty ||
+        trim.skirtingMaterial.isNotEmpty ||
+        trim.skirtingSize.isNotEmpty ||
+        trim.photo != null ||
+        trim.extraPhoto != null;
+  }
+
   Future<void> _submitInspection() async {
     final navigator = Navigator.of(context);
     bool loadingShown = false;
+
+    final missingPhotoMessage = _firstMissingElementPhotoMessage();
+    if (missingPhotoMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(missingPhotoMessage),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     try {
       await _saver.flush();

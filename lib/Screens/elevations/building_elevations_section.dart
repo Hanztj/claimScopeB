@@ -61,6 +61,8 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
   final Map<AccessoryEntry, _AccessoryControllers> _accessoryCtl = {};
 
   final _picker = ImagePicker();
+  bool _sidingPhotoReminderDismissed = false;
+  bool _sidingPhotoReminderShowing = false;
   
   SidingDamagesData get _s => widget.elevation.siding;
   UnderlaymentInsulationData get _u => widget.elevation.underlayment;
@@ -187,6 +189,8 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     // Si cambia la elevación (Front → Right, etc.) hay que repoblar
     // los controllers de Trim para los TrimEntry de la nueva elevación.
     if (oldWidget.elevation != widget.elevation) {
+      _sidingPhotoReminderDismissed = false;
+      _sidingPhotoReminderShowing = false;
       _underlaymentNotes.text = _u.additionalNotes;
       _substrateHowManySf.text = _sub.howManySf;
       _substrateNotes.text = _sub.additionalNotes;
@@ -331,6 +335,52 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     _mark();
   }
 
+  bool _hasSidingPhoto() {
+    for (final item in widget.report.photoReportItems) {
+      final parsed = tryParseElevationsPhotoLabel(item.label);
+      if (parsed != null &&
+          parsed.elev == widget.elevation.side.display &&
+          parsed.category == 'Siding') {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void _maybeShowSidingPhotoReminder() {
+    if (_sidingPhotoReminderDismissed || _sidingPhotoReminderShowing) return;
+    if (!_s.hasAnyData || _hasSidingPhoto()) return;
+
+    _sidingPhotoReminderDismissed = true;
+    _sidingPhotoReminderShowing = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          content: const Text('Add siding damage photo'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Ok'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted) return;
+      _sidingPhotoReminderShowing = false;
+    });
+  }
+
+  Widget _withSidingPhotoReminder(Widget child) {
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) => _maybeShowSidingPhotoReminder(),
+      child: child,
+    );
+  }
+
   // =====================================================================
   // BUILD
   // =====================================================================
@@ -346,19 +396,19 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
         const SizedBox(height: 12),
         _buildSidingTile(),
         const SizedBox(height: 12),
-        _buildTrimSection(),
+        _withSidingPhotoReminder(_buildTrimSection()),
         const SizedBox(height: 8),
-        _buildUnderlaymentInsulationTile(),
+        _withSidingPhotoReminder(_buildUnderlaymentInsulationTile()),
         const SizedBox(height: 8),
-        _buildSubstrateTile(),
+        _withSidingPhotoReminder(_buildSubstrateTile()),
         const SizedBox(height: 8),
-        _buildEifsTile(),
+        _withSidingPhotoReminder(_buildEifsTile()),
         const SizedBox(height: 8),
-        _buildWindowSection(),
+        _withSidingPhotoReminder(_buildWindowSection()),
         const SizedBox(height: 8),
-        _buildDoorSection(),
+        _withSidingPhotoReminder(_buildDoorSection()),
         const SizedBox(height: 8),
-        _buildAccessorySection(),
+        _withSidingPhotoReminder(_buildAccessorySection()),
       ],
     );
   }
