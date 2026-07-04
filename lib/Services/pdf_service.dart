@@ -807,9 +807,11 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
         final substrate = elevation.substrate;
         final eifs = elevation.eifs;
         final hasSidingScope = _hasElevationSidingScopeData(elevation.siding);
+        final trims = elevation.trims;
         final windows = elevation.windows;
         final doors = elevation.doors;
         final accessories = elevation.accessories;
+        final hasTrims = trims.any(_trimHasAnyData);
         final hasWindows = windows.any((w) => w.hasAnyData == true);
         final hasDoors = doors.any((d) => d.hasAnyData == true);
         final hasAccessories = accessories.any((a) => a.hasAnyData == true);
@@ -817,6 +819,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
             !hasSidingScope &&
             !substrate.hasAnyData &&
             !eifs.hasAnyData &&
+            !hasTrims &&
             !hasWindows &&
             !hasDoors &&
             !hasAccessories) {
@@ -826,6 +829,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
             !hasSidingScope &&
             !substrate.hasAnyData &&
             !eifs.hasAnyData &&
+            !hasTrims &&
             !hasWindows &&
             !hasDoors &&
             !hasAccessories) {
@@ -844,6 +848,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
             ..._buildElevationUnderlaymentRows(siding, underlayment),
           if (substrate.hasAnyData) ..._buildElevationSubstrateRows(substrate),
           if (eifs.hasAnyData) ..._buildElevationEifsRows(eifs),
+          if (hasTrims) ..._buildElevationTrimRows(trims),
           if (hasWindows) ..._buildElevationWindowRows(windows),
           if (hasDoors) ..._buildElevationDoorRows(doors),
           if (hasAccessories) ..._buildElevationAccessoryRows(accessories),
@@ -1223,6 +1228,67 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
 
       return rows;
     }
+
+ static bool _trimHasAnyData(dynamic trim) {
+  return trim.trimType.trim().isNotEmpty ||
+      trim.otherSpecify.trim().isNotEmpty ||
+      trim.action.trim().isNotEmpty ||
+      trim.ocpMaterial.trim().isNotEmpty ||
+      trim.ocpInsulated == true ||
+      trim.ocpMetalGauge.trim().isNotEmpty ||
+      trim.jTrimMaterial.trim().isNotEmpty ||
+      trim.sidingTrimMaterial.trim().isNotEmpty ||
+      trim.sidingTrimSize.trim().isNotEmpty ||
+      trim.skirtingMaterial.trim().isNotEmpty ||
+      trim.skirtingSize.trim().isNotEmpty ||
+      trim.photo != null ||
+      trim.extraPhoto != null;
+}
+
+ static List<pw.Widget> _buildElevationTrimRows(Iterable trims) {
+  final rows = <pw.Widget>[];
+  final activeTrims = trims.where(_trimHasAnyData);
+
+  if (activeTrims.isEmpty) return rows;
+
+  rows.add(pw.Text("Trim", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)));
+
+  int i = 1;
+  for (final trim in activeTrims) {
+    rows.add(_buildDataRow("Trim $i", ""));
+    rows.add(_buildDataRow("Trim Type", _textOrNA(trim.trimType)));
+
+    if (trim.trimType == 'Other' && trim.otherSpecify.trim().isNotEmpty) {
+      rows.add(_buildDataRow("Specify Other Trim", trim.otherSpecify.trim()));
+    }
+
+    rows.add(_buildDataRow("Action", _textOrNA(trim.action)));
+
+    if (trim.action == 'Replace') {
+      if (trim.trimType == 'Outside corner post') {
+        rows.add(_buildDataRow("Material", _textOrNA(trim.ocpMaterial)));
+        if (trim.ocpMaterial == 'Vinyl' || trim.ocpMaterial == 'Metal') {
+          rows.add(_buildDataRow("Insulated?", trim.ocpInsulated == true ? "Yes" : "No"));
+        }
+        if (trim.ocpMaterial == 'Metal') {
+          rows.add(_buildDataRow("Gauge", _textOrNA(trim.ocpMetalGauge)));
+        }
+      } else if (trim.trimType == 'J-trim') {
+        rows.add(_buildDataRow("Material", _textOrNA(trim.jTrimMaterial)));
+      } else if (trim.trimType == 'Siding trim') {
+        rows.add(_buildDataRow("Material", _textOrNA(trim.sidingTrimMaterial)));
+        rows.add(_buildDataRow("Size", _textOrNA(trim.sidingTrimSize)));
+      } else if (trim.trimType == 'Skirting') {
+        rows.add(_buildDataRow("Material", _textOrNA(trim.skirtingMaterial)));
+        rows.add(_buildDataRow("Size", _textOrNA(trim.skirtingSize)));
+      }
+    }
+
+    i++;
+  }
+
+  return rows;
+}
 
  static List<pw.Widget> _buildElevationWindowRows(Iterable windows) {
   final rows = <pw.Widget>[];

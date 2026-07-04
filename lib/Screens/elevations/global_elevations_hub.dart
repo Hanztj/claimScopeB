@@ -406,7 +406,10 @@ void _clearSoffit() {
         !en || reqs.every((r) => r.isNotEmpty);
     final twpOk = blockComplete(_es.twpEnabled, [_es.twpType, _es.twpSf]);
     final twdpOk = blockComplete(_es.twdpEnabled, [_es.twdpSf]);
-    final pwOk = blockComplete(_es.pwEnabled, [_es.pwArea, _es.pwSf]);
+    final pwArea = _es.pwArea.trim();
+    final pwOk = !_es.pwEnabled ||
+        pwArea == 'Entire Elev' ||
+        (pwArea == 'Partial' && _es.pwSf.trim().isNotEmpty);
     return (twpOk && twdpOk && pwOk) ? SectionStatus.complete : SectionStatus.partial;
   }
 
