@@ -77,3 +77,14 @@ String formatElevationsPhotoCaption(String raw) {
 
   return '${parsed.elev} Elev. - ${parsed.category} - ${parsed.label}';
 }
+// =======================================================================
+
+String sanitizeZipPathPart(String input) {
+  var s = input.trim();
+  if (s.isEmpty) return 'UNKNOWN';
+
+  // Avoid path traversal + platform-invalid characters.
+  s = s.replaceAll(RegExp(r'[\\/\:\*\?"<>\|]'), '');
+  s = s.replaceAll(RegExp(r'\s+'), ' ').trim();
+  return s.isEmpty ? 'UNKNOWN' : s;
+}
