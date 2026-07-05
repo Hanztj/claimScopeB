@@ -270,6 +270,8 @@ class GuttersSoffitFasciaData {
   String panelCorrugatedGauge = '';      // si panelType == 'Corrugated'
   bool   panelCorrugatedGalvanized = false;
   String panelRibbedGauge = '';          // si panelType == 'Ribbed'
+  bool panelHasInsulation = false;
+  String panelInsulation = '';
 
   // Conditional Gauge & Height (debajo de la rama principal)
   String steelSidingGauge = '';          // solo si sidingMain == 'Steel' (no condicional, puede vacío)
@@ -301,7 +303,10 @@ class GuttersSoffitFasciaData {
   String additionalNotes = '';
 
   bool get hasAnyData =>
-      sidingMain.isNotEmpty || additionalNotes.isNotEmpty;
+      sidingMain.isNotEmpty ||
+      panelHasInsulation ||
+      panelInsulation.isNotEmpty ||
+      additionalNotes.isNotEmpty;
 
   Map<String, dynamic> toJson() => {
         'sidingMain': sidingMain,
@@ -320,6 +325,8 @@ class GuttersSoffitFasciaData {
         'panelCorrugatedGauge': panelCorrugatedGauge,
         'panelCorrugatedGalvanized': panelCorrugatedGalvanized,
         'panelRibbedGauge': panelRibbedGauge,
+        'panelHasInsulation': panelHasInsulation,
+        'panelInsulation': panelInsulation,
         'steelSidingGauge': steelSidingGauge,
         'sidingHeight': sidingHeight,
         'changeWholeElevation': changeWholeElevation,
@@ -360,6 +367,8 @@ class GuttersSoffitFasciaData {
       ..panelCorrugatedGauge = s('panelCorrugatedGauge')
       ..panelCorrugatedGalvanized = b('panelCorrugatedGalvanized')
       ..panelRibbedGauge = s('panelRibbedGauge')
+      ..panelHasInsulation = b('panelHasInsulation')
+      ..panelInsulation = s('panelInsulation')
       ..steelSidingGauge = s('steelSidingGauge')
       ..sidingHeight = s('sidingHeight')
       ..changeWholeElevation = b('changeWholeElevation')

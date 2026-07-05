@@ -804,6 +804,8 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
         final substrate = elevation.substrate;
         final eifs = elevation.eifs;
         final hasSidingScope = _hasElevationSidingScopeData(elevation.siding);
+        final hasPanelInsulationData =
+            _hasElevationPanelInsulationData(elevation.siding);
         final trims = elevation.trims;
         final windows = elevation.windows;
         final doors = elevation.doors;
@@ -814,6 +816,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
         final hasAccessories = accessories.any((a) => a.hasAnyData == true);
         if (!underlayment.hasAnyData &&
             !hasSidingScope &&
+            !hasPanelInsulationData &&
             !substrate.hasAnyData &&
             !eifs.hasAnyData &&
             !hasTrims &&
@@ -824,6 +827,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
         }
         if (!_isUnderlaymentApplicableSiding(siding) &&
             !hasSidingScope &&
+            !hasPanelInsulationData &&
             !substrate.hasAnyData &&
             !eifs.hasAnyData &&
             !hasTrims &&
@@ -841,8 +845,8 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
           _buildDataRow("Siding Type", _textOrNA(siding)),
           ..._buildElevationSidingScopeRows(elevation.siding),
           if (_isUnderlaymentApplicableSiding(siding) &&
-              underlayment.hasAnyData)
-            ..._buildElevationUnderlaymentRows(siding, underlayment),
+              (underlayment.hasAnyData || hasPanelInsulationData))
+            ..._buildElevationUnderlaymentRows(elevation.siding, underlayment),
           if (substrate.hasAnyData) ..._buildElevationSubstrateRows(substrate),
           if (eifs.hasAnyData) ..._buildElevationEifsRows(eifs),
           if (hasTrims) ..._buildElevationTrimRows(trims),
@@ -1034,6 +1038,12 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
       final rows = <pw.Widget>[];
       final sidingType = (siding.sidingMain as String?) ?? '';
 
+      void addSidingNotes() {
+        if (siding.additionalNotes.trim().isNotEmpty) {
+          rows.add(_buildDataRow("Siding Notes", siding.additionalNotes.trim()));
+        }
+      }
+
       if (sidingType == 'Stucco') {
         final scope = (siding.stuccoScope as String?) ?? '';
         if (scope.trim().isNotEmpty) {
@@ -1064,6 +1074,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
             rows.add(_buildDataRow("How many coats", siding.stuccoWholeReplacementCoats.trim()));
           }
         }
+        addSidingNotes();
         return rows;
       }
 
@@ -1073,22 +1084,44 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
         rows.add(_buildDataRow("Siding Scope of Work", "Partial replacement (${siding.howManySf.trim()} SF)"));
       }
 
+      addSidingNotes();
       return rows;
     }
 
     static bool _hasElevationSidingScopeData(dynamic siding) {
       final sidingType = (siding.sidingMain as String?) ?? '';
+      if (siding.additionalNotes.trim().isNotEmpty) return true;
       if (sidingType == 'Stucco') {
         return siding.stuccoScope.trim().isNotEmpty;
       }
       return siding.changeWholeElevation || siding.howManySf.trim().isNotEmpty;
     }
 
+    static bool _hasElevationPanelInsulationData(dynamic siding) {
+      return siding.sidingMain == 'Wall/roof panel' &&
+          (siding.panelHasInsulation == true ||
+              siding.panelInsulation.trim().isNotEmpty);
+    }
+
     static List<pw.Widget> _buildElevationUnderlaymentRows(
-      String siding,
+      dynamic sidingData,
       dynamic underlayment,
     ) {
       final rows = <pw.Widget>[];
+      final siding = (sidingData.sidingMain as String?) ?? '';
+
+      if (siding == 'Wall/roof panel' &&
+          (sidingData.panelHasInsulation == true ||
+              sidingData.panelInsulation.trim().isNotEmpty)) {
+        rows.add(_buildDataRow(
+          "Is there insulation?",
+          sidingData.panelHasInsulation == true ? "Yes" : "No",
+        ));
+        if (sidingData.panelHasInsulation == true &&
+            sidingData.panelInsulation.trim().isNotEmpty) {
+          rows.add(_buildDataRow("Insulation", sidingData.panelInsulation.trim()));
+        }
+      }
 
       if (_showsElevationFanfoldInsulation(siding)) {
         rows.add(_buildDataRow(
@@ -1398,6 +1431,9 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
   for (final door in activeDoors) {
     rows.add(_buildDataRow("Door $i", ""));
     rows.add(_buildDataRow("Door / Type", _textOrNA(door.doorType)));
+    if (door.entryQuantity != null && door.entryQuantity.trim().isNotEmpty) {
+      rows.add(_buildDataRow("Count", door.entryQuantity.trim()));
+    }
 
     if (door.doorType == 'Sliding Patio Door') {
       rows.add(_buildDataRow("Material", _textOrNA(door.patioMaterial)));
@@ -1429,9 +1465,6 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
         if (door.hasScreen == true) {
           rows.add(_buildDataRow("Screen Scope of work", _textOrNA(door.screenScopeOfWork)));
         }
-      }
-      if (door.entryQuantity != null && door.entryQuantity.trim().isNotEmpty) {
-        rows.add(_buildDataRow("Quantity", door.entryQuantity.trim()));
       }
     }
 

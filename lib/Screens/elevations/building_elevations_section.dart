@@ -35,6 +35,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
   // ─── Controllers de Siding (TextFields) ───────────────────────────────
   late final TextEditingController _steelSidingGauge;
   late final TextEditingController _sidingHeight;
+  late final TextEditingController _panelInsulation;
   late final TextEditingController _howManySf;
   late final TextEditingController _stuccoSmallRepairSf;
   late final TextEditingController _stuccoCrackRepairLf;
@@ -78,6 +79,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     super.initState();
     _steelSidingGauge = TextEditingController(text: _s.steelSidingGauge);
     _sidingHeight = TextEditingController(text: _s.sidingHeight);
+    _panelInsulation = TextEditingController(text: _s.panelInsulation);
     _howManySf = TextEditingController(text: _s.howManySf);
     _stuccoSmallRepairSf = TextEditingController(text: _s.stuccoSmallRepairSf);
     _stuccoCrackRepairLf = TextEditingController(text: _s.stuccoCrackRepairLf);
@@ -120,6 +122,8 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
   _s.panelCorrugatedGauge = '';
   _s.panelCorrugatedGalvanized = false;
   _s.panelRibbedGauge = '';
+  _s.panelHasInsulation = false;
+  _s.panelInsulation = '';
 
   _s.sidingHeight = '';
   _s.changeWholeElevation = false;
@@ -143,6 +147,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
 
   _steelSidingGauge.clear();
   _sidingHeight.clear();
+  _panelInsulation.clear();
   _howManySf.clear();
   _stuccoSmallRepairSf.clear();
   _stuccoCrackRepairLf.clear();
@@ -259,6 +264,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     for (final c in [
       _steelSidingGauge,
       _sidingHeight,
+      _panelInsulation,
       _howManySf,
       _stuccoSmallRepairSf,
       _stuccoCrackRepairLf,
@@ -449,6 +455,29 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     }
 
     return [
+      if (_s.sidingMain == 'Wall/roof panel') ...[
+        _checkbox('Is there insulation?', _s.panelHasInsulation, (v) {
+          setState(() {
+            _s.panelHasInsulation = v;
+            if (!v) {
+              _s.panelInsulation = '';
+              _panelInsulation.clear();
+            }
+            _mark();
+          });
+        }),
+        if (_s.panelHasInsulation) ...[
+          const SizedBox(height: 8),
+          _textField(
+            controller: _panelInsulation,
+            label: 'Insulation',
+            onChanged: (v) {
+              _s.panelInsulation = v;
+              _mark();
+            },
+          ),
+        ],
+      ],
       if (_showsFanfoldInsulation(_s.sidingMain)) ...[
         _checkbox('Add Fanfold Insulation', _u.addFanfoldInsulation, (v) {
           setState(() {
@@ -527,16 +556,26 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     _u.addFoilInsulationRadiantBarrier = false;
     _u.useRainscreenFurringStrips = false;
     _u.additionalNotes = '';
+    _s.panelHasInsulation = false;
+    _s.panelInsulation = '';
+    _panelInsulation.clear();
     _underlaymentNotes.clear();
     _mark();
   }
 
   SectionStatus _underlaymentStatus() {
-    if (!_u.hasAnyData) return SectionStatus.empty;
+    final panelInsulationHasData =
+        _s.sidingMain == 'Wall/roof panel' &&
+        (_s.panelHasInsulation || _s.panelInsulation.trim().isNotEmpty);
+
+    if (!_u.hasAnyData && !panelInsulationHasData) return SectionStatus.empty;
     if (_s.sidingMain.isEmpty || !_isUnderlaymentApplicableSiding(_s.sidingMain)) {
       return SectionStatus.partial;
     }
     if (_u.addFanfoldInsulation && _u.fanfoldThickness.isEmpty) {
+      return SectionStatus.partial;
+    }
+    if (_s.panelHasInsulation && _s.panelInsulation.trim().isEmpty) {
       return SectionStatus.partial;
     }
     return SectionStatus.complete;
@@ -960,6 +999,11 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
             ],
             onChanged: (v) => setState(() {
               _s.sidingMain = v ?? '';
+              if (_s.sidingMain != 'Wall/roof panel') {
+                _s.panelHasInsulation = false;
+                _s.panelInsulation = '';
+                _panelInsulation.clear();
+              }
               _mark();
             }),
           ),
@@ -2458,16 +2502,6 @@ if (extra && mounted) {
           ),
         ],
       ],
-      const SizedBox(height: 8),
-      _textField(
-        controller: c.entryQuantity,
-        label: 'Quantity',
-        hintText: 'Qty of doors with these exact specs',
-        onChanged: (v) {
-          d.entryQuantity = v;
-          _mark();
-        },
-      ),
       ..._buildDoorNotesAndPhotos(
         d: d,
         c: c,
@@ -2768,6 +2802,16 @@ if (extra && mounted) {
     required String extraPhotoLabel,
   }) {
     return [
+      const SizedBox(height: 8),
+      _textField(
+        controller: c.entryQuantity,
+        label: 'Count',
+        hintText: 'Qty of doors with these exact specs',
+        onChanged: (v) {
+          d.entryQuantity = v;
+          _mark();
+        },
+      ),
       const SizedBox(height: 8),
       _notesField(c.additionalNotes, (v) {
         d.additionalNotes = v;
