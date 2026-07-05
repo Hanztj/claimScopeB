@@ -46,6 +46,7 @@ class PdfService {
         pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(32),
+        theme: pdfTheme,
         build: (context) => [
           _buildHeader("COMMERCIAL ROOF INSPECTION REPORT - TECHNICAL"),
           
@@ -1550,6 +1551,13 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
     static List<pw.Widget> _buildCommercialRoofDetails(CommercialRoofSectionData roof) {
       final widgets = <pw.Widget>[];
 
+      if (roof.roofType == 'Metal') {
+       final metalGauge = roof.metalGauge == 'Other'
+            ? 'Other (${_textOrNA(roof.metalGaugeOtherSpecify)})'
+            : _textOrNA(roof.metalGauge);
+        widgets.add(_buildDataRow("    Gauge", metalGauge));
+      }
+
       if (roof.roofType == 'Shingles') {
         widgets.addAll([
           _buildDataRow("    Pitch", roof.pitch ?? "N/A"),
@@ -1587,25 +1595,170 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
                     : "Partial (${roof.deckPartialReplacementSqft ?? 'N/A'} SF)")
                 : "No",
           ),
-          _buildDataRow(
-            "    Flashings",
-            roof.shingleFlashings.isEmpty
-                ? "None recorded"
-                : roof.shingleFlashings.map(_describeFlashing).join("; "),
-          ),
-          _buildDataRow(
-            "    Vents",
-            roof.shingleVents.isEmpty
-                ? "None recorded"
-                : roof.shingleVents.map(_describeVent).join("; "),
-          ),
-          _buildDataRow("    HVAC equipment", roof.hvacUnits.isEmpty ? "None recorded" : roof.hvacUnits.length.toString()),
-          _buildDataRow("    Mechanical equipment", roof.mechanicalUnits.isEmpty ? "None recorded" : roof.mechanicalUnits.length.toString()),
         ]);
       }
 
+      widgets.addAll(_buildCommercialAccessoryDetails(roof));
+
       return widgets;
     }
+
+    static List<pw.Widget> _buildCommercialAccessoryDetails(CommercialRoofSectionData roof) {
+      final rows = <pw.Widget>[];
+
+      final hasFlashings = roof.shingleFlashings.isNotEmpty || roof.tpoFlashings.isNotEmpty;
+      final hasVents = roof.shingleVents.isNotEmpty || roof.tpoVents.isNotEmpty;
+      final hasHvac = roof.hvacUnits.isNotEmpty;
+      final hasMechanical = roof.mechanicalUnits.isNotEmpty;
+
+      if (hasFlashings) {
+        rows.add(_buildDataRow('    Flashings', 'Recorded'));
+
+        var index = 1;
+        for (final flashing in roof.shingleFlashings) {
+          rows.addAll(_buildShingleFlashingRows(flashing, index));
+          index++;
+        }
+        for (final flashing in roof.tpoFlashings) {
+          rows.addAll(_buildCommercialFlashingRows(flashing, index));
+          index++;
+        }
+      }
+
+      if (hasVents) {
+        rows.add(_buildDataRow('    Vents', 'Recorded'));
+
+        var index = 1;
+        for (final vent in roof.shingleVents) {
+          rows.addAll(_buildShingleVentRows(vent, index));
+          index++;
+        }
+        for (final vent in roof.tpoVents) {
+          rows.addAll(_buildCommercialVentRows(vent, index));
+          index++;
+        }
+      }
+
+      if (hasHvac) {
+        rows.add(_buildDataRow('    HVAC rooftop equipment', 'Recorded'));
+        for (var i = 0; i < roof.hvacUnits.length; i++) {
+          rows.addAll(_buildHvacUnitRows(roof.hvacUnits[i], i + 1, 'HVAC'));
+        }
+      }
+
+      if (hasMechanical) {
+        rows.add(_buildDataRow('    Mechanical rooftop equipment', 'Recorded'));
+        for (var i = 0; i < roof.mechanicalUnits.length; i++) {
+          rows.addAll(_buildHvacUnitRows(roof.mechanicalUnits[i], i + 1, 'Mechanical'));
+        }
+      }
+
+      return rows;
+    }
+
+    static List<pw.Widget> _buildShingleFlashingRows(FlashingData flashing, int index) {
+      final rows = <pw.Widget>[
+        _buildDataRow('      Flashing $index Type', _displayOther(flashing.type, flashing.otherSpecify)),
+      ];
+
+      _addOptionalDataRow(rows, '      Flashing $index Size', flashing.size);
+      _addOptionalDataRow(rows, '      Flashing $index Material', flashing.material);
+      _addOptionalDataRow(rows, '      Flashing $index Finish', flashing.finish);
+      _addOptionalDataRow(rows, '      Flashing $index Grade', flashing.grade);
+      _addOptionalDataRow(rows, '      Flashing $index Count', flashing.count);
+      rows.add(_buildDataRow('      Flashing $index Should be changed?', flashing.shouldBeChanged ? 'Yes' : 'No'));
+      if (flashing.changeFlueCap) {
+        rows.add(_buildDataRow('      Flashing $index Change flue cap?', 'Yes'));
+      }
+      if (flashing.changeChaseCover) {
+        rows.add(_buildDataRow('      Flashing $index Change chase cover?', 'Yes'));
+        _addOptionalDataRow(rows, '      Flashing $index Chase cover material', flashing.chaseCoverMaterial);
+      }
+
+      return rows;
+    }
+
+    static List<pw.Widget> _buildCommercialFlashingRows(CommercialFlashingData flashing, int index) {
+      final rows = <pw.Widget>[
+        _buildDataRow('      Flashing $index Type', _displayOther(flashing.type, flashing.otherSpecify)),
+      ];
+
+      _addOptionalDataRow(rows, '      Flashing $index Size', flashing.size);
+      _addOptionalDataRow(rows, '      Flashing $index Material', flashing.material);
+      _addOptionalDataRow(rows, '      Flashing $index Grade', flashing.grade);
+      _addOptionalDataRow(rows, '      Flashing $index How many LF', flashing.lfCount);
+      _addOptionalDataRow(rows, '      Flashing $index Count', flashing.count);
+      if (flashing.fullPerimeter != null) {
+        rows.add(_buildDataRow('      Flashing $index Full perimeter?', flashing.fullPerimeter == true ? 'Yes' : 'No'));
+      }
+
+      return rows;
+    }
+
+    static List<pw.Widget> _buildShingleVentRows(VentData vent, int index) {
+      final rows = <pw.Widget>[
+        _buildDataRow('      Vent $index Type', _displayOther(vent.type, vent.otherSpecify)),
+      ];
+
+      _addOptionalDataRow(rows, '      Vent $index Count', vent.count);
+      rows.add(_buildDataRow('      Vent $index Should be changed?', vent.shouldBeChanged ? 'Yes' : 'No'));
+      if (vent.includeSplitBoot) {
+        rows.add(_buildDataRow('      Vent $index Include split boot?', 'Yes'));
+      }
+      if (vent.includeLead) {
+        rows.add(_buildDataRow('      Vent $index Include lead?', 'Yes'));
+      }
+
+      return rows;
+    }
+
+    static List<pw.Widget> _buildCommercialVentRows(CommercialVentData vent, int index) {
+      final rows = <pw.Widget>[
+        _buildDataRow('      Vent $index Type', _displayOther(vent.type, vent.otherSpecify)),
+      ];
+
+      _addOptionalDataRow(rows, '      Vent $index Size', vent.size);
+      _addOptionalDataRow(rows, '      Vent $index Throat dimension', vent.throatDimension);
+      _addOptionalDataRow(rows, '      Vent $index Specify throat dimension', vent.throatDimensionOtherSpecify);
+      _addOptionalDataRow(rows, '      Vent $index Shape', vent.shape);
+      _addOptionalDataRow(rows, '      Vent $index Count', vent.count);
+
+      return rows;
+    }
+
+    static List<pw.Widget> _buildHvacUnitRows(HvacUnitData item, int index, String label) {
+      final rows = <pw.Widget>[
+        _buildDataRow('      $label $index Type', _displayOther(item.type, item.otherSpecify)),
+      ];
+
+      _addOptionalDataRow(rows, '      $label $index Subtype', item.subtype);
+      _addOptionalDataRow(rows, '      $label $index Specify subtype', item.subtypeOtherSpecify);
+      _addOptionalDataRow(rows, '      $label $index Capacity', item.capacityText);
+      _addOptionalDataRow(rows, '      $label $index Count', item.count);
+      _addOptionalDataRow(rows, '      $label $index Impeller diameter', item.impellerDiameter);
+      rows.add(_buildDataRow('      $label $index Action', _textOrNa(item.action)));
+      _addOptionalDataRow(rows, '      $label $index Notes', item.notes);
+
+      return rows;
+    }
+
+    static void _addOptionalDataRow(List<pw.Widget> rows, String label, String? value) {
+      if (_hasText(value)) {
+        rows.add(_buildDataRow(label, value!.trim()));
+      }
+    }
+
+    static String _displayOther(String? value, String? otherSpecify) {
+      final base = _textOrNa(value);
+      if (base == 'Other' && _hasText(otherSpecify)) {
+        return 'Other: ${otherSpecify!.trim()}';
+      }
+      return base;
+    }
+
+    static bool _hasText(String? value) => value != null && value.trim().isNotEmpty;
+
+    static String _textOrNa(String? value) => _hasText(value) ? value!.trim() : 'N/A';
 
     static String _describeFlashing(FlashingData flashing) {
       final base = flashing.type == 'Other'
