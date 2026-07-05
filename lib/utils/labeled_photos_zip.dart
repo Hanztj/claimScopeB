@@ -14,11 +14,21 @@ String _sanitizePhotoBaseName(
 })   {
   var s = label.trim();
 
-  s = s.replaceAll(RegExp(r'\bextra photo\b', caseSensitive: false), '');
-  s = s.replaceAll(RegExp(r'\badditional photo\b', caseSensitive: false), '');
+  s = s.replaceAll(
+    RegExp(r'\s*[-–—]?\s*\bmain photo\b', caseSensitive: false),
+    '',
+  );
+  s = s.replaceAll(
+    RegExp(r'\s*[-–—]?\s*\bextra photo\b', caseSensitive: false),
+    '',
+  );
+  s = s.replaceAll(
+    RegExp(r'\s*[-–—]?\s*\badditional photo\b', caseSensitive: false),
+    '',
+  );
   s = s.replaceAll(RegExp(r'\badditional\b', caseSensitive: false), '');
 
-    if (removeGenericPhotoWord) {
+  if (removeGenericPhotoWord) {
     s = s.replaceAll(RegExp(r'\bphoto\b', caseSensitive: false), '');
   }
   
@@ -73,8 +83,8 @@ List<int> _readLandscapeZipPhotoBytes(File file) {
 /// Creates a ZIP with labeled photos.
 ///
 /// - If a [PhotoItem.label] matches `Bldg=...|Roof=...|Label=...`, files are
-///   placed under a folder named after the building.
-/// - Otherwise, files are placed under the "General" folder.
+///   placed under Building/Roof folders and use Element_ImageN names.
+/// - Otherwise, files are placed under the "Roof" folder.
 Archive buildLabeledPhotosArchive(List<PhotoItem> items) {
   final counts = <String, int>{};
   final archive = Archive();
@@ -88,9 +98,10 @@ Archive buildLabeledPhotosArchive(List<PhotoItem> items) {
     var isRoofPhoto = false;
 
     if (parsed != null) {
-      // Comportamiento comercial existente: se mantiene intacto.
-      folder = sanitizeZipPathPart(parsed.building);
+      folder =
+          '${sanitizeZipPathPart(parsed.building)}/${sanitizeZipPathPart(parsed.roof)}';
       displayLabel = parsed.label;
+      isRoofPhoto = true;
     } else if (parsedElev != null) {
       // ✨ CORRECCIÓN ELEVATIONS:
       final elevFolder = parsedElev.elev == 'Global'
