@@ -1565,7 +1565,10 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
           roofType == 'Shingles' ||
           roofType == 'Tile roofing' ||
           roofType == 'Slate Roof' ||
-          roofType == 'Other';
+          roofType == 'Other' ||
+          roofType == 'TPO' ||
+          roofType == 'EPDM' ||
+          roofType == 'Modified Bitumen';
     }
 
     static List<pw.Widget> _buildCommercialPrimaryRoofRows(CommercialRoofSectionData roof) {
@@ -1580,6 +1583,10 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
           return _buildCommercialTileSlateRows(roof);
         case 'Slate Roof':
           return _buildCommercialTileSlateRows(roof);
+        case 'TPO':
+        case 'EPDM':
+        case 'Modified Bitumen':
+          return _buildCommercialFlatRoofRows(roof);
         default:
           return [];
       }
@@ -1642,6 +1649,63 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
       rows.add(_buildDataRow('    Does the roof have insulation?', _yesNo(roof.hasInsulation)));
       if (roof.hasInsulation) {
         rows.add(_buildDataRow('    Insulation Type', _textOrNA(roof.insulationType)));
+      }
+
+      return rows;
+    }
+
+    static List<pw.Widget> _buildCommercialFlatRoofRows(CommercialRoofSectionData roof) {
+      final rows = <pw.Widget>[
+        _buildDataRow('    Core sample performed?', _yesNo(roof.coreSamplePerformed)),
+      ];
+
+      if (!roof.coreSamplePerformed) {
+        rows.add(_buildDataRow('    Is the sublayer system known?', _yesNo(roof.insulationKnown)));
+      }
+
+      if (roof.roofType == 'EPDM' || roof.roofType == 'Modified Bitumen') {
+        rows.add(_buildDataRow('    Gravel ballast present?', _yesNo(roof.gravelBallastPresent)));
+      }
+
+      if (roof.coreSamplePerformed || roof.insulationKnown == true) {
+        rows.add(_buildDataRow('    Base insulation material', _textOrNA(roof.insulationMaterial)));
+        if (roof.insulationMaterial == 'Other') {
+          rows.add(_buildDataRow('    Specify insulation material', _textOrNA(roof.insulationMaterialOtherSpecify)));
+        }
+        rows.add(_buildDataRow('    Base insulation thickness', _textOrNA(roof.insulationThickness)));
+        rows.add(_buildDataRow('    Is tapered?', _yesNo(roof.isTapered)));
+        rows.add(_buildDataRow('    Has cover board?', _yesNo(roof.hasCoverBoard)));
+
+        if (roof.hasCoverBoard) {
+          rows.add(_buildDataRow('    Cover board type', _textOrNA(roof.coverBoardType)));
+          if (roof.coverBoardType == 'Other') {
+            rows.add(_buildDataRow('    Specify cover board type', _textOrNA(roof.coverBoardOtherSpecify)));
+          }
+          rows.add(_buildDataRow('    Cover board thickness', _textOrNA(roof.coverBoardThickness)));
+        }
+      }
+
+      if (roof.coreSamplePerformed == false && roof.insulationKnown == false) {
+        rows.add(_buildDataRow('    Sublayer estimating approach', _textOrNA(roof.noCoreSampleApproach)));
+      }
+
+      rows.add(_buildDataRow('    Deck required to be changed?', _yesNo(roof.deckChangeRequired)));
+      if (roof.deckChangeRequired) {
+        rows.add(_buildDataRow('    Deck full replacement required?', _yesNo(roof.deckFullReplacementRequired)));
+        if (!roof.deckFullReplacementRequired) {
+          rows.add(_buildDataRow(
+            '    How many SF of decking require replacement?',
+            _textOrNA(roof.deckPartialReplacementSqft),
+          ));
+        }
+
+        rows.add(_buildDataRow('    Deck type', _textOrNA(roof.deckType)));
+        if (roof.deckType == 'Other') {
+          rows.add(_buildDataRow('    Specify deck type', _textOrNA(roof.deckTypeOtherSpecify)));
+        }
+        if (roof.deckType == 'Metal' || roof.deckType == 'Wood') {
+          rows.add(_buildDataRow('    Deck thickness / gauge', _textOrNA(roof.deckThicknessGauge)));
+        }
       }
 
       return rows;
