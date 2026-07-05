@@ -370,17 +370,13 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
         ..._buildResidentialReplacementRows(report),
         _buildDataRow(
           "Estimated Age",
-          report.estimatedAge != null ? "${report.estimatedAge} years" : "N/A",
+          report.estimatedAge != null && report.estimatedAge! > 0
+              ? "${report.estimatedAge} years"
+              : "N/A"
         ),
         _buildDataRow(
           "Number of Layers",
           report.numLayers != null ? report.numLayers.toString() : "N/A",
-        ),
-        _buildDataRow(
-          "Ridge Vent",
-          report.facets.any((f) => f.hasRidgeVent)
-              ? "Yes (${report.facets.where((f) => f.hasRidgeVent).map((f) => '${f.name}: ${f.ridgeVentType ?? 'Type N/A'}').join(', ')})"
-              : "No",
         ),
         _buildDataRow(
           "Ice & Water Barrier",

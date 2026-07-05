@@ -568,7 +568,7 @@ String? noAction;
 
     // 3) Asignar según el contexto de la foto
     if (isGlobal) {
-      if (label == 'Front Elevation Photo') {
+      if (label == 'Front Elevation Photo' || label == 'Roof Overview Photo') {
         frontElevationPhoto = img;
         widget.report.frontElevationPhoto = img;
       } else if (label == 'Drip Edge Photo') {
@@ -1613,7 +1613,9 @@ rollExposure: rollExposure,
               TextFormField(
                 decoration: const InputDecoration(labelText: 'Estimated Roof Age'),
                 keyboardType: TextInputType.number,
-                onSaved: (val) => estimatedAge = int.tryParse(val ?? '0') ?? 0,
+                 onSaved: (val) {  final text = val?.trim() ?? '';
+                  estimatedAge = text.isEmpty ? null : int.tryParse(text);
+                },
               ),
                     if (widget.report.isResidential == true)
                    const SizedBox(height: 20),
