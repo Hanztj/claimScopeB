@@ -166,38 +166,11 @@ class _CommercialBuildingDetailScreenState extends State<CommercialBuildingDetai
               });
             },
           ),
-          if (building.hasMultipleRoofTypes) ...[
-            const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: _addRoofSection,
-              child: const Text('Add another roof section'),
-            ),
-          ],
           const SizedBox(height: 12),
           if (building.roofs.isNotEmpty) ...[
             const Divider(),
             const Text('Roof sections', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  _sync();
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => CommercialRoofSectionScreen(
-                        plan: widget.plan,
-                        report: widget.report,
-                        buildingIndex: widget.buildingIndex,
-                        roofIndex: 0,
-                      ),
-                    ),
-                  );
-                },
-                child: const Text('Continue to roof details'),
-              ),
-            ),
-            const SizedBox(height: 12),
             ...building.roofs.asMap().entries.map((entry) {
               final idx = entry.key;
               final roof = entry.value;
@@ -267,6 +240,33 @@ class _CommercialBuildingDetailScreenState extends State<CommercialBuildingDetai
                 ),
               );
             }),
+            if (building.hasMultipleRoofTypes) ...[
+              const SizedBox(height: 8),
+              ElevatedButton(
+                onPressed: _addRoofSection,
+                child: const Text('Add another roof section'),
+              ),
+            ],
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  _sync();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => CommercialRoofSectionScreen(
+                        plan: widget.plan,
+                        report: widget.report,
+                        buildingIndex: widget.buildingIndex,
+                        roofIndex: 0,
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('Continue to roof details'),
+              ),
+            ),
           ],
           const SizedBox(height: 12),
           TextField(

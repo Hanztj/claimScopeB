@@ -1551,56 +1551,211 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
     static List<pw.Widget> _buildCommercialRoofDetails(CommercialRoofSectionData roof) {
       final widgets = <pw.Widget>[];
 
-      if (roof.roofType == 'Metal') {
-       final metalGauge = roof.metalGauge == 'Other'
-            ? 'Other (${_textOrNA(roof.metalGaugeOtherSpecify)})'
-            : _textOrNA(roof.metalGauge);
-        widgets.add(_buildDataRow("    Gauge", metalGauge));
-      }
-
-      if (roof.roofType == 'Shingles') {
-        widgets.addAll([
-          _buildDataRow("    Pitch", roof.pitch ?? "N/A"),
-          _buildDataRow(
-            "    Multiple layers",
-            roof.hasMultipleLayers == true
-                ? "Yes (${roof.numberOfLayers ?? 'N/A'})"
-                : "No",
-          ),
-          _buildDataRow("    Starter row installed", roof.starterRowInstalled ? "Yes" : "No"),
-          if (roof.starterRowInstalled) ...[
-            _buildDataRow("    Starter row at eave", roof.starterEaveInstalled ? "Yes" : "No"),
-            _buildDataRow("    Starter row at rake", roof.starterRakeInstalled ? "Yes" : "No"),
-          ],
-          _buildDataRow(
-            "    Drip edge",
-            roof.hasDripEdge ? "Yes (${roof.dripEdgeType ?? 'Type N/A'})" : "No",
-          ),
-          _buildDataRow("    Ice & Water Barrier", roof.iceAndWaterBarrierInstalled ? "Yes" : "No"),
-          _buildDataRow("    Has ridge", roof.hasRidge ? "Yes" : "No"),
-          if (roof.hasRidge)
-            _buildDataRow(
-              "    Ridge vent",
-              roof.hasRidgeVent ? "Yes (${roof.ridgeVentType ?? 'Type N/A'})" : "No",
-            ),
-          _buildDataRow(
-            "    Has valley",
-            roof.hasValleyMetal ? "Yes (${roof.valleyMetalType ?? 'Type N/A'})" : "No",
-          ),
-          _buildDataRow(
-            "    Roof deck replacement",
-            roof.deckChangeRequired
-                ? (roof.deckFullReplacementRequired
-                    ? "Full replacement"
-                    : "Partial (${roof.deckPartialReplacementSqft ?? 'N/A'} SF)")
-                : "No",
-          ),
-        ]);
+      if (_isCommercialDetailedRoofType(roof.roofType)) {
+        widgets.addAll(_buildCommercialPrimaryRoofRows(roof));
       }
 
       widgets.addAll(_buildCommercialAccessoryDetails(roof));
 
       return widgets;
+    }
+
+    static bool _isCommercialDetailedRoofType(String? roofType) {
+      return roofType == 'Metal' ||
+          roofType == 'Shingles' ||
+          roofType == 'Tile roofing' ||
+          roofType == 'Slate Roof' ||
+          roofType == 'Other';
+    }
+
+    static List<pw.Widget> _buildCommercialPrimaryRoofRows(CommercialRoofSectionData roof) {
+      switch (roof.roofType) {
+        case 'Metal':
+          return _buildCommercialMetalRoofRows(roof);
+        case 'Shingles':
+          return _buildCommercialShinglesLikeRows(roof);
+        case 'Other':
+          return _buildCommercialShinglesLikeRows(roof);
+        case 'Tile roofing':
+          return _buildCommercialTileSlateRows(roof);
+        case 'Slate Roof':
+          return _buildCommercialTileSlateRows(roof);
+        default:
+          return [];
+      }
+    }
+
+    static List<pw.Widget> _buildCommercialShinglesLikeRows(CommercialRoofSectionData roof) {
+      final rows = <pw.Widget>[
+        _buildDataRow('    More than 1 layer installed?', _yesNo(roof.hasMultipleLayers)),
+      ];
+
+      if (roof.hasMultipleLayers == true) {
+        rows.add(_buildDataRow('    How many layers?', roof.numberOfLayers?.toString() ?? 'N/A'));
+      }
+
+      rows.addAll(_buildCommercialStarterRowRows(roof));
+      rows.addAll(_buildCommercialDripIceValleyRows(roof));
+      rows.addAll(_buildCommercialRidgeRows(roof));
+      rows.addAll(_buildCommercialBasicDeckRows(roof));
+      rows.addAll(_buildCommercialFacetPitchRows(roof));
+
+      return rows;
+    }
+
+    static List<pw.Widget> _buildCommercialTileSlateRows(CommercialRoofSectionData roof) {
+      final rows = <pw.Widget>[
+        _buildDataRow(
+          '    The batten system needs to be changed?',
+          _textOrNA(roof.battenChangeRequired),
+        ),
+      ];
+
+      rows.addAll(_buildCommercialDripIceValleyRows(roof));
+      rows.addAll(_buildCommercialBasicDeckRows(roof));
+      rows.addAll(_buildCommercialFacetPitchRows(roof));
+
+      return rows;
+    }
+
+    static List<pw.Widget> _buildCommercialMetalRoofRows(CommercialRoofSectionData roof) {
+      final metalGauge = roof.metalGauge == 'Other'
+          ? 'Other (${_textOrNA(roof.metalGaugeOtherSpecify)})'
+          : _textOrNA(roof.metalGauge);
+
+      final rows = <pw.Widget>[
+        _buildDataRow('    Metal style', _textOrNA(roof.metalStyle)),
+        if (roof.metalStyle == 'Other')
+          _buildDataRow('    Has facets?', _yesNo(roof.metalHasFacets)),
+        if (roof.metalStyle == 'Gable' || roof.metalHasFacets == true)
+          _buildDataRow('    Facet count', roof.facetCount.toString()),
+        if (roof.metalStyle != 'Flat')
+          _buildDataRow('    Pitch', _textOrNA(roof.pitch)),
+        _buildDataRow('    Gauge', metalGauge),
+        _buildDataRow('    Does the roof have a deck?', _yesNo(roof.hasDeck)),
+      ];
+
+      if (roof.hasDeck) {
+        rows.addAll(_buildCommercialMetalDeckRows(roof));
+      }
+
+      rows.add(_buildDataRow('    Does the roof have insulation?', _yesNo(roof.hasInsulation)));
+      if (roof.hasInsulation) {
+        rows.add(_buildDataRow('    Insulation Type', _textOrNA(roof.insulationType)));
+      }
+
+      return rows;
+    }
+
+    static List<pw.Widget> _buildCommercialStarterRowRows(CommercialRoofSectionData roof) {
+      final rows = <pw.Widget>[
+        _buildDataRow('    Starter row installed?', _yesNo(roof.starterRowInstalled)),
+      ];
+
+      if (roof.starterRowInstalled) {
+        rows.add(_buildDataRow('    Starter row at eave?', _yesNo(roof.starterEaveInstalled)));
+        rows.add(_buildDataRow('    Starter row at rake?', _yesNo(roof.starterRakeInstalled)));
+      }
+
+      return rows;
+    }
+
+    static List<pw.Widget> _buildCommercialDripIceValleyRows(CommercialRoofSectionData roof) {
+      final rows = <pw.Widget>[
+        _buildDataRow('    Drip edge installed?', _yesNo(roof.hasDripEdge)),
+      ];
+
+      if (roof.hasDripEdge) {
+        rows.add(_buildDataRow('    Drip edge type', _textOrNA(roof.dripEdgeType)));
+      }
+
+      rows.add(_buildDataRow('    Ice & Water Barrier installed?', _yesNo(roof.iceAndWaterBarrierInstalled)));
+      rows.add(_buildDataRow('    Has Valley?', _yesNo(roof.hasValleyMetal)));
+
+      if (roof.hasValleyMetal) {
+        rows.add(_buildDataRow('    Valley Metal Type', _textOrNA(roof.valleyMetalType)));
+      }
+
+      return rows;
+    }
+
+    static List<pw.Widget> _buildCommercialRidgeRows(CommercialRoofSectionData roof) {
+      final rows = <pw.Widget>[
+        _buildDataRow('    Has ridge?', _yesNo(roof.hasRidge)),
+      ];
+
+      if (roof.hasRidge) {
+        rows.add(_buildDataRow('    Has ridge vent?', _yesNo(roof.hasRidgeVent)));
+      }
+
+      if (roof.hasRidgeVent) {
+        rows.add(_buildDataRow('    Ridge vent type', _textOrNA(roof.ridgeVentType)));
+      }
+
+      return rows;
+    }
+
+    static List<pw.Widget> _buildCommercialBasicDeckRows(CommercialRoofSectionData roof) {
+      final rows = <pw.Widget>[
+        _buildDataRow('    Roof deck required to be changed?', _yesNo(roof.deckChangeRequired)),
+      ];
+
+      if (roof.deckChangeRequired) {
+        rows.add(_buildDataRow(
+          '    Roof deck full replacement required?',
+          _yesNo(roof.deckFullReplacementRequired),
+        ));
+
+        if (!roof.deckFullReplacementRequired) {
+          rows.add(_buildDataRow(
+            '    How many SF of roof deck require replacement?',
+            _textOrNA(roof.deckPartialReplacementSqft),
+          ));
+        }
+      }
+
+      return rows;
+    }
+
+    static List<pw.Widget> _buildCommercialMetalDeckRows(CommercialRoofSectionData roof) {
+      final rows = <pw.Widget>[
+        _buildDataRow('    Does the deck require replacement?', _yesNo(roof.deckChangeRequired)),
+      ];
+
+      if (roof.deckChangeRequired) {
+        rows.add(_buildDataRow(
+          '    Deck full replacement required?',
+          _yesNo(roof.deckFullReplacementRequired),
+        ));
+
+        if (!roof.deckFullReplacementRequired) {
+          rows.add(_buildDataRow(
+            '    How many SF of deck require replacement?',
+            _textOrNA(roof.deckPartialReplacementSqft),
+          ));
+        }
+
+        rows.add(_buildDataRow('    What is the roof support base?', _textOrNA(roof.deckType)));
+        if (roof.deckType != null) {
+          rows.add(_buildDataRow('    Deck Size', _textOrNA(roof.deckThicknessGauge)));
+        }
+      }
+
+      return rows;
+    }
+
+    static List<pw.Widget> _buildCommercialFacetPitchRows(CommercialRoofSectionData roof) {
+      final rows = <pw.Widget>[
+        _buildDataRow('    Is there more than one facet?', _yesNo(roof.hasMultipleFacets)),
+      ];
+
+      if (roof.hasMultipleFacets) {
+        rows.add(_buildDataRow('    Facet count', roof.facetCount.toString()));
+      }
+
+      rows.add(_buildDataRow('    Pitch', _textOrNA(roof.pitch)));
+
+      return rows;
     }
 
     static List<pw.Widget> _buildCommercialAccessoryDetails(CommercialRoofSectionData roof) {
