@@ -1,10 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:claimscope_clean/screens/elevations/models/elevations_data.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../models/elevations_data.dart';
 
 /// Autosaver con debounce de 800ms que serializa [ElevationsData] a
 /// SharedPreferences bajo la clave `draft_elevations_<reportId>`.

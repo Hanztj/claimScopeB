@@ -1,22 +1,23 @@
 import 'dart:io';
+
+import 'package:claimscope_clean/catalogs/flashing_catalog.dart';
+import 'package:claimscope_clean/catalogs/roof_catalog.dart';
+import 'package:claimscope_clean/inspection_report_model.dart';
+import 'package:claimscope_clean/screens/commercial/hubs/commercial_flat_hub.dart';
+import 'package:claimscope_clean/screens/commercial/hubs/commercial_metal_hub.dart';
+import 'package:claimscope_clean/screens/commercial/hubs/commercial_other_hub.dart';
+import 'package:claimscope_clean/screens/commercial/hubs/commercial_shingles_hub.dart';
+import 'package:claimscope_clean/screens/commercial/hubs/commercial_slate_hub.dart';
+import 'package:claimscope_clean/screens/commercial/hubs/commercial_tile_hub.dart';
+import 'package:claimscope_clean/screens/commercial_building_details_screen.dart';
+import 'package:claimscope_clean/screens/elevations/elevations_inspection_screen.dart';
+import 'package:claimscope_clean/services/inspection_submission_service.dart';
+import 'package:claimscope_clean/services/pdf_service.dart';
+import 'package:claimscope_clean/utils/gallery_photo_helper.dart';
+import 'package:claimscope_clean/utils/photo_labels.dart';
+import 'package:claimscope_clean/utils/required_photo_validation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '/catalogs/roof_catalog.dart';
-import '/inspection_report_model.dart';
-import '../utils/photo_labels.dart';
-import 'commercial/hubs/commercial_flat_hub.dart';
-import 'commercial/hubs/commercial_metal_hub.dart';
-import 'commercial/hubs/commercial_other_hub.dart';
-import 'commercial/hubs/commercial_shingles_hub.dart';
-import 'commercial/hubs/commercial_slate_hub.dart';
-import 'commercial/hubs/commercial_tile_hub.dart';
-import 'commercial_building_details_screen.dart';
-import 'package:claimscope_clean/services/pdf_service.dart';
-import 'package:claimscope_clean/services/inspection_submission_service.dart';
-import '../catalogs/flashing_catalog.dart'; 
-import '/screens/elevations/elevations_inspection_screen.dart'; 
-import 'package:claimscope_clean/utils/gallery_photo_helper.dart';
-import 'package:claimscope_clean/utils/required_photo_validation.dart';
 
 class CommercialRoofSectionScreen extends StatefulWidget {
   final String plan;

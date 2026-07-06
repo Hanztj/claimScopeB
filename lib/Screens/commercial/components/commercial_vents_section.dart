@@ -1,9 +1,10 @@
 // lib/screens/commercial/components/commercial_vents_section.dart
 
 import 'dart:io';
-import 'package:flutter/material.dart';
+
+import 'package:claimscope_clean/catalogs/commercial_vent_catalog.dart';
 import 'package:claimscope_clean/inspection_report_model.dart';
-import '../../../catalogs/commercial_vent_catalog.dart';
+import 'package:flutter/material.dart';
 
 class CommercialVentsSection extends StatefulWidget {
   final String roofType;

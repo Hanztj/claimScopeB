@@ -1,25 +1,24 @@
-import 'package:claimscope_clean/screens/residential/hubs/residential_tile_hub.dart';
-import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:claimscope_clean/services/pdf_service.dart';
-import 'package:claimscope_clean/services/stripe_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:claimscope_clean/screens/my_reports_screen.dart';
-//firebase imports here
-import 'package:claimscope_clean/inspection_report_model.dart';
- // Para ArchiveFile y ZipEncoder
+
+import 'package:claimscope_clean/catalogs/flashing_catalog.dart';
 import 'package:claimscope_clean/catalogs/roof_catalog.dart';
 import 'package:claimscope_clean/catalogs/roof_components_catalog.dart';
-import 'package:claimscope_clean/screens/residential/hubs/residential_shingles_hub.dart';
-import 'package:claimscope_clean/screens/residential/hubs/residential_roof_accessories_hub.dart';
-import 'package:claimscope_clean/screens/residential/hubs/residential_metal_hub.dart';
+import 'package:claimscope_clean/inspection_report_model.dart';
+import 'package:claimscope_clean/screens/my_reports_screen.dart';
 import 'package:claimscope_clean/screens/residential/hubs/residential_facet_inspection_hub.dart';
+import 'package:claimscope_clean/screens/residential/hubs/residential_metal_hub.dart';
 import 'package:claimscope_clean/screens/residential/hubs/residential_roll_roofing_hub.dart';
-import 'package:claimscope_clean/catalogs/flashing_catalog.dart';
+import 'package:claimscope_clean/screens/residential/hubs/residential_roof_accessories_hub.dart';
+import 'package:claimscope_clean/screens/residential/hubs/residential_shingles_hub.dart';
+import 'package:claimscope_clean/screens/residential/hubs/residential_tile_hub.dart';
 import 'package:claimscope_clean/services/inspection_submission_service.dart';
+import 'package:claimscope_clean/services/pdf_service.dart';
+import 'package:claimscope_clean/services/stripe_service.dart';
 import 'package:claimscope_clean/utils/gallery_photo_helper.dart';
 import 'package:claimscope_clean/utils/required_photo_validation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 
  enum FacetOrientation {

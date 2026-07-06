@@ -1,9 +1,10 @@
 // lib/screens/commercial/components/commercial_flashings_section.dart
 
 import 'dart:io';
-import 'package:flutter/material.dart';
+
+import 'package:claimscope_clean/catalogs/commercial_flashing_catalog.dart';
 import 'package:claimscope_clean/inspection_report_model.dart';
-import '../../../catalogs/commercial_flashing_catalog.dart';
+import 'package:flutter/material.dart';
 
 class CommercialFlashingsSection extends StatefulWidget {
   final String roofType;

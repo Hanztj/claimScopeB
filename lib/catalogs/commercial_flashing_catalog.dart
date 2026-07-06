@@ -1,6 +1,6 @@
 // lib/catalogs/commercial_flashing_catalog.dart
 
-import 'roof_components_catalog.dart';
+import 'package:claimscope_clean/catalogs/roof_components_catalog.dart';
 
 class CommercialFlashingFieldConfig {
   final List<String> options;

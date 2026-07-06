@@ -1,7 +1,6 @@
+import 'package:claimscope_clean/inspection_report_model.dart';
+import 'package:claimscope_clean/screens/commercial_roof_section_screen.dart';
 import 'package:flutter/material.dart';
-
-import '../inspection_report_model.dart';
-import 'commercial_roof_section_screen.dart';
 
 class CommercialBuildingDetailScreen extends StatefulWidget {
   final String plan;

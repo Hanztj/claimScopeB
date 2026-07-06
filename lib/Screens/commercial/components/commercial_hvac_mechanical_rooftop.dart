@@ -2,10 +2,9 @@
 
 import 'dart:io';
 
+import 'package:claimscope_clean/catalogs/commercial_hvac_mechanical_catalog.dart';
+import 'package:claimscope_clean/inspection_report_model.dart';
 import 'package:flutter/material.dart';
-
-import '../../../catalogs/commercial_hvac_mechanical_catalog.dart';
-import '../../../inspection_report_model.dart';
 
 class CommercialHvacMechanicalRooftop extends StatefulWidget {
   final List<HvacUnitData> hvacItems;

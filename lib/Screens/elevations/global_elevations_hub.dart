@@ -1,13 +1,11 @@
 import 'dart:io';
 
+import 'package:claimscope_clean/inspection_report_model.dart';
+import 'package:claimscope_clean/screens/elevations/models/elevations_data.dart';
+import 'package:claimscope_clean/screens/elevations/widgets/section_status_dot.dart';
+import 'package:claimscope_clean/utils/photo_labels.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-
-import 'package:claimscope_clean/inspection_report_model.dart';
-import 'package:claimscope_clean/utils/photo_labels.dart'; 
-
-import 'models/elevations_data.dart';
-import 'widgets/section_status_dot.dart';
 
 /// Secciones globales del edificio (no dependen de la elevación activa):
 ///   1. Emergency Services

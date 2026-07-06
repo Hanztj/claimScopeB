@@ -1,5 +1,6 @@
 import 'dart:io';
-import 'screens/elevations/models/elevations_data.dart';
+
+import 'package:claimscope_clean/screens/elevations/models/elevations_data.dart';
 
 class InspectionReport {
   // CLIENT & CLAIM

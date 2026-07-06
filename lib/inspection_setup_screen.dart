@@ -1,14 +1,14 @@
+import 'package:claimscope_clean/inspection_report_model.dart';
+import 'package:claimscope_clean/roof_inspection_form.dart';
+import 'package:claimscope_clean/screens/commercial_buildings_screen.dart';
+import 'package:claimscope_clean/screens/elevations/elevations_inspection_screen.dart';
+import 'package:claimscope_clean/screens/my_reports_screen.dart';
+import 'package:claimscope_clean/services/auth_plan_service.dart';
+import 'package:claimscope_clean/services/stripe_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:claimscope_clean/roof_inspection_form.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:claimscope_clean/services/auth_plan_service.dart';
-import 'package:claimscope_clean/services/stripe_service.dart';
-import 'package:claimscope_clean/screens/my_reports_screen.dart';
-import 'package:claimscope_clean/screens/elevations/elevations_inspection_screen.dart';
-import 'package:claimscope_clean/inspection_report_model.dart';
-import 'package:claimscope_clean/screens/commercial_buildings_screen.dart';
 
 final List<String> usStates = [
   'Alabama',

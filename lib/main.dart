@@ -1,16 +1,12 @@
-import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-// Importaciones específicas de AuthScreen
-import 'theme.dart'; 
-import 'package:claimscope_clean/screens/subscription_gate_screen.dart';
-// ignore: unused_import
-import 'package:cloud_firestore/cloud_firestore.dart';
-// ignore: unused_import
-import 'package:image_picker/image_picker.dart';
 // ignore: unused_import
 import 'dart:io';
+
 import 'package:claimscope_clean/inspection_setup_screen.dart';
+import 'package:claimscope_clean/screens/subscription_gate_screen.dart';
+import 'package:claimscope_clean/theme.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

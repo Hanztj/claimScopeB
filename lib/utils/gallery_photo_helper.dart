@@ -1,8 +1,7 @@
 import 'dart:io';
 
+import 'package:claimscope_clean/inspection_report_model.dart';
 import 'package:image_picker/image_picker.dart';
-
-import '../inspection_report_model.dart';
 
 typedef GalleryPhotoAttachedCallback = void Function(File file, String label);
 

@@ -1,12 +1,10 @@
 import 'dart:io';
 
 import 'package:archive/archive.dart';
+import 'package:claimscope_clean/inspection_report_model.dart';
+import 'package:claimscope_clean/utils/photo_labels.dart';
 import 'package:image/image.dart' as img;
-
-import '../inspection_report_model.dart';
-import 'photo_labels.dart';
 import 'package:path_provider/path_provider.dart';
-
 
 String _sanitizePhotoBaseName(
   String label, {

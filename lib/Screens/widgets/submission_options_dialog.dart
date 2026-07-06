@@ -1,7 +1,8 @@
 import 'dart:io';
+
+import 'package:claimscope_clean/services/stripe_service.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:claimscope_clean/services/stripe_service.dart';
 
 
 Future<T> _runWithBlockingProgress<T>(

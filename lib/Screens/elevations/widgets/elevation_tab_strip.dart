@@ -1,9 +1,8 @@
-import 'package:flutter/material.dart';
-
 // Borra: import '../models/elevations_data.dart';
 // Y pega esto:
 import 'package:claimscope_clean/screens/elevations/models/elevations_data.dart';
-import 'section_status_dot.dart';
+import 'package:claimscope_clean/screens/elevations/widgets/section_status_dot.dart';
+import 'package:flutter/material.dart';
 
 /// Strip horizontal de chips: Front | Right | Rear | Left | + Other.
 ///

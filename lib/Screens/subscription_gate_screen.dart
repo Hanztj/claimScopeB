@@ -1,10 +1,9 @@
 // lib/screens/subscription_gate_screen.dart
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-
-import 'package:claimscope_clean/services/stripe_service.dart';
 import 'package:claimscope_clean/inspection_setup_screen.dart';
-import '../theme.dart';
+import 'package:claimscope_clean/services/stripe_service.dart';
+import 'package:claimscope_clean/theme.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 

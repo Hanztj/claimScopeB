@@ -1,7 +1,8 @@
 import 'dart:io';
+
+import 'package:claimscope_clean/inspection_report_model.dart';
 import 'package:claimscope_clean/screens/elevations/elevations_inspection_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:claimscope_clean/inspection_report_model.dart';
 
 class ResidentialFacetInspectionHub extends StatelessWidget {
   final void Function(VoidCallback fn) setState;

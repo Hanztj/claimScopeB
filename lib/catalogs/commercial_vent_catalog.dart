@@ -1,4 +1,4 @@
-import 'roof_components_catalog.dart';
+import 'package:claimscope_clean/catalogs/roof_components_catalog.dart';
 
 class CommercialVentFieldConfig {
   final List<String> sizeOptions;

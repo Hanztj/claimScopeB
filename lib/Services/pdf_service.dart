@@ -1,11 +1,12 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:path_provider/path_provider.dart';
-import 'package:flutter/services.dart' show rootBundle;
+
 import 'package:claimscope_clean/inspection_report_model.dart';
-import 'package:claimscope_clean/utils/photo_labels.dart'; 
+import 'package:claimscope_clean/utils/photo_labels.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw; 
 
 class _PdfPhotoItemBytes {
   final Uint8List bytes;
