@@ -15,6 +15,7 @@ local.properties
 /android/app/build/
 /android/app/src/main/res/raw/google_services.json
 /node_modules
+functions/.env.claim-scope
 
 # iOS
 Pods/

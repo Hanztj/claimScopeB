@@ -1,24 +1,14 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" >
-    <!-- Permisos requeridos para ARCore, cámara, ubicación y almacenamiento -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Permisos esenciales para el funcionamiento actual de la app -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-feature android:glEsVersion="0x00030000" android:required="true" />
-    <!-- Declara que la app requiere soporte para ARCore, lo que también implica una cámara. -->
-    <uses-feature android:name="android.hardware.camera.ar" android:required="true" />
-    <uses-feature android:name="android.hardware.sensor.accelerometer" android:required="true" />
-    <uses-feature android:name="android.hardware.sensor.gyroscope" android:required="true"  />
 
     <application
         android:label="claimscope_clean"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
-        android:largeHeap="true"
-
-        <!-- Metadata de ARCore, debe estar dentro de la etiqueta <application> -->
+        android:icon="@mipmap/ic_launcher"
+        android:largeHeap="true">
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -37,19 +27,21 @@
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
-            <!-- ... otros metadatos y filtros de intención ... -->
+            
             <meta-data
                 android:name="io.flutter.embedding.android.NormalTheme"
                 android:resource="@style/NormalTheme" />
+            
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            
             <intent-filter android:autoVerify="true">
-            <action android:name="android.intent.action.VIEW" />
-            <category android:name="android.intent.category.DEFAULT" />
-            <category android:name="android.intent.category.BROWSABLE" />
-            <data android:scheme="claimscope" />
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="claimscope" />
             </intent-filter>
         </activity>
 
