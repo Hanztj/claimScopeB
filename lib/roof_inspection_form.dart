@@ -1164,14 +1164,13 @@ widget.report.rollGravelBallastPresent = gravelBallastPresent;
     ];
     final bool isRollRoofing = roofCoverType == 'Roll Roofing';
     
-
-  final isBasico = widget.plan != 'premium'; // muestra Upgrade para free/básico
-
+ final showUpgradeButton = widget.plan == 'basic'; // Shows Upgrade only for Basic users.
+ 
   return Scaffold(
     appBar: AppBar(
       title: const Text('Roof Inspection'),
       actions: [
-        if (isBasico)
+       if (showUpgradeButton)
           TextButton(
             onPressed: () async {
               final messenger = ScaffoldMessenger.of(context);
