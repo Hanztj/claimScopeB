@@ -1,37 +1,44 @@
 # Uncomment this line to define a global platform for your project
-platform :ios, '12.0' # Aseguramos iOS 12.0 para ARKit y Flutter moderno
+platform :ios, '13.0'
 
-# CocoaPods no usa automáticamente los módulos de frameworks.
-# Usa esto para la versión moderna de la integración de Swift/Xcode.
-abstract_target 'Runner' do
+# CocoaPods analytics sends network stats synchronously affecting Flutter build latency.
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+project 'Runner', {
+  'Debug' => :debug,
+  'Profile' => :release,
+  'Release' => :release,
+}
+
+def flutter_root
+  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  unless File.exist?(generated_xcode_build_settings_path)
+    raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
+  end
+
+  File.foreach(generated_xcode_build_settings_path) do |line|
+    matches = line.match(/FLUTTER_ROOT\=(.*)/)
+    return matches[1].strip if matches
+  end
+  raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig, then run flutter pub get"
+end
+
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+flutter_ios_podfile_setup
+
+target 'Runner' do
   use_frameworks!
-  
-  # Este es el código estándar para incluir los plugins de Flutter
-  flutter_install_all_ios_pods File.join(File.dirname(__FILE__), '.ios_symlinks', 'plugins')
+  use_modular_headers!
 
-  target 'Runner' do
-    # Incluimos los pods (dependencias) generadas por los plugins de Flutter
-    # Este 'pod' es la dependencia principal de Flutter para iOS
-    pod 'Flutter', :path => 'Flutter'
-    pod 'FlutterPluginRegistrant', :path => 'Flutter'
-# ✅ AGREGAR: Dependencias de Firebase
-    # Asumo que necesita Core y Analytics. Agregue cualquier otro servicio aquí.
-    pod 'Firebase/Core'
-    pod 'Firebase/Analytics'
-    pod 'FirebaseAnalyticsWithoutAdId'
-    # Si desea agregar más servicios, por ejemplo:
-    # pod 'Firebase/Firestore' 
-    # pod 'Firebase/Crashlytics'
-    # La línea para el Podfile específico de la configuración de Firebase
-    # si usas Swift/Objective-C nativo. Para Flutter, `flutter_install_all_ios_pods` lo maneja.
-
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  target 'RunnerTests' do
+    inherit! :search_paths
   end
+end
 
-  # Post-install hook necesario para Flutter
-  post_install do |installer|
-    installer.pods_project.targets.each do |target|
-      flutter_additional_ios_build_settings(target)
-    end
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
   end
-
 end
