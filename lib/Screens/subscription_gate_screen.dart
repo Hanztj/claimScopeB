@@ -174,7 +174,7 @@ class _SubscriptionGateScreenState extends State<SubscriptionGateScreen>
                           period: "/month",
                           isPopular: true,
                           features: const [
-                            "Everything in Basic (15% off)",
+                            "Everything in Basic + (15% off)",
                             "60 days of free storage for all inspections",
                             "Assignments via XactAnalysis to HF Estimates",
                             "Assignments to any XactNet account",
