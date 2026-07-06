@@ -76,11 +76,6 @@ const Map<String, CommercialFlashingFieldConfig> tpoFlashingConfigByType = {
   ),
 };
 
-CommercialFlashingFieldConfig commercialTpoFlashingConfigForType(String? type) {
-  if (type == null) return const CommercialFlashingFieldConfig();
-  return tpoFlashingConfigByType[type] ?? const CommercialFlashingFieldConfig();
-}
-
 // ============================================================
 // NUEVO — API genérica por tipo de techo (Phase 1).
 // TPO / EPDM / Modified Bitumen comparten el mismo set actual.

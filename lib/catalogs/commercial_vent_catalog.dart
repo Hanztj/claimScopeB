@@ -51,11 +51,6 @@ const Map<String, CommercialVentFieldConfig> commercialVentConfigByType = {
   ),
 };
 
-CommercialVentFieldConfig commercialVentConfigForType(String? type) {
-  if (type == null) return const CommercialVentFieldConfig();
-  return commercialVentConfigByType[type] ?? const CommercialVentFieldConfig();
-}
-
 // ============================================================
 // NUEVO — API genérica por tipo de techo (Phase 1).
 // ============================================================
