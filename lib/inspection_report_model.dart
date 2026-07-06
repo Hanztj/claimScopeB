@@ -264,7 +264,6 @@ class CommercialRoofSectionData {
 
   File? overviewPhoto;
 
-  List<AccessoryItemData> accessories = [];
   List<HvacUnitData> hvacUnits = [];
   List<HvacUnitData> mechanicalUnits = [];
 
@@ -278,21 +277,6 @@ class CommercialRoofSectionData {
   // List<CommercialFlashingData> metalFlashings = [];
 
 }
-
-class AccessoryItemData {
-  String? type;
-  String? otherSpecify;
-
-  String? count;
-  bool shouldBeChanged = false;
-  bool detachAndResetOnly = false;
-
-  File? photo;
-  List<File> extraPhotos = [];
-
-  String? notes;
-}
-
 
 class HvacUnitData {
   String? type; // AC Unit / RTU / Other
