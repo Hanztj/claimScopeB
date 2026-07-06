@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 // FUNCIÓN CLAVE: Leer el Custom Claim del token
 // ----------------------------------------------------------------------
 
-/// Obtiene el estado actual del plan del usuario (basico, premium, anonimo).
+/// Obtiene el estado actual del plan del usuario (basic, premium, anonimo).
 ///
 /// [forceRefresh] debe ser TRUE cuando se espera un cambio de plan 
 /// (ej: justo después del login, o después de un pago con Stripe).
@@ -24,11 +24,11 @@ Future<String> getUserPlanStatus({bool forceRefresh = false}) async {
     // Leer el valor del claim 'plan'
     final userPlan = idTokenResult.claims?['plan'] as String?; 
     
-    // Si el claim existe, lo devuelve; si no, asume el 'basico' por defecto.
-    return userPlan ?? 'basico'; 
+    // Si no hay claim de plan, no inventa un plan por defecto.
+    return userPlan ?? 'free'; 
     
   } catch (e) {
     debugPrint('Error al obtener el plan del usuario: $e');
-    return 'basico'; // En caso de error, asumimos el plan básico.
+    return 'error';
   }
 }

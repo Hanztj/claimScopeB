@@ -64,7 +64,7 @@ final List<String> usStates = [
 ];
 
 class InspectionSetupScreen extends StatefulWidget {
-  final String plan; // 'basico' o 'premium'
+  final String plan; // 'basic' o 'premium'
 
   const InspectionSetupScreen({super.key, required this.plan});
 
@@ -79,12 +79,11 @@ class _InspectionSetupScreenState extends State<InspectionSetupScreen> {
 
       if (!mounted) return;
 
-      if (plan == 'error') {
+      if (plan != 'basic' && plan != 'premium') {
         throw Exception('The status of the plan could not be determined..');
       }
 
-      final isPremium = plan == 'premium';
-      final normalizedPlan = isPremium ? 'premium' : 'basic';
+      final normalizedPlan = plan;
 
 if (!inspectRoof) {
   if (report.inspectElevations) {
@@ -266,13 +265,13 @@ if (!inspectRoof) {
 
   @override
   Widget build(BuildContext context) {
-    final isBasico = widget.plan == 'basico';
+    final isBasic = widget.plan == 'basic';
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Inspection Setup'),
         actions: [
-          if (isBasico)
+          if (isBasic)
             TextButton(
               onPressed: () async {
                 final messenger = ScaffoldMessenger.of(context);

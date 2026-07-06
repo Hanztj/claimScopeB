@@ -70,7 +70,7 @@ class AuthGate extends StatelessWidget {
                 final plan =
                     tokenSnapshot.data?.claims?['plan'] as String?;
 
-                if (plan == 'premium' || plan == 'basico') {
+                if (plan == 'premium' || plan == 'basic') {
                   return InspectionSetupScreen(plan: plan!);
                 } else {
                   return const SubscriptionGateScreen();
