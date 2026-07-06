@@ -106,7 +106,7 @@ class CommercialTileHubForm extends StatelessWidget {
         DropdownButtonFormField<String>(
           initialValue: roof.battenChangeRequired,
           decoration: const InputDecoration(
-            labelText: 'The batten system needs to be changed?',
+            labelText: 'Does the batten system need to be replaced?',
             border: OutlineInputBorder(),
           ),
           items: const [

@@ -334,7 +334,7 @@ final String? rollExposure;
         // Deck
         CheckboxListTile(
           title: const Text(
-            'Does deck required to be changed?',
+            'Does the deck need to be replaced?',
           ),
           value:
               deckRequiresReplacement ?? false,

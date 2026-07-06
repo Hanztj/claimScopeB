@@ -61,7 +61,7 @@ Future<void> showSubmissionOptions({
               ListTile(
                 leading: const Icon(Icons.business),
                 title: const Text('Send to HF Estimates by email'),
-                subtitle: const Text('This will create a paid estimate Order'),
+                subtitle: const Text('This will create a paid estimate order.'),
                 onTap: () {
                   Navigator.of(dialogContext).pop();
                   onSendToHf(techPdf, photoPdf);

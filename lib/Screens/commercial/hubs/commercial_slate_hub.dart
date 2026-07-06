@@ -106,7 +106,7 @@ class CommercialSlateHubForm extends StatelessWidget {
         DropdownButtonFormField<String>(
           initialValue: roof.battenChangeRequired,
           decoration: const InputDecoration(
-            labelText: 'The batten system needs to be changed?',
+            labelText: 'Does the batten system need to be replaced?',
             border: OutlineInputBorder(),
           ),
           items: const [
@@ -275,7 +275,7 @@ class CommercialSlateHubForm extends StatelessWidget {
 
         const SizedBox(height: 12),
         CheckboxListTile(
-          title: const Text('Roof deck required to be changed?'),
+          title: const Text('Does the roof deck need to be replaced?'),
           value: roof.deckChangeRequired,
           onChanged: (val) {
             setState(() {

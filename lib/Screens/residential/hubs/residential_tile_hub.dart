@@ -99,7 +99,7 @@ class ResidentialTileHubForm extends StatelessWidget {
         const SizedBox(height: 10),
        
         buildDropdown(
-          'The batten system needs to be changed?',
+          'Does the batten system need to be replaced?',
           ['Yes', 'No'],
           battenSystemNeedsReplacement,
           (val) => setState(() => onBattenSystemNeedsReplacementChanged(val)),

@@ -1647,7 +1647,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
     static List<pw.Widget> _buildCommercialTileSlateRows(CommercialRoofSectionData roof) {
       final rows = <pw.Widget>[
         _buildDataRow(
-          '    The batten system needs to be changed?',
+          '    Does the batten system need to be replaced?',
           _textOrNA(roof.battenChangeRequired),
         ),
       ];

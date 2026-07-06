@@ -604,7 +604,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
   bool _isVeneerSiding(String siding) {
     return siding == 'Brick Veneer' ||
         siding == 'Stone Veneer' ||
-        siding == 'Tone Veneer';
+        siding == 'Stone Veneer';
   }
 
   // =====================================================================
@@ -2024,7 +2024,7 @@ if (extra && mounted) {
                 }),
               ),
               _checkbox(
-                'It has Shutters installed?',
+                'Does it have shutters installed?',
                 w.hasShuttersInstalled,
                 (v) {
                   setState(() {

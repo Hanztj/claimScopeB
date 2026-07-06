@@ -80,7 +80,7 @@ class _InspectionSetupScreenState extends State<InspectionSetupScreen> {
       if (!mounted) return;
 
       if (plan != 'basic' && plan != 'premium') {
-        throw Exception('The status of the plan could not be determined..');
+        throw Exception('The plan status could not be determined.');
       }
 
       final normalizedPlan = plan;
