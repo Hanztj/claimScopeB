@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:claimscope_clean/inspection_report_model.dart';
-import 'package:claimscope_clean/screens/elevations/elevations_inspection_screen.dart';
 import 'package:flutter/material.dart';
 
 class ResidentialFacetInspectionHub extends StatelessWidget {
@@ -81,6 +80,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
   final VoidCallback addNextFacet;
   final VoidCallback onDeleteCurrentFacet;
   final VoidCallback submitForm;
+  final VoidCallback onInspectElevations;
   final bool isSingleRoofSection;
 
   final void Function({
@@ -169,6 +169,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
     required this.addNextFacet,
     required this.onDeleteCurrentFacet,
     required this.submitForm,
+    required this.onInspectElevations,
     this.isSingleRoofSection = false,
     required this.clearPhotoArtifacts,
     required this.takePhoto,
@@ -938,18 +939,7 @@ if (isSingleRoofSection || isLastFacet)
       // Primer botón: Inspect Elevations (Si está activo)
       if (report.inspectElevations) ...[
         ElevatedButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ElevationsInspectionScreen(
-                  report: report,
-                  isCommercial: false,
-                  plan: plan,
-                ),
-              ),
-            );
-          },
+          onPressed: onInspectElevations,
           child: const Text(
             'Inspect Elevations',
             style: TextStyle(fontSize: 18),

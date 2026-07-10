@@ -108,7 +108,7 @@ class ResidentialTileHubForm extends StatelessWidget {
         const SizedBox(height: 10),
 
         CheckboxListTile(
-          title: const Text('Sheathing required to be changed?'),
+          title: const Text('Sheathing replacement required?'),
           value: sheathingRequiredToBeChanged,
           onChanged: (val) {
             setState(() {

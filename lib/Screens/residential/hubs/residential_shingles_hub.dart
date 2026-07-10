@@ -102,7 +102,7 @@ class ResidentialShinglesHubForm extends StatelessWidget {
 
         // Sheathing
         CheckboxListTile(
-          title: const Text('Sheathing required to be changed?'),
+          title: const Text('Sheathing replacement required?'),
           value: sheathingRequiredToBeChanged,
           onChanged: (val) {
             setState(() {

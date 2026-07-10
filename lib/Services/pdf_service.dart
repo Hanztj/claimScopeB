@@ -540,7 +540,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
             report.partialReplacementSqft ?? "N/A",
           ),
         _buildDataRow(
-          "Sheathing required to be changed",
+          "Sheathing replacement required",
           report.sheathingRequiredToBeChanged ? "Yes" : "No",
         ),
         if (report.sheathingRequiredToBeChanged) ...[
@@ -976,7 +976,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
       if (data.gutLf.trim().isNotEmpty) {
         rows.add(_buildDataRow("How many LF", data.gutLf.trim()));
       }
-      rows.add(_buildDataRow("Requires to be painted?", data.gutPaint == true ? "Yes" : "No"));
+      rows.add(_buildDataRow("Requires painting?", data.gutPaint == true ? "Yes" : "No"));
       rows.add(pw.SizedBox(height: 5));
 
       return rows;
@@ -999,7 +999,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
       if (data.facQuantity == 'Partial' && data.facLf.trim().isNotEmpty) {
         rows.add(_buildDataRow("How many LF", data.facLf.trim()));
       }
-      rows.add(_buildDataRow("Requires to be painted?", data.facPaint == true ? "Yes" : "No"));
+      rows.add(_buildDataRow("Requires painting?", data.facPaint == true ? "Yes" : "No"));
       rows.add(pw.SizedBox(height: 5));
 
       return rows;
@@ -1029,7 +1029,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
       if (data.sofVents == true && data.sofVentsQty.trim().isNotEmpty) {
         rows.add(_buildDataRow("Vents quantity", data.sofVentsQty.trim()));
       }
-      rows.add(_buildDataRow("Requires to be painted?", data.sofPaint == true ? "Yes" : "No"));
+      rows.add(_buildDataRow("Requires painting?", data.sofPaint == true ? "Yes" : "No"));
       rows.add(pw.SizedBox(height: 5));
 
       return rows;

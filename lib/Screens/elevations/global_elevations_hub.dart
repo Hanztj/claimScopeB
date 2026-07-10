@@ -531,7 +531,7 @@ if (_gsf.gutScupper)
           ],
           
           const SizedBox(height: 8),
-          _checkbox('Requires to be painted?', _gsf.gutPaint, (v) { 
+          _checkbox('Requires painting?', _gsf.gutPaint, (v) { 
             setState(() {  _gsf.gutPaint = v;  _mark();   });
            }),
 
@@ -640,7 +640,7 @@ SectionStatus _gutStatus() {
             _qtyField(controller: _facLf, hint: 'How many LF', unit: 'LF',
                 onChanged: (v) { _gsf.facLf = v; _mark(); }),
           ],
-              _checkbox('Requires to be painted?', _gsf.facPaint,
+              _checkbox('Requires painting?', _gsf.facPaint,
               (v) => setState(() { _gsf.facPaint = v; _mark(); })),
           
           // 📷 Botón de Foto antes de las notas adicionales (Compartidas por la sección GSF)
@@ -760,7 +760,7 @@ if (_gsf.sofQuantity == 'Partial') ...[
             ),
 
           const SizedBox(height: 8),
-          _checkbox('Requires to be painted?', _gsf.sofPaint,
+          _checkbox('Requires painting?', _gsf.sofPaint,
               (v) => setState(() { _gsf.sofPaint = v; _mark(); })),
           
           // 📷 Botón de Foto antes de las notas adicionales

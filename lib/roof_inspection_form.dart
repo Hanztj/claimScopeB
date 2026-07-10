@@ -6,6 +6,7 @@ import 'package:claimscope_clean/catalogs/roof_components_catalog.dart';
 import 'package:claimscope_clean/inspection_report_model.dart';
 import 'package:claimscope_clean/screens/my_reports_screen.dart';
 import 'package:claimscope_clean/screens/residential/hubs/residential_facet_inspection_hub.dart';
+import 'package:claimscope_clean/screens/elevations/elevations_inspection_screen.dart';
 import 'package:claimscope_clean/screens/residential/hubs/residential_metal_hub.dart';
 import 'package:claimscope_clean/screens/residential/hubs/residential_roll_roofing_hub.dart';
 import 'package:claimscope_clean/screens/residential/hubs/residential_roof_accessories_hub.dart';
@@ -19,7 +20,6 @@ import 'package:claimscope_clean/utils/required_photo_validation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-
 
  enum FacetOrientation {
   north,
@@ -338,6 +338,21 @@ String? noAction;
     return null;
   }
 
+  void _prepareSingleRoofSectionFacet() {
+    _currentFacetNameController.text = 'Roof Section';
+    _currentFacetOrientation = FacetOrientation.none;
+    _currentPitchFacetController.clear();
+    _currentHasRidgeVent = false;
+    _currentRidgeVentType = null;
+    _currentRidgeVentPhoto = null;
+    _currentAtrPerformed = false;
+    _currentAtrResult = null;
+    _currentAtrPhoto = null;
+    _currentHasValleyMetal = false;
+    _currentValleyMetalType = null;
+    _currentValleyMetalPhoto = null;
+  }
+
   void _attemptSubmitSingleRoofSection() {
     final validationError = _validateCurrentFacetBeforeAdvance(
       requireFacetDetails: false,
@@ -352,20 +367,187 @@ String? noAction;
       return;
     }
 
-    _currentFacetNameController.text = 'Roof Section';
-    _currentFacetOrientation = FacetOrientation.none;
-    _currentPitchFacetController.clear();
-    _currentHasRidgeVent = false;
-    _currentRidgeVentType = null;
-    _currentRidgeVentPhoto = null;
-    _currentAtrPerformed = false;
-    _currentAtrResult = null;
-    _currentAtrPhoto = null;
-    _currentHasValleyMetal = false;
-    _currentValleyMetalType = null;
-    _currentValleyMetalPhoto = null;
-
+    _prepareSingleRoofSectionFacet();
     submitForm();
+  }
+
+  bool _validateRoofReplacementScope() {
+    if (roofCoverType == 'Shingles') {
+      final partialShinglesText = _partialReplacementSqftController.text.trim();
+
+      final hasFullShingles = fullRoofReplacementRequired;
+      final hasPartialShingles = partialShinglesText.isNotEmpty;
+
+      if (!hasFullShingles && !hasPartialShingles) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Select full roof replacement or enter SF of shingles to replace.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return false;
+      }
+
+      if (sheathingRequiredToBeChanged) {
+        final partialSheathingText = _sheathingPartialSqftController.text.trim();
+
+        final hasFullSheathing = sheathingFullReplacementRequired;
+        final hasPartialSheathing = partialSheathingText.isNotEmpty;
+
+        if (!hasFullSheathing && !hasPartialSheathing) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  'Select full sheathing replacement or enter SF of sheathing to replace.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return false;
+        }
+        if (sheathingType == null || sheathingType!.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Select Sheathing Type.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return false;
+        }
+        if (sheathingSize == null || sheathingSize!.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Select Sheathing Size.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  void _syncResidentialReportData() {
+    widget.report.numLayers = numLayers;
+    widget.report.estimatedAge = estimatedAge;
+    widget.report.roofCoverType = roofCoverType;
+    widget.report.roofSubType = roofSubType;
+    widget.report.hasDripEdge = hasDripEdge;
+    widget.report.dripEdgeType = dripEdgeType;
+    widget.report.iceAndWaterBarrierInstalled = iceAndWaterBarrierInstalled;
+    widget.report.starterRowInstalled = starterRowInstalled;
+    widget.report.starterEaveInstalled = starterEaveInstalled;
+    widget.report.starterRakeInstalled = starterRakeInstalled;
+    widget.report.hasShed = hasShed;
+    widget.report.hasDetachedStructure = hasDetachedStructure;
+
+    widget.report.fullRoofReplacementRequired = fullRoofReplacementRequired;
+    widget.report.partialReplacementSqft =
+        _partialReplacementSqftController.text.trim().isEmpty
+            ? null
+            : _partialReplacementSqftController.text.trim();
+    widget.report.sheathingRequiredToBeChanged = sheathingRequiredToBeChanged;
+    widget.report.sheathingFullReplacementRequired =
+        sheathingFullReplacementRequired;
+    widget.report.sheathingPartialReplacementSqft =
+        _sheathingPartialSqftController.text.trim().isEmpty
+            ? null
+            : _sheathingPartialSqftController.text.trim();
+    widget.report.sheathingType = sheathingType;
+    widget.report.sheathingSize = sheathingSize;
+
+    // Residential hub-specific fields for the technical PDF
+    widget.report.battenSystemNeedsReplacement = battenSystemNeedsReplacement;
+
+    widget.report.selectedGauge = selectedGauge;
+    widget.report.metalGaugeOtherSpecify = selectedGauge == 'Other'
+        ? otherGaugeController.text.trim()
+        : null;
+    widget.report.metalSubTypeOtherSpecify =
+        roofCoverType == 'Metal' && roofSubType == 'Other'
+            ? otherMetalSubTypeController.text.trim()
+            : null;
+    widget.report.residentialMetalHasDeck = hasDeck;
+    widget.report.residentialMetalDeckRequiresReplacement =
+        deckRequiresReplacement;
+    widget.report.residentialMetalDeckFullReplacementRequired =
+        deckFullReplacementRequired;
+    widget.report.residentialMetalDeckPartialReplacementSqft =
+        howManySFDeckRequireReplacementVisible;
+    widget.report.residentialMetalRoofSupportBase = roofSupportBase;
+    widget.report.residentialMetalDeckSize = deckSize;
+    widget.report.residentialMetalIceWaterBarrierInstalled =
+        iceWaterBarrierInstalled;
+    widget.report.residentialMetalIceWaterBarrierType = hightemp ?? doubleFelt;
+    widget.report.residentialMetalNoIceWaterBarrierApproach =
+        ordinanceandlawapproach ?? biditemblank ?? noAction;
+
+    widget.report.rollExposure = rollExposure;
+    widget.report.rollNumberOfPlies = numberOfPlies;
+    widget.report.rollFasteningMethod = fasteningMethod;
+    widget.report.rollFastenerPullTestPerformed = fastenerPullTestPerformed;
+    widget.report.rollFastenerPullTestResult = fastenerPullTestResult;
+    widget.report.rollUnderlaymentType = underlaymentType;
+    widget.report.rollInsulationType = insulationType;
+    widget.report.rollInsulationSize = insulationSize;
+    widget.report.rollDeckRequiresReplacement = deckRequiresReplacement;
+    widget.report.rollDeckFullReplacementRequired = deckFullReplacementRequired;
+    widget.report.rollDeckPartialReplacementSqft =
+        howManySFDeckRequireReplacementVisible;
+    widget.report.rollIceWaterBarrierInstalled = iceWaterBarrierInstalled;
+    widget.report.rollDripEdgeInstalled = dripEdgeInstalled;
+    widget.report.rollDripEdgeType = dripEdgeType;
+    widget.report.rollGravelBallastPresent = gravelBallastPresent;
+  }
+
+  void _saveCurrentResidentialProgress() {
+    _formKey.currentState!.save();
+    _saveCurrentFacetData();
+    _syncResidentialReportData();
+  }
+
+  void _attemptInspectElevations() {
+    final validationError = _validateCurrentFacetBeforeAdvance(
+      requireFacetDetails: roofCoverType != 'Roll Roofing',
+    );
+    if (validationError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(validationError),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (roofCoverType == 'Roll Roofing') {
+      _prepareSingleRoofSectionFacet();
+    }
+
+    if (!_validateRoofReplacementScope()) return;
+
+    final isValid = _formKey.currentState!.validate();
+    debugPrint('Roof form validate() = $isValid');
+
+    if (!isValid) {
+      _showRequiredFieldsWarning();
+      return;
+    }
+
+    _saveCurrentResidentialProgress();
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ElevationsInspectionScreen(
+          report: widget.report,
+          isCommercial: false,
+          plan: widget.plan,
+        ),
+      ),
+    );
   }
 
   void _attemptAddNextFacet() {
@@ -743,61 +925,7 @@ String? noAction;
     }
 
           // Validación personalizada de reemplazo de techo/sheathing
-  if (roofCoverType == 'Shingles') {
-    final partialShinglesText =  _partialReplacementSqftController.text.trim();
-
-    final hasFullShingles = fullRoofReplacementRequired;
-    final hasPartialShingles = partialShinglesText.isNotEmpty;
-
-    if (!hasFullShingles && !hasPartialShingles) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'Select full roof replacement or enter SF of shingles to replace.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    if (sheathingRequiredToBeChanged) {
-
-final partialSheathingText =  _sheathingPartialSqftController.text.trim();
-
-      final hasFullSheathing = sheathingFullReplacementRequired;
-      final hasPartialSheathing = partialSheathingText.isNotEmpty;
-
-      if (!hasFullSheathing && !hasPartialSheathing) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-                'Select full sheathing replacement or enter SF of sheathing to replace.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      } 
-      if (sheathingType == null || sheathingType!.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Select Sheathing Type.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-      if (sheathingSize == null || sheathingSize!.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Select Sheathing Size.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-}
-
-  }
+  if (!_validateRoofReplacementScope()) return;
   
   final isValid = _formKey.currentState!.validate();
    debugPrint('Roof form validate() = $isValid');
@@ -807,81 +935,7 @@ if (!isValid) {
   return;
 }
 
-_formKey.currentState!.save();
-      _saveCurrentFacetData(); // Guardar faceta actual en la lista
-          // Sincronizar campos simples con el modelo
-    widget.report.numLayers = numLayers;
-    widget.report.estimatedAge = estimatedAge;
-    widget.report.roofCoverType = roofCoverType;
-    widget.report.roofSubType = roofSubType;
-    widget.report.hasDripEdge = hasDripEdge;
-    widget.report.dripEdgeType = dripEdgeType;
-    widget.report.iceAndWaterBarrierInstalled = iceAndWaterBarrierInstalled;
-    widget.report.starterRowInstalled = starterRowInstalled;
-    widget.report.starterEaveInstalled = starterEaveInstalled;
-    widget.report.starterRakeInstalled = starterRakeInstalled;
-    //
-    widget.report.hasShed = hasShed;
-    widget.report.hasDetachedStructure = hasDetachedStructure;
-
-      widget.report.fullRoofReplacementRequired = fullRoofReplacementRequired;
-      widget.report.partialReplacementSqft =
-      _partialReplacementSqftController.text.trim().isEmpty
-          ? null
-          : _partialReplacementSqftController.text.trim();
-      widget.report.sheathingRequiredToBeChanged =
-      sheathingRequiredToBeChanged;
-      widget.report.sheathingFullReplacementRequired =
-      sheathingFullReplacementRequired;
-      widget.report.sheathingPartialReplacementSqft =
-      _sheathingPartialSqftController.text.trim().isEmpty
-          ? null
-          : _sheathingPartialSqftController.text.trim();
-       widget.report.sheathingType = sheathingType;
-      widget.report.sheathingSize = sheathingSize;
-
-      // Residential hub-specific fields for the technical PDF
-widget.report.battenSystemNeedsReplacement = battenSystemNeedsReplacement;
-
-widget.report.selectedGauge = selectedGauge;
-widget.report.metalGaugeOtherSpecify = selectedGauge == 'Other'
-    ? otherGaugeController.text.trim()
-    : null;
-widget.report.metalSubTypeOtherSpecify =
-    roofCoverType == 'Metal' && roofSubType == 'Other'
-        ? otherMetalSubTypeController.text.trim()
-        : null;
-widget.report.residentialMetalHasDeck = hasDeck;
-widget.report.residentialMetalDeckRequiresReplacement =
-    deckRequiresReplacement;
-widget.report.residentialMetalDeckFullReplacementRequired =
-    deckFullReplacementRequired;
-widget.report.residentialMetalDeckPartialReplacementSqft =
-    howManySFDeckRequireReplacementVisible;
-widget.report.residentialMetalRoofSupportBase = roofSupportBase;
-widget.report.residentialMetalDeckSize = deckSize;
-widget.report.residentialMetalIceWaterBarrierInstalled =
-    iceWaterBarrierInstalled;
-widget.report.residentialMetalIceWaterBarrierType = hightemp ?? doubleFelt;
-widget.report.residentialMetalNoIceWaterBarrierApproach =
-    ordinanceandlawapproach ?? biditemblank ?? noAction;
-
-widget.report.rollExposure = rollExposure;
-widget.report.rollNumberOfPlies = numberOfPlies;
-widget.report.rollFasteningMethod = fasteningMethod;
-widget.report.rollFastenerPullTestPerformed = fastenerPullTestPerformed;
-widget.report.rollFastenerPullTestResult = fastenerPullTestResult;
-widget.report.rollUnderlaymentType = underlaymentType;
-widget.report.rollInsulationType = insulationType;
-widget.report.rollInsulationSize = insulationSize;
-widget.report.rollDeckRequiresReplacement = deckRequiresReplacement;
-widget.report.rollDeckFullReplacementRequired = deckFullReplacementRequired;
-widget.report.rollDeckPartialReplacementSqft =
-    howManySFDeckRequireReplacementVisible;
-widget.report.rollIceWaterBarrierInstalled = iceWaterBarrierInstalled;
-widget.report.rollDripEdgeInstalled = dripEdgeInstalled;
-widget.report.rollDripEdgeType = dripEdgeType;
-widget.report.rollGravelBallastPresent = gravelBallastPresent;
+_saveCurrentResidentialProgress();
       // Mostrar Cargando
       showDialog(
         context: context,
@@ -2002,6 +2056,7 @@ rollExposure: rollExposure,
                   submitForm: isRollRoofing
                       ? _attemptSubmitSingleRoofSection
                       : submitForm,
+                  onInspectElevations: _attemptInspectElevations,
                   isSingleRoofSection: isRollRoofing,
                   takePhoto: _takePhoto,
                   takeExtraPhotoForLabel: _takeExtraPhotoForLabel,
