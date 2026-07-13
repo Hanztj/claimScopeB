@@ -618,7 +618,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
                   children: [
                     _buildTableCell(facet.name),
                     _buildTableCell(facet.orientation),
-                    _buildTableCell(facet.pitch ?? "N/A"),
+                    _buildTableCell(_formatPitch(facet.pitch)),
                   ],
                 ),
               ),
@@ -788,6 +788,14 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
     static String _textOrNA(String? value) {
       if (value == null || value.trim().isEmpty) return "N/A";
       return value.trim();
+    }
+
+    static String _formatPitch(String? pitch) {
+      final value = pitch?.trim();
+      if (value == null || value.isEmpty) return "N/A";
+      if (value.toUpperCase() == "N/A") return "N/A";
+      if (value.contains('/')) return value;
+      return "$value/12";
     }
 
     static List<pw.Widget> _buildElevationsUnderlaymentDetails(InspectionReport report) {
@@ -1671,7 +1679,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
         if (roof.metalStyle == 'Gable' || roof.metalHasFacets == true)
           _buildDataRow('    Facet count', roof.facetCount.toString()),
         if (roof.metalStyle != 'Flat')
-          _buildDataRow('    Pitch', _textOrNA(roof.pitch)),
+          _buildDataRow('    Pitch', _formatPitch(roof.pitch)),
         _buildDataRow('    Gauge', metalGauge),
         _buildDataRow('    Does the roof have a deck?', _yesNo(roof.hasDeck)),
       ];
@@ -1851,7 +1859,7 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
         rows.add(_buildDataRow('    Facet count', roof.facetCount.toString()));
       }
 
-      rows.add(_buildDataRow('    Pitch', _textOrNA(roof.pitch)));
+      rows.add(_buildDataRow('    Pitch', _formatPitch(roof.pitch)));
 
       return rows;
     }
