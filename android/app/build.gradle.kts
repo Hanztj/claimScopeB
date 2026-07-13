@@ -17,7 +17,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.claimscope_clean" 
+    namespace = "com.hfestimates.claimscope" 
     compileSdk = 36
     ndkVersion = "27.0.12077973"
 
@@ -44,7 +44,7 @@ compileOptions {
     }
 
     defaultConfig {
-        applicationId = "com.example.claimscope" 
+        applicationId = "com.hfestimates.claimscope" 
         minSdk = 24
         targetSdk = 36
         versionCode = 1

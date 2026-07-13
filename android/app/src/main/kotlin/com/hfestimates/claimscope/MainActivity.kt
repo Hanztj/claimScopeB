@@ -1,6 +1,7 @@
-package com.example.claimscope_clean
+package com.hfestimates.claimscope
 
 import io.flutter.embedding.android.FlutterActivity
 
 class MainActivity : FlutterActivity()
+
     
