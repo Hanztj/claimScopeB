@@ -791,11 +791,24 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
     }
 
     static String _formatPitch(String? pitch) {
-      final value = pitch?.trim();
-      if (value == null || value.isEmpty) return "N/A";
-      if (value.toUpperCase() == "N/A") return "N/A";
-      if (value.contains('/')) return value;
-      return "$value/12";
+      final rawValue = pitch?.trim() ?? '';
+      if (rawValue.isEmpty) return "N/A";
+      if (rawValue.toUpperCase() == "N/A") return "N/A";
+
+      final normalizedValue = rawValue.replaceAll(RegExp(r'\s+'), '');
+      if (normalizedValue.isEmpty) return "N/A";
+
+      if (normalizedValue.contains('/')) {
+        final parts = normalizedValue.split('/');
+        final rise = parts.first.trim();
+        if (rise.isEmpty) return "N/A";
+        if (parts.length == 1 || parts[1].trim().isEmpty) {
+          return "${rise}/12";
+        }
+        return normalizedValue;
+      }
+
+      return "${normalizedValue}/12";
     }
 
     static List<pw.Widget> _buildElevationsUnderlaymentDetails(InspectionReport report) {
