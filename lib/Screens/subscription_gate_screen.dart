@@ -176,12 +176,16 @@ class _SubscriptionGateScreenState extends State<SubscriptionGateScreen>
       );
     }
 
-    final basicPrice = _yearly ? "\$299.90" : "\$29.99";
-    final basicPeriod = _yearly ? "/year" : "/month";
+// Basic
+    final basicMainPrice = _yearly ? "\$24.99" : "\$29.99";
+    final basicMainPeriod = "/month";
+    final basicSubtitle = _yearly ? "Billed annually (\$299.90/yr)" : null;
     final basicSavings = _yearly ? "Save \$59.98/yr" : null;
 
-    final premiumPrice = _yearly ? "\$499.90" : "\$49.99";
-    final premiumPeriod = _yearly ? "/year" : "/month";
+    // Premium
+    final premiumMainPrice = _yearly ? "\$41.66" : "\$49.99";
+    final premiumMainPeriod = "/month";
+    final premiumSubtitle = _yearly ? "Billed annually (\$499.90/yr)" : null;
     final premiumSavings = _yearly ? "Save \$99.98/yr" : null;
 
     return Scaffold(
@@ -222,8 +226,10 @@ class _SubscriptionGateScreenState extends State<SubscriptionGateScreen>
                       children: [
                         _PlanCard(
                           title: "Basic",
-                          price: basicPrice,
-                          period: basicPeriod,
+                          price: basicMainPrice,
+                          period: basicMainPeriod,
+                          subtitle: basicSubtitle,
+
                           savingsNote: basicSavings,
                           ctaLabel: "Start Now",
                           features: const [
@@ -239,8 +245,10 @@ class _SubscriptionGateScreenState extends State<SubscriptionGateScreen>
                         const SizedBox(height: 16),
                         _PlanCard(
                           title: "Premium",
-                          price: premiumPrice,
-                          period: premiumPeriod,
+                         price: premiumMainPrice,
+                         period: premiumMainPeriod,
+                         subtitle: premiumSubtitle,
+
                           savingsNote: premiumSavings,
                           ctaLabel: "Start 14-Day Free Trial",
                           isPopular: true,
@@ -294,6 +302,7 @@ class _PlanCard extends StatelessWidget {
   final String title;
   final String price;
   final String period;
+  final String? subtitle;
   final String? savingsNote;
   final String ctaLabel;
   final List<String> features;
@@ -307,6 +316,7 @@ class _PlanCard extends StatelessWidget {
     required this.price,
     required this.period,
     required this.ctaLabel,
+    this.subtitle,
     this.savingsNote,
     required this.features,
     required this.color,
@@ -382,6 +392,19 @@ class _PlanCard extends StatelessWidget {
                   color: textColor ?? Colors.white,
                 ),
               ),
+
+                  if (subtitle != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  subtitle!,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: (textColor ?? Colors.white).withValues(alpha: 0.85),
+                  ),
+                ),
+              ],
+
               if (savingsNote != null) ...[
                 const SizedBox(height: 4),
                 Container(

@@ -81,9 +81,54 @@ class AuthGate extends StatelessWidget {
   }
 }
 
-// ---------------- PANTALLA DE ESPERA (NUEVA) ----------------
-class EmailVerificationPendingScreen extends StatelessWidget {
+/// ---------------- PANTALLA DE ESPERA (NUEVA) ----------------
+class EmailVerificationPendingScreen extends StatefulWidget {
   const EmailVerificationPendingScreen({super.key});
+
+  @override
+  State<EmailVerificationPendingScreen> createState() =>
+      _EmailVerificationPendingScreenState();
+}
+
+class _EmailVerificationPendingScreenState
+    extends State<EmailVerificationPendingScreen> {
+  bool _resending = false;
+
+  Future<void> _resendLink() async {
+    if (_resending) return;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    setState(() => _resending = true);
+    try {
+      await user.sendEmailVerification();
+      if (!mounted) return;
+      scaffoldMessengerKey.currentState?.showSnackBar(
+        const SnackBar(
+          content: Text("Verification link sent. Please check your inbox."),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      final msg = e.code == 'too-many-requests'
+          ? "Too many requests. Please wait a moment and try again."
+          : "Could not resend link: ${e.message ?? e.code}";
+      scaffoldMessengerKey.currentState?.showSnackBar(
+        SnackBar(content: Text(msg), backgroundColor: Colors.red),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      scaffoldMessengerKey.currentState?.showSnackBar(
+        SnackBar(
+          content: Text("Unexpected error: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _resending = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,45 +141,62 @@ class EmailVerificationPendingScreen extends StatelessWidget {
             children: [
               const Icon(Icons.mail_lock, size: 80, color: Colors.orange),
               const SizedBox(height: 20),
-              const Text("Verify your email", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              const Text("You're logged in, but we need you to click the link in your email.", textAlign: TextAlign.center),
+              const Text(
+                "Verify your email",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const Text(
+                "You're logged in, but we need you to click the link in your email.",
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 30),
-// 1️⃣ BOTÓN "I ALREADY VERIFIED IT" (CORREGIDO)
-ElevatedButton(
-  onPressed: () async {
-    // 1. Obtenemos la instancia actual
-    final userBefore = FirebaseAuth.instance.currentUser;
-    if (userBefore == null) return;
 
-    // 2. Avisamos a Firebase que refresque los datos del servidor
-    await userBefore.reload(); 
+              // 1️⃣ BOTÓN "I ALREADY VERIFIED IT"
+              ElevatedButton(
+                onPressed: () async {
+                  final userBefore = FirebaseAuth.instance.currentUser;
+                  if (userBefore == null) return;
+                  await userBefore.reload();
+                  final userAfter = FirebaseAuth.instance.currentUser;
+                  if (userAfter != null && userAfter.emailVerified) {
+                    authRefresh.value++;
+                  } else {
+                    scaffoldMessengerKey.currentState?.showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          "Email not verified yet. Please check your inbox.",
+                        ),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                  }
+                },
+                child: const Text("I already verified it"),
+              ),
+              const SizedBox(height: 8),
 
-    // 3. 🔥 CLAVE: Volvemos a pedir el usuario de la instancia de Firebase.
-    // Esto nos da un objeto nuevo con los datos ya actualizados.
-    final userAfter = FirebaseAuth.instance.currentUser;
+              // 2️⃣ BOTÓN "RESEND LINK"
+              OutlinedButton.icon(
+                onPressed: _resending ? null : _resendLink,
+                icon: _resending
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.refresh),
+                label: Text(_resending ? "Sending..." : "Resend Link"),
+              ),
 
-    if (userAfter != null && userAfter.emailVerified) {
-      // Ahora sí, userAfter.emailVerified será true al primer intento
-      authRefresh.value++; 
-    } else {
-      scaffoldMessengerKey.currentState?.showSnackBar(
-        const SnackBar(
-          content: Text("Email not verified yet. Please check your inbox."),
-          backgroundColor: Colors.orange,
-        ),
-      );
-    }
-  },
-  child: const Text("I already verified it"),
-),
-
-              // 2️⃣ BOTÓN "SIGN OUT" (CORREGIDO)
+              // 3️⃣ BOTÓN "SIGN OUT"
               TextButton(
                 onPressed: () async {
                   await FirebaseAuth.instance.signOut();
-                  // No necesitas hacer nada más, authStateChanges detectará el logout
                 },
-                child: const Text("Sign Out / Use another email", style: TextStyle(color: Colors.red)),
+                child: const Text(
+                  "Sign Out / Use another email",
+                  style: TextStyle(color: Colors.red),
+                ),
               ),
             ],
           ),
@@ -142,8 +204,7 @@ ElevatedButton(
       ),
     );
   }
-}
-class MyApp extends StatelessWidget {
+}class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
