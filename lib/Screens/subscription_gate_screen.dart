@@ -155,12 +155,13 @@ class _SubscriptionGateScreenState extends State<SubscriptionGateScreen>
                       children: [
                         _PlanCard(
                           title: "Basic",
-                          price: "\$9.99",
+                          price: "\$29.99",
                           period: "/month",
                           features: const [
                             "Unlimited inspections",
-                            "Send PDFs via e-mail",
-                            "Send projects to HF Estimates (10% off)",
+                            "Instant PDF reports generation",
+                            "Send reports to registered email address",
+                            "Send projects to HF Estimates (Get 10% off)",
                           ],
                           color: AppColors.mainColor,
                           onTap: () =>
@@ -169,14 +170,16 @@ class _SubscriptionGateScreenState extends State<SubscriptionGateScreen>
                         const SizedBox(height: 16),
                         _PlanCard(
                           title: "Premium",
-                          price: "\$29.99",
+                          price: "\$49.99",
                           period: "/month",
                           isPopular: true,
                           features: const [
-                            "Everything in Basic + (15% off)",
-                            "60 days of free storage for all inspections",
-                            "Assignments via XactAnalysis to HF Estimates",
-                            "Assignments to any XactNet account",
+                            "Everything in Basic, plus:",
+                            "15% off all HF Estimates projects",
+                            "60 days of cloud storage for inspection files",
+                            "Send reports to any email address",
+                            "Estimator-Ready photo package (Zero manual tagging required):",
+                            "Smart ZIP Export: Auto-named & organized photos by section and component",
                           ],
                           color: AppColors.darkBlue,
                           textColor: Colors.white,
@@ -189,7 +192,7 @@ class _SubscriptionGateScreenState extends State<SubscriptionGateScreen>
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  "Try for free 7 days · Cancel anytime",
+                  "Try Premium for free for 14 days · Cancel anytime",
                   style: TextStyle(
                     color: AppColors.darkGray,
                     fontSize: 12,
