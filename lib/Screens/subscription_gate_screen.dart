@@ -7,6 +7,9 @@ import 'package:flutter/material.dart';
 
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
+// Toggle palette (UI-only per Premisa Base extendida).
+const Color _kToggleActive = Color(0xFFFA7F21);   // Naranja vibrante
+const Color _kToggleInactive = Color(0xFF101230); // Oscuro
 
 class SubscriptionGateScreen extends StatefulWidget {
   const SubscriptionGateScreen({super.key});
@@ -22,6 +25,9 @@ class _SubscriptionGateScreenState extends State<SubscriptionGateScreen>
   late Animation<double> _fadeAnimation;
   String? userPlan;
   bool loading = true;
+
+  // UI-only: yearly toggle. Stripe wiring anual pendiente (TODO).
+  bool _yearly = false;
 
   @override
   void initState() {
@@ -108,6 +114,57 @@ class _SubscriptionGateScreenState extends State<SubscriptionGateScreen>
     super.dispose();
   }
 
+  Widget _billingToggle() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: _kToggleInactive,
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _toggleChip(label: 'Monthly', selected: !_yearly, onTap: () {
+            if (_yearly) setState(() => _yearly = false);
+          }),
+          const SizedBox(width: 4),
+          _toggleChip(
+            label: 'Yearly · Save 17% (2 months free)',
+            selected: _yearly,
+            onTap: () {
+              if (!_yearly) setState(() => _yearly = true);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _toggleChip({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onTap(),
+      showCheckmark: false,
+      backgroundColor: _kToggleInactive,
+      selectedColor: _kToggleActive,
+      labelStyle: TextStyle(
+        color: selected ? Colors.white : Colors.white70,
+        fontWeight: FontWeight.w600,
+        fontSize: 12,
+      ),
+      side: BorderSide.none,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (loading) {
@@ -118,6 +175,14 @@ class _SubscriptionGateScreenState extends State<SubscriptionGateScreen>
         ),
       );
     }
+
+    final basicPrice = _yearly ? "\$299.90" : "\$29.99";
+    final basicPeriod = _yearly ? "/year" : "/month";
+    final basicSavings = _yearly ? "Save \$59.98/yr" : null;
+
+    final premiumPrice = _yearly ? "\$499.90" : "\$49.99";
+    final premiumPeriod = _yearly ? "/year" : "/month";
+    final premiumSavings = _yearly ? "Save \$99.98/yr" : null;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -147,7 +212,9 @@ class _SubscriptionGateScreenState extends State<SubscriptionGateScreen>
                       .bodyMedium
                       ?.copyWith(fontSize: 14),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+                _billingToggle(),
+                const SizedBox(height: 20),
                 Expanded(
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
@@ -155,8 +222,10 @@ class _SubscriptionGateScreenState extends State<SubscriptionGateScreen>
                       children: [
                         _PlanCard(
                           title: "Basic",
-                          price: "\$29.99",
-                          period: "/month",
+                          price: basicPrice,
+                          period: basicPeriod,
+                          savingsNote: basicSavings,
+                          ctaLabel: "Start Now",
                           features: const [
                             "Unlimited inspections",
                             "Instant PDF reports generation",
@@ -170,8 +239,10 @@ class _SubscriptionGateScreenState extends State<SubscriptionGateScreen>
                         const SizedBox(height: 16),
                         _PlanCard(
                           title: "Premium",
-                          price: "\$49.99",
-                          period: "/month",
+                          price: premiumPrice,
+                          period: premiumPeriod,
+                          savingsNote: premiumSavings,
+                          ctaLabel: "Start 14-Day Free Trial",
                           isPopular: true,
                           features: const [
                             "Everything in Basic, plus:",
@@ -223,6 +294,8 @@ class _PlanCard extends StatelessWidget {
   final String title;
   final String price;
   final String period;
+  final String? savingsNote;
+  final String ctaLabel;
   final List<String> features;
   final Color color;
   final Color? textColor;
@@ -233,6 +306,8 @@ class _PlanCard extends StatelessWidget {
     required this.title,
     required this.price,
     required this.period,
+    required this.ctaLabel,
+    this.savingsNote,
     required this.features,
     required this.color,
     this.textColor,
@@ -307,6 +382,27 @@ class _PlanCard extends StatelessWidget {
                   color: textColor ?? Colors.white,
                 ),
               ),
+              if (savingsNote != null) ...[
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _kToggleActive,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    savingsNote!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               ...features.map(
                 (f) => Padding(
@@ -336,11 +432,11 @@ class _PlanCard extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                "Start now",
+                ctaLabel,
                 style: TextStyle(
                   color: textColor ?? Colors.white,
                   fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
@@ -350,4 +446,3 @@ class _PlanCard extends StatelessWidget {
     );
   }
 }
-
