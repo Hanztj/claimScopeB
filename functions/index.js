@@ -15,12 +15,26 @@ const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
 const webhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 const emailPass = defineSecret("EMAIL_PASS");
 
-const priceBasic = defineString("STRIPE_PRICE_BASIC", {
-    default: "price_1SXPDkIV8TkU9SxHb9qzNc4R"
+const priceBasicMonthly = defineString("STRIPE_PRICE_BASIC_MONTHLY", {
+    default: "price_1TuUwQIV8TkU9SxHrb9ieW5i"
 });
-const pricePremium = defineString("STRIPE_PRICE_PREMIUM", {
-    default: "price_1SXPEDIV8TkU9SxHEMLdOOPO"
+const priceBasicYearly = defineString("STRIPE_PRICE_BASIC_YEARLY", {
+    default: "price_1TuUwuIV8TkU9SxHqloMd4cx"
 });
+const pricePremiumMonthly = defineString("STRIPE_PRICE_PREMIUM_MONTHLY", {
+    default: "price_1TuV4BIV8TkU9SxHdeD5Z1Y2"
+});
+const pricePremiumYearly = defineString("STRIPE_PRICE_PREMIUM_YEARLY", {
+    default: "price_1TuV4cIV8TkU9SxHvtciIczy"
+});
+
+// Resuelve el plan ('basic' | 'premium') a partir de cualquiera de los 4 price IDs.
+function resolvePlanFromPriceId(priceId) {
+    if (priceId === pricePremiumMonthly.value() || priceId === pricePremiumYearly.value()) {
+        return "premium";
+    }
+    return "basic";
+}
 
 // Newer configuration for nodemailer using Gmail
 
@@ -222,7 +236,7 @@ attachments: [
                     const userId = subscription.metadata?.userId;
 
                     if (userId) {
-                        const plan = priceId === pricePremium.value() ? "premium" : "basic";
+                        const plan = resolvePlanFromPriceId(priceId);
                         await admin.auth().setCustomUserClaims(userId, {
                             plan,
                             stripeCustomerId: subscription.customer,
@@ -257,6 +271,12 @@ exports.createCheckoutSession = onCall(
         const { priceId, successUrl, cancelUrl } = request.data;
         const stripeClient = Stripe(stripeSecretKey.value());
 
+        const resolvedPlan = resolvePlanFromPriceId(priceId);
+        const subscriptionData = { metadata: { userId: request.auth.uid } };
+        if (resolvedPlan === "premium") {
+            subscriptionData.trial_period_days = 14;
+        }
+
         const session = await stripeClient.checkout.sessions.create({
             mode: "subscription",
             payment_method_collection: "always",
@@ -264,7 +284,7 @@ exports.createCheckoutSession = onCall(
             line_items: [{ price: priceId, quantity: 1 }],
             success_url: successUrl || "claimscope://success",
             cancel_url: cancelUrl || "claimscope://cancel",
-            subscription_data: { metadata: { userId: request.auth.uid } },
+            subscription_data: subscriptionData,
         });
 
         return { url: session.url };

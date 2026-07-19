@@ -240,7 +240,7 @@ class _SubscriptionGateScreenState extends State<SubscriptionGateScreen>
                           ],
                           color: AppColors.mainColor,
                           onTap: () =>
-                              StripeService.launchCheckout('basic'),
+                              StripeService.launchCheckout('basic', yearly: _yearly),
                         ),
                         const SizedBox(height: 16),
                         _PlanCard(
@@ -263,7 +263,7 @@ class _SubscriptionGateScreenState extends State<SubscriptionGateScreen>
                           color: AppColors.darkBlue,
                           textColor: Colors.white,
                           onTap: () =>
-                              StripeService.launchCheckout('premium'),
+                              StripeService.launchCheckout('premium', yearly: _yearly),
                         ),
                       ],
                     ),
