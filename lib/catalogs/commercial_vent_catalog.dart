@@ -20,11 +20,11 @@ class CommercialVentFieldConfig {
 // LEGACY — mantener intacto.
 // ============================================================
 const List<String> commercialVentTypes = [
-  'TPO Pipe jack Boot',
+  'Pipe jack Boot',
   'Vent Pipe High Wind Cap',
   'Furnace Vent',
-  'TPO T-top Vent',
-  'TPO Flat Roof Breather Vent',
+  'T-top Vent',
+  'Flat roof Breather Vent',
   'Exhaust Vent/Cap Gooseneck',
   'Turbine vent',
   'Gravity relief/intake Ventilator',

@@ -35,6 +35,7 @@ const List<String> tpoFlashingTypes = [
   'Metal Z flashing / drip cap',
   'Skylight flashing kit (dome)',
   'Skylight step flashing kit',
+  'Wall coping clay',
   'Other',
 ];
 
@@ -69,6 +70,10 @@ const Map<String, CommercialFlashingFieldConfig> tpoFlashingConfigByType = {
   'Skylight step flashing kit': CommercialFlashingFieldConfig(
     options: ['Up to 5 sf', '5.1 to 12 sf', '12.1 sf or greater'],
     showCount: true,
+  ),
+  'Wall coping clay': CommercialFlashingFieldConfig(
+    options: ['9"', '13"', '18"'],
+    showFullPerimeter: true,
   ),
   'Other': CommercialFlashingFieldConfig(
     showOtherSpecify: true,
