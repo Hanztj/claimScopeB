@@ -200,6 +200,7 @@ void _clearGutters() {
   _gsf.gutScupperQty = '';
   _gsf.gutScope = '';
   _gsf.gutScopeOther = '';
+  _gsf.gutQuantity = '';
   _gsf.gutLf = '';
   _gsf.gutPaint = false;
 
@@ -507,25 +508,42 @@ if (_gsf.gutScupper)
             value: _gsf.gutScope,
             options: const ['Replace', 'Dettach & Reset'],
             otherController: _gutScopeOther,
-            onChanged: (v) => setState(() { 
-              _gsf.gutScope = v ?? ''; 
+            onChanged: (v) => setState(() {
+              _gsf.gutScope = v ?? '';
               if (_gsf.gutScope.isEmpty) {
-                _gutLf.clear();
+                _gsf.gutQuantity = '';
                 _gsf.gutLf = '';
+                _gutLf.clear();
               }
-              _mark(); 
+              _mark();
             }),
             onOtherChanged: (v) { _gsf.gutScopeOther = v; _mark(); },
           ),
-          
-          // El campo LF ahora es condicional
+
           if (_gsf.gutScope.isNotEmpty) ...[
-           const SizedBox(height: 12),
-           _qtyField(
-           controller: _gutLf,
-           hint: 'How many LF?',
-          unit: 'LF',
-            hintText: 'Approx. gutters/downspouts LF',
+            const SizedBox(height: 8),
+            _dropdown(
+              label: 'Quantity',
+              value: _gsf.gutQuantity,
+              options: const ['All Installed', 'Partial'],
+              onChanged: (v) => setState(() {
+                _gsf.gutQuantity = v ?? '';
+                if (_gsf.gutQuantity == 'All Installed') {
+                  _gsf.gutLf = '';
+                  _gutLf.clear();
+                }
+                _mark();
+              }),
+            ),
+          ],
+
+          if (_gsf.gutQuantity == 'Partial') ...[
+            const SizedBox(height: 12),
+            _qtyField(
+              controller: _gutLf,
+              hint: 'How many LF',
+              unit: 'LF',
+              hintText: 'Approx. gutters/downspouts LF',
               onChanged: (v) => setState(() { _gsf.gutLf = v; _mark(); }),
             ),
           ],
@@ -549,7 +567,10 @@ SectionStatus _gutStatus() {
   if (!any) return SectionStatus.empty;
   
   // Dejamos únicamente los 5 campos base obligatorios para el Gutter
-  final req = [_gsf.gutMaterial, _gsf.gutShape, _gsf.gutSize, _gsf.gutScope, _gsf.gutLf];
+  final req = <String>[
+    _gsf.gutMaterial, _gsf.gutShape, _gsf.gutSize, _gsf.gutScope, _gsf.gutQuantity,
+    if (_gsf.gutQuantity == 'Partial') _gsf.gutLf,
+  ];
   
   return req.every((r) => r.isNotEmpty) ? SectionStatus.complete : SectionStatus.partial;
 }

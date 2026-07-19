@@ -143,7 +143,8 @@ class GuttersSoffitFasciaData {
   String gutScupperQty = '';
   String gutScope = '';
   String gutScopeOther = '';
-  String gutLf = '';
+  String gutQuantity = '';        // 'All Installed' | 'Partial'
+  String gutLf = '';              // visible solo si gutQuantity == 'Partial'
   bool gutPaint = false;
 
   // 2.B — Fascia
@@ -175,7 +176,8 @@ class GuttersSoffitFasciaData {
 
   bool get guttersHasData =>
       gutMaterial.isNotEmpty || gutShape.isNotEmpty || gutSize.isNotEmpty ||
-      gutScreen || gutScupper || gutScope.isNotEmpty || gutLf.isNotEmpty || gutPaint;
+      gutScreen || gutScupper || gutScope.isNotEmpty ||
+      gutQuantity.isNotEmpty || gutLf.isNotEmpty || gutPaint;
   bool get fasciaHasData =>
       facMaterial.isNotEmpty || facWoodSubtype.isNotEmpty || facSize.isNotEmpty ||
       facScope.isNotEmpty || facQuantity.isNotEmpty || facLf.isNotEmpty || facPaint;
@@ -192,6 +194,7 @@ class GuttersSoffitFasciaData {
         'gutScreen': gutScreen, 
         'gutScupper': gutScupper,
         'gutScope': gutScope, 'gutScopeOther': gutScopeOther,
+        'gutQuantity': gutQuantity,
         'gutLf': gutLf, 'gutPaint': gutPaint,
         'facMaterial': facMaterial, 'facMaterialOther': facMaterialOther,
         'facWoodSubtype': facWoodSubtype,
@@ -216,6 +219,7 @@ class GuttersSoffitFasciaData {
       ..gutScreen = b('gutScreen')..gutScreenStyle = s('gutScreenStyle')
       ..gutScupper = b('gutScupper')..gutScupperQty = s('gutScupperQty')
       ..gutScope = s('gutScope')..gutScopeOther = s('gutScopeOther')
+      ..gutQuantity = s('gutQuantity')
       ..gutLf = s('gutLf')..gutPaint = b('gutPaint')
       ..facMaterial = s('facMaterial')..facMaterialOther = s('facMaterialOther')
       ..facWoodSubtype = s('facWoodSubtype')
