@@ -3,10 +3,54 @@ import 'dart:typed_data';
 
 import 'package:claimscope_clean/inspection_report_model.dart';
 import 'package:claimscope_clean/utils/photo_labels.dart';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw; 
+import 'package:pdf/widgets.dart' as pw;
+
+/// Downscale/recompress a photo for PDF embedding to reduce heap pressure.
+/// Runs in an isolate via `compute()`. If the source is already small enough,
+/// returns the original bytes untouched.
+///
+/// Target: max 1024px on the longer side, JPEG quality 75.
+/// Skip: file already <= 1024px AND <= 300 KB.
+Uint8List _downscaleForPdf(String path) {
+  final file = File(path);
+  final Uint8List original = file.readAsBytesSync();
+
+  // Fast skip on small files (avoids decode cost).
+  if (original.lengthInBytes <= 300 * 1024) {
+    // Still need to verify dimensions cheaply; if decode fails, return as-is.
+    final decoded = img.decodeImage(original);
+    if (decoded == null) return original;
+    final longSide =
+        decoded.width > decoded.height ? decoded.width : decoded.height;
+    if (longSide <= 1024) return original;
+    // Fall through to resize path below with already-decoded image.
+    return Uint8List.fromList(
+      img.encodeJpg(_resizeToMax(decoded, 1024), quality: 75),
+    );
+  }
+
+  final decoded = img.decodeImage(original);
+  if (decoded == null) return original;
+  final resized = _resizeToMax(decoded, 1024);
+  return Uint8List.fromList(img.encodeJpg(resized, quality: 75));
+}
+
+img.Image _resizeToMax(img.Image src, int maxSide) {
+  final int w = src.width;
+  final int h = src.height;
+  if (w <= maxSide && h <= maxSide) return src;
+  if (w >= h) {
+    return img.copyResize(src, width: maxSide);
+  } else {
+    return img.copyResize(src, height: maxSide);
+  }
+}
+
 
 class _PdfPhotoItemBytes {
   final Uint8List bytes;
@@ -2107,8 +2151,13 @@ for (var i = 0; i < commercialPhotos.length; i += 2) {
      }
 
     static Future<_PdfPhotoItemBytes> _loadPdfPhotoItemBytes(PhotoItem item) async {
+      // Paso Plan A ajustado: downscale + recompress en isolate para reducir
+      // presión de heap al generar PDFs con muchas fotos (crítico en dispositivos
+      // 4 GB RAM como A23). Sin caches a nivel de clase: cada PhotoItem se
+      // procesa en serie y se libera al terminar el frame.
+      final Uint8List bytes = await compute(_downscaleForPdf, item.file.path);
       return _PdfPhotoItemBytes(
-        bytes: await item.file.readAsBytes(),
+        bytes: bytes,
         label: item.label,
       );
     }
