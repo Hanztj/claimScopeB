@@ -96,7 +96,7 @@ class _GlobalElevationsHubState extends State<GlobalElevationsHub> {
       buildElevationsPhotoLabel(
         elev: 'Global',
         category: category,
-        label: 'Photo $n',
+        label: 'Image $n',
       ),
     );
     if (!mounted) return;

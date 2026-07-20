@@ -266,7 +266,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
             onPressed: () => _takeCommercialPhoto(
               buildingName: buildingName,
               roofName: roofName,
-              photoLabel: '$overviewLabel additional photo',
+              photoLabel: '$overviewLabel - Image 2',
               onSaved: (_) {},
             ),
             child: const Text('Add additional overview photo'),
@@ -499,7 +499,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                 await _takeCommercialPhoto(
                   buildingName: buildingName,
                   roofName: roofName,
-                  photoLabel: 'Additional Photo',
+                  photoLabel: 'Additional Image',
                   onSaved: (_) {},
                 );
               },

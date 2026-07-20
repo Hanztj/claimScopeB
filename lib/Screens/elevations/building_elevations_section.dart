@@ -327,7 +327,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
       buildElevationsPhotoLabel(
         elev: widget.elevation.side.display,
         category: 'Siding',
-        label: 'Photo $n',
+        label: 'Image $n',
       ),
     );
     if (!mounted) return;
@@ -898,7 +898,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
       buildElevationsPhotoLabel(
         elev: widget.elevation.side.display,
         category: 'EIFS',
-        label: 'Photo $n',
+        label: 'Image $n',
       ),
     );
 
@@ -1688,7 +1688,7 @@ if (_showsSidingHeight()) ...[
       buildElevationsPhotoLabel(
         elev: widget.elevation.side.display,
         category: 'Trim',
-        label: 'Photo $n',
+        label: 'Image $n',
       ),
     );
 
@@ -2173,7 +2173,7 @@ if (extra && mounted) {
       buildElevationsPhotoLabel(
         elev: widget.elevation.side.display,
         category: 'Window',
-        label: 'Photo $n',
+        label: 'Image $n',
       ),
     );
 
@@ -2891,7 +2891,7 @@ if (extra && mounted) {
       buildElevationsPhotoLabel(
         elev: widget.elevation.side.display,
         category: 'Door',
-        label: 'Photo $n',
+        label: 'Image $n',
       ),
     );
 
@@ -3082,7 +3082,7 @@ if (extra && mounted) {
       buildElevationsPhotoLabel(
         elev: widget.elevation.side.display,
         category: 'Accessory',
-        label: 'Photo $n',
+        label: 'Image $n',
       ),
     );
 

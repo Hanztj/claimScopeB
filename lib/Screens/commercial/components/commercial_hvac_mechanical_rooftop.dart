@@ -57,7 +57,7 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
     await widget.takePhoto(
       buildingName: widget.buildingName,
       roofName: widget.roofName,
-      photoLabel: 'HVAC ${index + 1} - Main Photo',
+      photoLabel: 'HVAC ${index + 1} - Image 1',
       onSaved: (file) {
        setState(() => widget.hvacItems[index].photo = file);
         widget.onChanged();
@@ -69,7 +69,7 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
     await widget.takePhoto(
       buildingName: widget.buildingName,
       roofName: widget.roofName,
-      photoLabel: 'HVAC ${index + 1} - Extra Photo',
+      photoLabel: 'HVAC ${index + 1} - Image 2',
       onSaved: (file) {
               setState(() => widget.hvacItems[index].extraPhotos.add(file));
         widget.onChanged();
@@ -95,7 +95,7 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
     await widget.takePhoto(
       buildingName: widget.buildingName,
       roofName: widget.roofName,
-      photoLabel: 'Mechanical ${index + 1} - Main Photo',
+      photoLabel: 'Mechanical ${index + 1} - Image 1',
       onSaved: (file) {
         setState(() => widget.mechanicalItems[index].photo = file);
         widget.onChanged();
@@ -107,7 +107,7 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
     await widget.takePhoto(
       buildingName: widget.buildingName,
       roofName: widget.roofName,
-      photoLabel: 'Mechanical ${index + 1} - Extra Photo',
+      photoLabel: 'Mechanical ${index + 1} - Image 2',
       onSaved: (file) {
         setState(() => widget.mechanicalItems[index].extraPhotos.add(file));
         widget.onChanged();

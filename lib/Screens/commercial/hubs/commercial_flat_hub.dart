@@ -113,7 +113,7 @@ class CommercialFlatHubForm extends StatelessWidget {
             onPressed: () => takeCommercialPhoto(
               buildingName: buildingName,
               roofName: roofName,
-              photoLabel: 'Core Sample Photo',
+              photoLabel: 'Core Sample - Image 1',
               onSaved: (f) => roof.coreSamplePhoto = f,
             ),
             child: const Text('Take core sample photo'),
@@ -122,7 +122,7 @@ class CommercialFlatHubForm extends StatelessWidget {
             onPressed: () => takeCommercialPhoto(
               buildingName: buildingName,
               roofName: roofName,
-              photoLabel: 'Core Sample Photo additional photo',
+              photoLabel: 'Core Sample - Image 2',
               onSaved: (_) {},
             ),
             child: const Text('Add additional core sample photo'),

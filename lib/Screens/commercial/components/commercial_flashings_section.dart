@@ -55,7 +55,7 @@ class _CommercialFlashingsSectionState extends State<CommercialFlashingsSection>
     await widget.takePhoto(
       buildingName: widget.buildingName,
       roofName: widget.roofName,
-      photoLabel: 'Flashing ${index + 1} - Main Photo',
+      photoLabel: 'Flashing ${index + 1} - Image 1',
       onSaved: (file) {
         setState(() => widget.flashings[index].photo = file);
         widget.onChanged();
@@ -67,7 +67,7 @@ class _CommercialFlashingsSectionState extends State<CommercialFlashingsSection>
     await widget.takePhoto(
       buildingName: widget.buildingName,
       roofName: widget.roofName,
-      photoLabel: 'Flashing ${index + 1} - Extra Photo',
+      photoLabel: 'Flashing ${index + 1} - Image 2',
       onSaved: (file) {
         setState(() => widget.flashings[index].extraPhotos.add(file));
         widget.onChanged();

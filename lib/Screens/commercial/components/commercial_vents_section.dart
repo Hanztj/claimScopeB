@@ -55,7 +55,7 @@ class _CommercialVentsSectionState extends State<CommercialVentsSection> {
     await widget.takePhoto(
       buildingName: widget.buildingName,
       roofName: widget.roofName,
-      photoLabel: 'Vent ${index + 1} - Main Photo',
+      photoLabel: 'Vent ${index + 1} - Image 1',
       onSaved: (file) {
         setState(() => widget.vents[index].photo = file);
         widget.onChanged();
@@ -67,7 +67,7 @@ class _CommercialVentsSectionState extends State<CommercialVentsSection> {
     await widget.takePhoto(
       buildingName: widget.buildingName,
       roofName: widget.roofName,
-      photoLabel: 'Vent ${index + 1} - Extra Photo',
+      photoLabel: 'Vent ${index + 1} - Image 2',
       onSaved: (file) {
         setState(() => widget.vents[index].extraPhotos.add(file));
         widget.onChanged();

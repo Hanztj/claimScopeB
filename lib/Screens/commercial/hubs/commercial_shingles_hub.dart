@@ -175,7 +175,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
               onPressed: () => takeCommercialPhoto(
                 buildingName: buildingName,
                 roofName: roofName,
-                photoLabel: 'Starter Row Eave Photo',
+                photoLabel: 'Starter Row Eave - Image 1',
                 onSaved: (f) => roof.starterEavePhoto = f,
               ),
               child: const Text('Take Starter Row Eave Photo'),
@@ -184,7 +184,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
               onPressed: () => takeCommercialPhoto(
                 buildingName: buildingName,
                 roofName: roofName,
-                photoLabel: 'Starter row at Eave extra photo',
+                photoLabel: 'Starter Row Eave - Image 2',
                 onSaved: (_) {},
               ),
               child: const Text('Add extra Starter row at Eave photo'),
@@ -212,7 +212,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
               onPressed: () => takeCommercialPhoto(
                 buildingName: buildingName,
                 roofName: roofName,
-                photoLabel: 'Starter Row Rake Photo',
+                photoLabel: 'Starter Row Rake - Image 1',
                 onSaved: (f) => roof.starterRakePhoto = f,
               ),
               child: const Text('Take Starter Row Rake Photo'),
@@ -221,7 +221,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
               onPressed: () => takeCommercialPhoto(
                 buildingName: buildingName,
                 roofName: roofName,
-                photoLabel: 'Starter row at Rake extra photo',
+                photoLabel: 'Starter Row Rake - Image 2',
                 onSaved: (_) {},
               ),
               child: const Text('Add extra Starter row at Rake photo'),
@@ -271,7 +271,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
             onPressed: () => takeCommercialPhoto(
               buildingName: buildingName,
               roofName: roofName,
-              photoLabel: 'Drip Edge Photo',
+              photoLabel: 'Drip Edge - Image 1',
               onSaved: (f) => roof.dripEdgePhoto = f,
             ),
             child: const Text('Take Drip Edge Photo'),
@@ -280,7 +280,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
             onPressed: () => takeCommercialPhoto(
               buildingName: buildingName,
               roofName: roofName,
-              photoLabel: 'Drip Edge extra photo',
+              photoLabel: 'Drip Edge - Image 2',
               onSaved: (_) {},
             ),
             child: const Text('Add extra Drip Edge photo'),
@@ -309,7 +309,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
             onPressed: () => takeCommercialPhoto(
               buildingName: buildingName,
               roofName: roofName,
-              photoLabel: 'Ice & Water Barrier Photo',
+              photoLabel: 'Ice & Water Barrier - Image 1',
               onSaved: (f) => roof.iceAndWaterBarrierPhoto = f,
             ),
             child: const Text('Take Ice & Water Barrier Photo'),
@@ -318,7 +318,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
             onPressed: () => takeCommercialPhoto(
               buildingName: buildingName,
               roofName: roofName,
-              photoLabel: 'Ice & Water Barrier extra photo',
+              photoLabel: 'Ice & Water Barrier - Image 2',
               onSaved: (_) {},
             ),
             child: const Text('Add extra Ice & Water Barrier photo'),
@@ -382,7 +382,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
             onPressed: () => takeCommercialPhoto(
               buildingName: buildingName,
               roofName: roofName,
-              photoLabel: 'Ridge Vent Photo',
+              photoLabel: 'Ridge Vent - Image 1',
               onSaved: (f) => roof.ridgeVentPhoto = f,
             ),
             child: const Text('Take Ridge Vent Photo'),
@@ -391,7 +391,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
             onPressed: () => takeCommercialPhoto(
               buildingName: buildingName,
               roofName: roofName,
-              photoLabel: 'Ridge Vent extra photo',
+              photoLabel: 'Ridge Vent - Image 2',
               onSaved: (_) {},
             ),
             child: const Text('Add extra Ridge Vent photo'),
@@ -438,7 +438,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
             onPressed: () => takeCommercialPhoto(
               buildingName: buildingName,
               roofName: roofName,
-              photoLabel: 'Valley Metal Photo',
+              photoLabel: 'Valley Metal - Image 1',
               onSaved: (f) => roof.valleyMetalPhoto = f,
             ),
             child: const Text('Take Valley Metal Photo'),
@@ -447,7 +447,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
             onPressed: () => takeCommercialPhoto(
               buildingName: buildingName,
               roofName: roofName,
-              photoLabel: 'Valley Metal extra photo',
+              photoLabel: 'Valley Metal - Image 2',
               onSaved: (_) {},
             ),
             child: const Text('Add extra Valley Metal photo'),
@@ -671,7 +671,7 @@ DropdownButtonFormField<bool>(
                     onPressed: () => takeCommercialPhoto(
                       buildingName: buildingName,
                       roofName: roofName,
-                      photoLabel: 'Flashing Photo ${idx + 1}',
+                      photoLabel: 'Flashing ${idx + 1} - Image 1',
                       onSaved: (f) => flashing.photo = f,
                     ),
                     child: const Text('Take Flashing Photo'),
@@ -680,7 +680,7 @@ DropdownButtonFormField<bool>(
                     onPressed: () => takeCommercialPhoto(
                       buildingName: buildingName,
                       roofName: roofName,
-                      photoLabel: 'Flashing extra photo',
+                      photoLabel: 'Flashing - Image 2',
                       onSaved: (f) => flashing.extraPhotos.add(f),
                     ),
                     child: const Text('Add extra Flashing photo'),
@@ -860,7 +860,7 @@ DropdownButtonFormField<bool>(
                       onPressed: () => takeCommercialPhoto(
                         buildingName: buildingName,
                         roofName: roofName,
-                        photoLabel: 'Vent Photo ${ventIndex + 1}',
+                        photoLabel: 'Vent ${ventIndex + 1} - Image 1',
                         onSaved: (f) => vent.photo = f,
                       ),
                       child: const Text('Take Vent Photo'),
@@ -869,7 +869,7 @@ DropdownButtonFormField<bool>(
                       onPressed: () => takeCommercialPhoto(
                         buildingName: buildingName,
                         roofName: roofName,
-                        photoLabel: 'Vent extra photo',
+                        photoLabel: 'Vent - Image 2',
                         onSaved: (f) => vent.extraPhotos.add(f),
                       ),
                       child: const Text('Add extra Vent photo'),

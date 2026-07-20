@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:claimscope_clean/screens/elevations/models/elevations_data.dart';
 
@@ -113,6 +114,11 @@ late ElevationsData elevations = ElevationsData.fromJson({});
 
   // REPORT CONTENT
   final List<PhotoItem> photoReportItems = [];
+
+  // Partial photo PDFs generated on Save & Continue per section.
+  // Key: 'bldg:<i>|roof:<j>' for commercial, 'elev:<Side>' for elevations.
+  final Map<String, Uint8List> partialPhotoPdfs = {};
+  final Map<String, String> partialPhotoPdfHashes = {};
   List<FacetData> facets = [];
 
   // COMMERCIAL
