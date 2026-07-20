@@ -68,6 +68,12 @@ String buildElevationsPhotoLabel({
 }
 
 String formatElevationsPhotoCaption(String raw) {
+  // Commercial format takes precedence: Bldg=|Roof=|Label=
+  final commercial = tryParseCommercialPhotoLabel(raw);
+  if (commercial != null) {
+    return '${commercial.building} - ${commercial.roof} - ${commercial.label}';
+  }
+
   final parsed = tryParseElevationsPhotoLabel(raw);
   if (parsed == null) return raw;
 
@@ -78,6 +84,7 @@ String formatElevationsPhotoCaption(String raw) {
   return '${parsed.elev} Elev. - ${parsed.category} - ${parsed.label}';
 }
 // =======================================================================
+
 
 String sanitizeZipPathPart(String input) {
   var s = input.trim();

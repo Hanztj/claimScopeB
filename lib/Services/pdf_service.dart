@@ -165,112 +165,34 @@ class PdfService {
         ),  
         );
                           // --- PDF DE FOTOS COMERCIAL ---
-// Recolectar todas las fotos comerciales
-    final List<PhotoItem> commercialPhotos = [];
+    // Usar la lista unificada report.photoReportItems (misma fuente que el ZIP
+    // etiquetado). Los labels ya vienen construidos por commercial_roof_section_screen
+    // con displayName(index) ("Main Building"/"Building N") y roofLabel ??
+    // "Roof {n+1}", así el PDF respeta indices y nombres editables por el usuario.
+    // _buildPhotoFrame decodifica el label estructurado (Bldg=|Roof=|Label=)
+    // para mostrar un caption legible.
+    for (var i = 0; i < report.photoReportItems.length; i += 2) {
+      final firstPhoto = await _loadPdfPhotoItemBytes(report.photoReportItems[i]);
+      final secondPhoto = i + 1 < report.photoReportItems.length
+          ? await _loadPdfPhotoItemBytes(report.photoReportItems[i + 1])
+          : null;
 
-for (var building in report.commercialBuildings) {
-  for (var roof in building.roofs) {
-    if (roof.overviewPhoto != null) {
-      commercialPhotos.add(PhotoItem(
-        file: roof.overviewPhoto!,
-        label: '${building.name ?? 'Building'} - ${roof.roofLabel ?? 'Roof'} - Overview',
-      ));
+      pdfPhotos.addPage(
+        pw.Page(
+          theme: pdfTheme,
+          build: (context) => pw.Column(
+            children: [
+              _buildPhotoFrame(firstPhoto),
+              if (secondPhoto != null) ...[
+                pw.SizedBox(height: 20),
+                _buildPhotoFrame(secondPhoto),
+              ],
+            ],
+          ),
+        ),
+      );
     }
-    if (roof.coreSamplePhoto != null) {
-      commercialPhotos.add(PhotoItem(
-        file: roof.coreSamplePhoto!,
-        label: '${building.name ?? 'Building'} - ${roof.roofLabel ?? 'Roof'} - Core Sample',
-      ));
-    }
-    if (roof.valleyMetalPhoto != null) {
-      commercialPhotos.add(PhotoItem(
-        file: roof.valleyMetalPhoto!,
-        label: '${building.name ?? 'Building'} - ${roof.roofLabel ?? 'Roof'} - Valley Metal',
-      ));
-    }
-    for (var flashing in roof.shingleFlashings) {
-      if (flashing.photo != null) {
-        commercialPhotos.add(PhotoItem(
-          file: flashing.photo!,
-          label: '${building.name ?? 'Building'} - ${roof.roofLabel ?? 'Roof'} - Flashing: ${_describeFlashing(flashing)}',
-        ));
-      }
-      for (var extraPhoto in flashing.extraPhotos) {
-        commercialPhotos.add(PhotoItem(
-          file: extraPhoto,
-          label: '${building.name ?? 'Building'} - ${roof.roofLabel ?? 'Roof'} - Flashing extra: ${_describeFlashing(flashing)}',
-        ));
-      }
-    }
-    for (var vent in roof.shingleVents) {
-      if (vent.photo != null) {
-        commercialPhotos.add(PhotoItem(
-          file: vent.photo!,
-          label: '${building.name ?? 'Building'} - ${roof.roofLabel ?? 'Roof'} - Vent: ${_describeVent(vent)}',
-        ));
-      }
-      for (var extraPhoto in vent.extraPhotos) {
-        commercialPhotos.add(PhotoItem(
-          file: extraPhoto,
-          label: '${building.name ?? 'Building'} - ${roof.roofLabel ?? 'Roof'} - Vent extra: ${_describeVent(vent)}',
-        ));
-      }
-    }
-for (var flashing in roof.tpoFlashings) {
-  if (flashing.photo != null) {
-    commercialPhotos.add(PhotoItem(
-      file: flashing.photo!,
-      label: '${building.name ?? 'Building'} - ${roof.roofLabel ?? 'Roof'} - Flashing: ${flashing.type}',
-    ));
-  }
-}
-for (var vent in roof.tpoVents) {
-  if (vent.photo != null) {
-    commercialPhotos.add(PhotoItem(
-      file: vent.photo!,
-      label: '${building.name ?? 'Building'} - ${roof.roofLabel ?? 'Roof'} - Vent: ${vent.type}',
-    ));
-  }
-}
-    for (var hvac in roof.hvacUnits) {
-      if (hvac.photo != null) {
-        commercialPhotos.add(PhotoItem(
-          file: hvac.photo!,
-          label: '${building.name ?? 'Building'} - ${roof.roofLabel ?? 'Roof'} - HVAC: ${hvac.type ?? 'Unknown'}',
-        ));
-      }
-    }
-    for (var mechanical in roof.mechanicalUnits) {
-      if (mechanical.photo != null) {
-        commercialPhotos.add(PhotoItem(
-          file: mechanical.photo!,
-          label: '${building.name ?? 'Building'} - ${roof.roofLabel ?? 'Roof'} - Mechanical: ${mechanical.type ?? 'Unknown'}',
-        ));
-      }
-    }
-  }
-}
 
-for (var i = 0; i < commercialPhotos.length; i += 2) {
-  final firstPhoto = await _loadPdfPhotoItemBytes(commercialPhotos[i]);
-  final secondPhoto = i + 1 < commercialPhotos.length
-      ? await _loadPdfPhotoItemBytes(commercialPhotos[i + 1])
-      : null;
-
-  pdfPhotos.addPage(
-    pw.Page(
-      build: (context) => pw.Column(
-        children: [
-          _buildPhotoFrame(firstPhoto),
-          if (secondPhoto != null) ...[
-            pw.SizedBox(height: 20),
-            _buildPhotoFrame(secondPhoto),
-          ],
-        ],
-      ),
-    ),
-  );
-}
             
   } 
   else {
