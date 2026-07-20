@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:claimscope_clean/screens/elevations/models/elevations_data.dart';
+import 'package:claimscope_clean/services/pdf_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -37,6 +38,8 @@ class ElevationsAutoSaver {
   /// Programa un guardado debounced. Llamar tras cada mutación relevante.
   void scheduleSave() {
     if (_disposed) return;
+    // Palanca 1: no serializar mientras se genera un PDF pesado.
+    if (PdfBusyFlag.busy) return;
     _timer?.cancel();
     _timer = Timer(debounce, _persist);
   }
@@ -68,6 +71,8 @@ class ElevationsAutoSaver {
     debugPrint('AutoSaver montado e iniciado.');
   }
      void markDirty() {
+    // Palanca 1: gate global — no marcar dirty mientras se genera un PDF pesado.
+    if (PdfBusyFlag.busy) return;
     // Aquí adentro va la lógica que le dice al Timer: 
     // "Hubo un cambio, ejecuta el guardado en el próximo ciclo".
     debugPrint('Datos marcados como modificados (dirty). Guardando pronto...');

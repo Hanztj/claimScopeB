@@ -51,6 +51,35 @@ img.Image _resizeToMax(img.Image src, int maxSide) {
   }
 }
 
+/// Palanca 1: flag global para pausar auto-savers (SharedPreferences)
+/// mientras se genera un PDF pesado. Toggle en try/finally de
+/// [PdfService.generateReports].
+class PdfBusyFlag {
+  static bool busy = false;
+}
+
+/// Palanca 3: preset agresivo para commercial (multi-building/section aumenta
+/// mucho el conteo de fotos). Target: max 800px, JPEG quality 65.
+/// Skip: <=800px longSide AND <=150 KB.
+Uint8List _downscaleForPdfCommercial(String path) {
+  final file = File(path);
+  final Uint8List original = file.readAsBytesSync();
+  if (original.lengthInBytes <= 150 * 1024) {
+    final decoded = img.decodeImage(original);
+    if (decoded == null) return original;
+    final longSide =
+        decoded.width > decoded.height ? decoded.width : decoded.height;
+    if (longSide <= 800) return original;
+    return Uint8List.fromList(
+      img.encodeJpg(_resizeToMax(decoded, 800), quality: 65),
+    );
+  }
+  final decoded = img.decodeImage(original);
+  if (decoded == null) return original;
+  final resized = _resizeToMax(decoded, 800);
+  return Uint8List.fromList(img.encodeJpg(resized, quality: 65));
+}
+
 
 class _PdfPhotoItemBytes {
   final Uint8List bytes;
@@ -65,6 +94,9 @@ class _PdfPhotoItemBytes {
 class PdfService {
 
   static Future<Map<String, File>> generateReports(InspectionReport report) async {
+    // Palanca 1: pausar auto-savers durante la generación pesada.
+    PdfBusyFlag.busy = true;
+    try {
 
     // 1️⃣ CARGAR FUENTES DESDE ASSETS (Evita crasheos por caracteres como ≤)
     final fontDataRegular = await rootBundle.load("assets/fonts/Roboto-Regular.ttf");
@@ -79,11 +111,37 @@ class PdfService {
       bold: myFontBold,
     );
 
-    final pdfTech = pw.Document();
+    // Palanca 2: pdfTech nullable para liberarlo antes del loop de fotos.
+    pw.Document? pdfTech = pw.Document();
     final pdfPhotos = pw.Document();
       // Determinar si es comercial
   final isCommercial = report.isCommercial == true || report.commercialBuildings.isNotEmpty;
-  
+
+    // Palanca 2: hoist de rutas — necesarias para escribir pdfTech
+    // ANTES de encolar las fotos (libera heap del pdf técnico).
+    String sanitizeFilename(String input) {
+    var s = input.trim();
+    if (s.isEmpty) return 'UNKNOWN';
+    s = s.replaceAll(RegExp(r'[\/\\\:\*\?\"\<\>\|]'), '');
+    s = s.replaceAll(RegExp(r'\s+'), ' ').trim();
+    return s.isEmpty ? 'UNKNOWN' : s;
+    }
+    final dir = await getApplicationDocumentsDirectory();
+    final claim = report.claimNumber.trim().isEmpty
+        ? 'NOCLAIM'
+        : sanitizeFilename(report.claimNumber);
+    final insured = report.clientName.trim().isEmpty
+        ? 'UNKNOWN'
+        : sanitizeFilename(report.clientName);
+    final techName = isCommercial
+        ? '$claim - $insured - Commercial Inspection Report.pdf'
+        : '$claim - $insured - Inspection Report.pdf';
+    final photoName = isCommercial
+        ? '$claim - $insured - Commercial Inspection Photos.pdf'
+        : '$claim - $insured - Inspection Photos.pdf';
+    final techFile = File('${dir.path}/$techName');
+    final photoFile = File('${dir.path}/$photoName');
+
   if(isCommercial){
           
         // --- PDF TÉCNICO COMERCIAL ---
@@ -164,6 +222,9 @@ class PdfService {
         ],
         ),  
         );
+    // Palanca 2 (commercial): guardar y liberar pdfTech antes de encolar fotos.
+    await techFile.writeAsBytes(await pdfTech.save());
+    pdfTech = null;
                           // --- PDF DE FOTOS COMERCIAL ---
     // Usar la lista unificada report.photoReportItems (misma fuente que el ZIP
     // etiquetado). Los labels ya vienen construidos por commercial_roof_section_screen
@@ -172,9 +233,10 @@ class PdfService {
     // _buildPhotoFrame decodifica el label estructurado (Bldg=|Roof=|Label=)
     // para mostrar un caption legible.
     for (var i = 0; i < report.photoReportItems.length; i += 2) {
-      final firstPhoto = await _loadPdfPhotoItemBytes(report.photoReportItems[i]);
+      // Palanca 3: preset agresivo (800px/q65) en commercial.
+      final firstPhoto = await _loadPdfPhotoItemBytes(report.photoReportItems[i], isCommercial: true);
       final secondPhoto = i + 1 < report.photoReportItems.length
-          ? await _loadPdfPhotoItemBytes(report.photoReportItems[i + 1])
+          ? await _loadPdfPhotoItemBytes(report.photoReportItems[i + 1], isCommercial: true)
           : null;
 
       pdfPhotos.addPage(
@@ -243,6 +305,9 @@ class PdfService {
         ],
        ),
      );
+    // Palanca 2 (residential): guardar y liberar pdfTech antes de encolar fotos.
+    await techFile.writeAsBytes(await pdfTech.save());
+    pdfTech = null;
                       
              // --- PDF DE FOTOS: 2 POR PÁGINA ---
      for (var i = 0; i < report.photoReportItems.length; i += 2) {
@@ -266,44 +331,14 @@ class PdfService {
         ),
       );
     }}
-     // Guardar archivos PDF
-    String sanitizeFilename(String input) {
-    var s = input.trim();
-    if (s.isEmpty) return 'UNKNOWN';
-    s = s.replaceAll(RegExp(r'[\/\\\:\*\?\"\<\>\|]'), '');
-    s = s.replaceAll(RegExp(r'\s+'), ' ').trim();
-    return s.isEmpty ? 'UNKNOWN' : s;
-    }
-
-    // Guardar archivos PDF
-    // Guardar archivos PDF - Versión unificada
-    final dir = await getApplicationDocumentsDirectory();
-
-    final claim = report.claimNumber.trim().isEmpty
-        ? 'NOCLAIM'
-        : sanitizeFilename(report.claimNumber);
-
-    final insured = report.clientName.trim().isEmpty
-        ? 'UNKNOWN'
-        : sanitizeFilename(report.clientName);
-
-    // Determinar nombre según tipo de reporte
-
-    final techName = isCommercial
-        ? '$claim - $insured - Commercial Inspection Report.pdf'
-        : '$claim - $insured - Inspection Report.pdf';
-
-    final photoName = isCommercial
-        ? '$claim - $insured - Commercial Inspection Photos.pdf'
-        : '$claim - $insured - Inspection Photos.pdf';
-
-    final techFile = File('${dir.path}/$techName');
-    final photoFile = File('${dir.path}/$photoName');
-
-    await techFile.writeAsBytes(await pdfTech.save());
+    // Palanca 2: pdfTech ya fue guardado y liberado en cada rama.
     await photoFile.writeAsBytes(await pdfPhotos.save());
 
    return {'tech': techFile, 'photos': photoFile};
+    } finally {
+      // Palanca 1: reactivar auto-savers pase lo que pase.
+      PdfBusyFlag.busy = false;
+    }
     }
 
      
@@ -2072,12 +2107,17 @@ class PdfService {
       );
      }
 
-    static Future<_PdfPhotoItemBytes> _loadPdfPhotoItemBytes(PhotoItem item) async {
-      // Paso Plan A ajustado: downscale + recompress en isolate para reducir
-      // presión de heap al generar PDFs con muchas fotos (crítico en dispositivos
-      // 4 GB RAM como A23). Sin caches a nivel de clase: cada PhotoItem se
-      // procesa en serie y se libera al terminar el frame.
-      final Uint8List bytes = await compute(_downscaleForPdf, item.file.path);
+    static Future<_PdfPhotoItemBytes> _loadPdfPhotoItemBytes(
+      PhotoItem item, {
+      bool isCommercial = false,
+    }) async {
+      // Palanca 3: preset agresivo (800px/q65) para commercial vs 1024px/q75
+      // en residential. Ambos corren en isolate via compute(). Sin caches:
+      // cada PhotoItem se procesa en serie y se libera al terminar el frame.
+      final Uint8List bytes = await compute(
+        isCommercial ? _downscaleForPdfCommercial : _downscaleForPdf,
+        item.file.path,
+      );
       return _PdfPhotoItemBytes(
         bytes: bytes,
         label: item.label,
