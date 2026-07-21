@@ -24,7 +24,9 @@ class CommercialMetalHubForm extends StatelessWidget {
     required String roofName,
     required String photoLabel,
     required void Function(File file) onSaved,
+    File? previousFile,
   }) takeCommercialPhoto;
+  final void Function(Iterable<File?> files) removePhotos;
 
   const CommercialMetalHubForm({
     super.key,
@@ -37,6 +39,7 @@ class CommercialMetalHubForm extends StatelessWidget {
     required this.setState,
     required this.sync,
     required this.takeCommercialPhoto,
+    required this.removePhotos,
   });
 
   @override
@@ -322,6 +325,7 @@ class CommercialMetalHubForm extends StatelessWidget {
           flashings: roof.tpoFlashings,
           onChanged: sync,
           takePhoto: takeCommercialPhoto,
+          removePhotos: removePhotos,
           buildingName: buildingName,
           roofName: roofName,
         ),
@@ -331,6 +335,7 @@ class CommercialMetalHubForm extends StatelessWidget {
           vents: roof.tpoVents,
           onChanged: sync,
           takePhoto: takeCommercialPhoto,
+          removePhotos: removePhotos,
           buildingName: buildingName,
           roofName: roofName,
         ),
@@ -340,6 +345,7 @@ class CommercialMetalHubForm extends StatelessWidget {
           mechanicalItems: roof.mechanicalUnits,
           onChanged: sync,
           takePhoto: takeCommercialPhoto,
+          removePhotos: removePhotos,
           buildingName: buildingName,
           roofName: roofName,
         ),

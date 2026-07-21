@@ -103,6 +103,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
     required String roofName,
     required String photoLabel,
     required void Function(File file) onSaved,
+    File? previousFile,
   }) async {
     final picked = await _picker.pickImage(
       source: ImageSource.camera,
@@ -121,8 +122,13 @@ class CommercialRoofSectionScreen extends StatefulWidget {
     );
 
     setState(() {
+      widget.report.replacePhoto(
+        file,
+        storedLabel,
+        previousFile: previousFile,
+        deduplicateLabel: previousFile != null,
+      );
       onSaved(file);
-      widget.report.addPhoto(file, storedLabel);
     });
 
     if (!mounted) return;
@@ -134,6 +140,10 @@ class CommercialRoofSectionScreen extends StatefulWidget {
     );
   }
 
+
+  void _removeCommercialPhotos(Iterable<File?> files) {
+    widget.report.removePhotosByFiles(files);
+  }
 
   Future<void> _pickCommercialGalleryPhotos({
     required String buildingName,
@@ -258,6 +268,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
               buildingName: buildingName,
               roofName: roofName,
               photoLabel: overviewLabel,
+              previousFile: roof.overviewPhoto,
               onSaved: (f) => roof.overviewPhoto = f,
             ),
             child: const Text('Take overview photo'),
@@ -424,6 +435,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
               setState: setState,
               sync: _sync,
               takeCommercialPhoto: _takeCommercialPhoto,
+              removePhotos: _removeCommercialPhotos,
             ),
           if (_isShingles)
             CommercialShinglesHubForm(
@@ -437,6 +449,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
               setState: setState,
               sync: _sync,
               takeCommercialPhoto: _takeCommercialPhoto,
+              removePhotos: _removeCommercialPhotos,
             ),
           if (_isTile)
             CommercialTileHubForm(
@@ -449,6 +462,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
               setState: setState,
               sync: _sync,
               takeCommercialPhoto: _takeCommercialPhoto,
+              removePhotos: _removeCommercialPhotos,
             ),
           if (_isSlate)
             CommercialSlateHubForm(
@@ -461,6 +475,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
               setState: setState,
               sync: _sync,
               takeCommercialPhoto: _takeCommercialPhoto,
+              removePhotos: _removeCommercialPhotos,
             ),
           if (_isOther)
             CommercialOtherHubForm(
@@ -474,6 +489,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
               setState: setState,
               sync: _sync,
               takeCommercialPhoto: _takeCommercialPhoto,
+              removePhotos: _removeCommercialPhotos,
             ),
           
           
@@ -489,6 +505,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
               setState: setState,
               sync: _sync,
               takeCommercialPhoto: _takeCommercialPhoto,
+              removePhotos: _removeCommercialPhotos,
             ),
             
           const SizedBox(height: 12),

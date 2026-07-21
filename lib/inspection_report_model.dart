@@ -128,6 +128,62 @@ late ElevationsData elevations = ElevationsData.fromJson({});
     photoReportItems.add(PhotoItem(file: file, label: label));
   }
 
+  void replacePhoto(
+    File file,
+    String label, {
+    File? previousFile,
+    bool deduplicateLabel = false,
+  }) {
+    var targetIndex = -1;
+
+    if (previousFile != null) {
+      targetIndex = photoReportItems.indexWhere(
+        (item) => item.file.absolute.path == previousFile.absolute.path,
+      );
+    }
+
+    if (targetIndex < 0 && deduplicateLabel) {
+      targetIndex = photoReportItems.indexWhere((item) => item.label == label);
+    }
+
+    if (targetIndex < 0) {
+      addPhoto(file, label);
+      return;
+    }
+
+    photoReportItems[targetIndex] = PhotoItem(file: file, label: label);
+
+    for (var i = photoReportItems.length - 1; i >= 0; i--) {
+      if (i == targetIndex) continue;
+
+      final item = photoReportItems[i];
+      final samePreviousPath = previousFile != null &&
+          item.file.absolute.path == previousFile.absolute.path;
+      final sameUniqueLabel = deduplicateLabel && item.label == label;
+
+      if (samePreviousPath || sameUniqueLabel) {
+        photoReportItems.removeAt(i);
+        if (i < targetIndex) targetIndex--;
+      }
+    }
+  }
+
+  void removePhotosByFiles(Iterable<File?> files) {
+    final paths = files
+        .whereType<File>()
+        .map((file) => file.absolute.path)
+        .toSet();
+    if (paths.isEmpty) return;
+
+    photoReportItems.removeWhere(
+      (item) => paths.contains(item.file.absolute.path),
+    );
+  }
+
+  void removePhotosWhere(bool Function(PhotoItem item) test) {
+    photoReportItems.removeWhere(test);
+  }
+
   Map<String, dynamic> toHfPricingPayload() => {
         'isBasePricePaid': isBasePricePaid,
         'isCommercial': isCommercial,

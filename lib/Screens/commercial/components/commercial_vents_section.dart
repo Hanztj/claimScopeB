@@ -15,7 +15,9 @@ class CommercialVentsSection extends StatefulWidget {
     required String roofName,
     required String photoLabel,
     required void Function(File) onSaved,
+    File? previousFile,
   }) takePhoto;
+  final void Function(Iterable<File?> files) removePhotos;
 
   final String buildingName;
   final String roofName;
@@ -26,6 +28,7 @@ class CommercialVentsSection extends StatefulWidget {
     required this.vents,
     required this.onChanged,
     required this.takePhoto,
+    required this.removePhotos,
     required this.buildingName,
     required this.roofName,
   });
@@ -45,6 +48,8 @@ class _CommercialVentsSectionState extends State<CommercialVentsSection> {
   }
 
   void _removeVent(int index) {
+    final vent = widget.vents[index];
+    widget.removePhotos([vent.photo, ...vent.extraPhotos]);
     setState(() {
       widget.vents.removeAt(index);
     });
@@ -56,6 +61,7 @@ class _CommercialVentsSectionState extends State<CommercialVentsSection> {
       buildingName: widget.buildingName,
       roofName: widget.roofName,
       photoLabel: 'Vent ${index + 1} - Image 1',
+      previousFile: widget.vents[index].photo,
       onSaved: (file) {
         setState(() => widget.vents[index].photo = file);
         widget.onChanged();

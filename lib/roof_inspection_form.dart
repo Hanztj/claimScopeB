@@ -47,11 +47,19 @@ import 'package:image_picker/image_picker.dart';
                     
  // Añadir dentro de class _RoofInspectionFormState extends State<RoofInspectionForm> {
 
-       Future<void> _takeExtraPhotoForLabel(String label) async {
+       Future<void> _takeExtraPhotoForLabel(
+    String label, {
+    List<File>? owner,
+  }) async {
+  final photoCountBefore = widget.report.photoReportItems.length;
   await _takePhoto(
     label,
     isFacetPhoto: false,
   );
+  if (owner != null &&
+      widget.report.photoReportItems.length > photoCountBefore) {
+    owner.add(widget.report.photoReportItems.last.file);
+  }
   if (!mounted) return;
   ScaffoldMessenger.of(context).showSnackBar(
     const SnackBar(
@@ -580,6 +588,29 @@ String? noAction;
 
       void _deleteCurrentFacet() {
      if (_facets.length <= 1 || _currentFacetIndex == 0) return;
+
+     for (final file in <File?>[
+       _currentFacetOverviewPhoto,
+       _currentRidgeVentPhoto,
+       _currentAtrPhoto,
+       _currentValleyMetalPhoto,
+     ]) {
+       _clearPhotoArtifacts(file: file);
+     }
+     for (final data in <Map<String, dynamic>>[
+       ..._currentFacetFlashingsData,
+       ..._currentFacetVentsData,
+       ..._currentFacetOtherElementsData,
+     ]) {
+       _clearPhotoArtifacts(
+         file: data['photo'] is File ? data['photo'] as File : null,
+       );
+       for (final extraPhoto in
+           (data['extraPhotos'] as List<File>?) ?? const <File>[]) {
+         _clearPhotoArtifacts(file: extraPhoto);
+       }
+     }
+
      setState(() {
        _facets.removeAt(_currentFacetIndex);
        if (_currentFacetIndex >= _facets.length) {
@@ -600,6 +631,7 @@ String? noAction;
     'includeLead': false,
     'otherSpecify': '',
     'photo': null,
+    'extraPhotos': <File>[],
     'countController': countController,
     'otherSpecifyController': otherSpecifyController,
   };
@@ -620,6 +652,7 @@ String? noAction;
     'chaseCoverMaterial': null,
     'otherSpecify': '',
     'photo': null,
+    'extraPhotos': <File>[],
     'otherController': otherController,
   };
  }
@@ -669,6 +702,7 @@ String? noAction;
     'detachAndResetOnly': false,
     'otherSpecify': '',
     'photo': null,
+    'extraPhotos': <File>[],
     'countController': countController,
     'otherSpecifyController': otherSpecifyController,
   };
@@ -732,22 +766,65 @@ String? noAction;
 
   debugPrint('CAMERA DEBUG: after pickImage path=${pickedFile?.path}');
 
-
   if (pickedFile == null) return;
-
   if (!mounted) return;
 
   final img = File(pickedFile.path);
+  File? previousFile;
+
+  if (isGlobal) {
+    if (label == 'Front Elevation Photo' || label == 'Roof Overview Photo') {
+      previousFile = frontElevationPhoto ?? widget.report.frontElevationPhoto;
+    } else if (label == 'Drip Edge Photo') {
+      previousFile = dripEdgePhoto ?? widget.report.dripEdgePhoto;
+    } else if (label == 'Starter Row Eave Photo') {
+      previousFile = starterEavePhoto ?? widget.report.starterEavePhoto;
+    } else if (label == 'Starter Row Rake Photo') {
+      previousFile = starterRakePhoto ?? widget.report.starterRakePhoto;
+    } else if (label == 'Ice & Water Barrier Photo') {
+      previousFile =
+          iceAndWaterBarrierPhoto ?? widget.report.iceAndWaterBarrierPhoto;
+    } else if (label == 'Shed Photo') {
+      previousFile = _shedPhoto ?? widget.report.shedPhoto;
+    } else if (label == 'Large Structure Photo') {
+      previousFile = _largeStructurePhoto ?? widget.report.largeStructurePhoto;
+    }
+  } else if (isFacetPhoto && facetIndex != null) {
+    if (label == 'Facet Overview Photo') {
+      previousFile = _facets[facetIndex]['overviewPicture'] as File?;
+    } else if (label == 'Ridge Vent Photo') {
+      previousFile = _facets[facetIndex]['ridgeVentPhoto'] as File?;
+    } else if (label == 'ATR Photo') {
+      previousFile = _facets[facetIndex]['atrPhoto'] as File?;
+    } else if (label == 'Valley Metal Photo') {
+      previousFile = _facets[facetIndex]['valleyMetalPhoto'] as File?;
+    }
+  } else if (ventIndex != null &&
+      ventIndex < _currentFacetVentsData.length) {
+    previousFile = _currentFacetVentsData[ventIndex]['photo'] as File?;
+  } else if (flashingIndex != null &&
+      flashingIndex < _currentFacetFlashingsData.length) {
+    previousFile = _currentFacetFlashingsData[flashingIndex]['photo'] as File?;
+  } else if (otherElementIndex != null &&
+      otherElementIndex < _currentFacetOtherElementsData.length) {
+    previousFile =
+        _currentFacetOtherElementsData[otherElementIndex]['photo'] as File?;
+  }
 
   setState(() {
-    // 1) Añadir siempre al modelo de reporte (para PDF de fotos)
-    widget.report.addPhoto(img, label);
+    widget.report.replacePhoto(
+      img,
+      label,
+      previousFile: previousFile,
+      deduplicateLabel: isGlobal && previousFile != null,
+    );
+    _replaceLocalPhotoArtifacts(
+      newFile: img,
+      label: label,
+      previousFile: previousFile,
+      deduplicateLabel: isGlobal && previousFile != null,
+    );
 
-    // 2) Añadir a la lista local para thumbnails (si las sigues usando)
-    photoReportImages.add(img);
-    inspectionData.add({'label': label, 'path': img.path});
-
-    // 3) Asignar según el contexto de la foto
     if (isGlobal) {
       if (label == 'Front Elevation Photo' || label == 'Roof Overview Photo') {
         frontElevationPhoto = img;
@@ -771,14 +848,11 @@ String? noAction;
         _largeStructurePhoto = img;
         widget.report.largeStructurePhoto = img;
       }
-
     } else if (isFacetPhoto && facetIndex != null) {
-      // Fotos asociadas a una faceta concreta
       if (label == 'Facet Overview Photo') {
         _facets[facetIndex]['overviewPicture'] = img;
         _currentFacetOverviewPhoto = img;
-      }   
-      else if (label == 'Ridge Vent Photo') {
+      } else if (label == 'Ridge Vent Photo') {
         _facets[facetIndex]['ridgeVentPhoto'] = img;
         _currentRidgeVentPhoto = img;
       } else if (label == 'ATR Photo') {
@@ -788,22 +862,77 @@ String? noAction;
         _facets[facetIndex]['valleyMetalPhoto'] = img;
         _currentValleyMetalPhoto = img;
       }
-    } else if (ventIndex != null && ventIndex < _currentFacetVentsData.length) {
-      // Foto asociada a un vent específico
+    } else if (ventIndex != null &&
+        ventIndex < _currentFacetVentsData.length) {
       _currentFacetVentsData[ventIndex]['photo'] = img;
-    }
-     else if (flashingIndex != null &&
+    } else if (flashingIndex != null &&
         flashingIndex < _currentFacetFlashingsData.length) {
-      // Foto asociada a un flashing específico
       _currentFacetFlashingsData[flashingIndex]['photo'] = img;
-       
-       } else if (otherElementIndex != null &&
+    } else if (otherElementIndex != null &&
         otherElementIndex < _currentFacetOtherElementsData.length) {
-      // Foto asociada a un other element específico
       _currentFacetOtherElementsData[otherElementIndex]['photo'] = img;
     }
   });
  }
+
+  void _replaceLocalPhotoArtifacts({
+    required File newFile,
+    required String label,
+    File? previousFile,
+    required bool deduplicateLabel,
+  }) {
+    final pathsToReplace = <String>{};
+    if (previousFile != null) {
+      pathsToReplace.add(previousFile.absolute.path);
+    }
+    if (deduplicateLabel) {
+      for (final item in inspectionData) {
+        if (item['label'] == label && item['path'] != null) {
+          pathsToReplace.add(item['path']!);
+        }
+      }
+    }
+
+    var imageInsertIndex = photoReportImages.length;
+    for (var i = 0; i < photoReportImages.length; i++) {
+      if (pathsToReplace.contains(photoReportImages[i].absolute.path)) {
+        imageInsertIndex = i;
+        break;
+      }
+    }
+    photoReportImages.removeWhere(
+      (image) => pathsToReplace.contains(image.absolute.path),
+    );
+    if (imageInsertIndex > photoReportImages.length) {
+      imageInsertIndex = photoReportImages.length;
+    }
+    photoReportImages.insert(imageInsertIndex, newFile);
+
+    var dataInsertIndex = inspectionData.length;
+    for (var i = 0; i < inspectionData.length; i++) {
+      final item = inspectionData[i];
+      final samePath = item['path'] != null &&
+          pathsToReplace.contains(item['path']!);
+      final sameUniqueLabel = deduplicateLabel && item['label'] == label;
+      if (samePath || sameUniqueLabel) {
+        dataInsertIndex = i;
+        break;
+      }
+    }
+    inspectionData.removeWhere((item) {
+      final samePath = item['path'] != null &&
+          pathsToReplace.contains(item['path']!);
+      return samePath || (deduplicateLabel && item['label'] == label);
+    });
+    if (dataInsertIndex > inspectionData.length) {
+      dataInsertIndex = inspectionData.length;
+    }
+    inspectionData.insert(
+      dataInsertIndex,
+      {'label': label, 'path': newFile.path},
+    );
+  }
+
 
 
   bool _photoLabelMatches(
@@ -992,6 +1121,9 @@ _saveCurrentResidentialProgress();
   final List<dynamic> loadedVents = currentFacetData['vents'] ?? [];
   for (final v in loadedVents) {
     final map = Map<String, dynamic>.from(v);
+    map['extraPhotos'] = List<File>.from(
+      (map['extraPhotos'] as List?)?.whereType<File>() ?? const <File>[],
+    );
     final countController =
         TextEditingController(text: map['count'] ?? '');
     final otherSpecifyController =
@@ -1008,6 +1140,9 @@ _saveCurrentResidentialProgress();
     final List<dynamic> loadedFlashings = currentFacetData['flashings'] ?? [];
     for (var f in loadedFlashings) {
       final map = Map<String, dynamic>.from(f);
+      map['extraPhotos'] = List<File>.from(
+        (map['extraPhotos'] as List?)?.whereType<File>() ?? const <File>[],
+      );
       final otherController =
           TextEditingController(text: map['otherSpecify'] ?? '');
       map['otherController'] = otherController;
@@ -1019,6 +1154,9 @@ _saveCurrentResidentialProgress();
   final List<dynamic> loadedOther = currentFacetData['otherElements'] ?? [];
   for (final e in loadedOther) {
     final map = Map<String, dynamic>.from(e);
+    map['extraPhotos'] = List<File>.from(
+      (map['extraPhotos'] as List?)?.whereType<File>() ?? const <File>[],
+    );
     final countController =
         TextEditingController(text: map['count'] ?? '');
     final otherSpecifyController =
@@ -1984,6 +2122,14 @@ rollExposure: rollExposure,
                   currentFlashingOtherControllers: _currentFlashingOtherControllers,
                   onRemoveFlashing: (idx) {
                     final data = _currentFacetFlashingsData[idx];
+                    _clearPhotoArtifacts(
+                      file: data['photo'] is File ? data['photo'] as File : null,
+                    );
+                    for (final extraPhoto in
+                        (data['extraPhotos'] as List<File>?) ??
+                            const <File>[]) {
+                      _clearPhotoArtifacts(file: extraPhoto);
+                    }
                     data['otherController'].dispose();
                     _currentFlashingOtherControllers.removeAt(idx);
                     _currentFacetFlashingsData.removeAt(idx);
@@ -2000,6 +2146,16 @@ rollExposure: rollExposure,
                   currentOtherVentSpecifyControllers: _currentOtherVentSpecifyControllers,
                   onRemoveVent: (ventIndex) {
                     final ventData = _currentFacetVentsData[ventIndex];
+                    _clearPhotoArtifacts(
+                      file: ventData['photo'] is File
+                          ? ventData['photo'] as File
+                          : null,
+                    );
+                    for (final extraPhoto in
+                        (ventData['extraPhotos'] as List<File>?) ??
+                            const <File>[]) {
+                      _clearPhotoArtifacts(file: extraPhoto);
+                    }
                     ventData['countController'].dispose();
                     ventData['otherSpecifyController'].dispose();
                     _currentVentCountControllers.removeAt(ventIndex);
@@ -2013,6 +2169,14 @@ rollExposure: rollExposure,
                   currentOtherElementSpecifyControllers: _currentOtherElementSpecifyControllers,
                   onRemoveOtherElement: (idx) {
                     final data = _currentFacetOtherElementsData[idx];
+                    _clearPhotoArtifacts(
+                      file: data['photo'] is File ? data['photo'] as File : null,
+                    );
+                    for (final extraPhoto in
+                        (data['extraPhotos'] as List<File>?) ??
+                            const <File>[]) {
+                      _clearPhotoArtifacts(file: extraPhoto);
+                    }
                     data['countController'].dispose();
                     data['otherSpecifyController'].dispose();
                     _currentOtherElementCountControllers.removeAt(idx);

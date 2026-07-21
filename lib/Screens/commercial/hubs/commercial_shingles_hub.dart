@@ -25,7 +25,9 @@ class CommercialShinglesHubForm extends StatelessWidget {
     required String roofName,
     required String photoLabel,
     required void Function(File file) onSaved,
+    File? previousFile,
   }) takeCommercialPhoto;
+  final void Function(Iterable<File?> files) removePhotos;
 
   const CommercialShinglesHubForm({
     super.key,
@@ -39,6 +41,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
     required this.setState,
     required this.sync,
    required this.takeCommercialPhoto,
+    required this.removePhotos,
   });
 
   static const List<String> _valleyMetalTypes = [
@@ -176,6 +179,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
                 buildingName: buildingName,
                 roofName: roofName,
                 photoLabel: 'Starter Row Eave - Image 1',
+                previousFile: roof.starterEavePhoto,
                 onSaved: (f) => roof.starterEavePhoto = f,
               ),
               child: const Text('Take Starter Row Eave Photo'),
@@ -213,6 +217,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
                 buildingName: buildingName,
                 roofName: roofName,
                 photoLabel: 'Starter Row Rake - Image 1',
+                previousFile: roof.starterRakePhoto,
                 onSaved: (f) => roof.starterRakePhoto = f,
               ),
               child: const Text('Take Starter Row Rake Photo'),
@@ -272,6 +277,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
               buildingName: buildingName,
               roofName: roofName,
               photoLabel: 'Drip Edge - Image 1',
+              previousFile: roof.dripEdgePhoto,
               onSaved: (f) => roof.dripEdgePhoto = f,
             ),
             child: const Text('Take Drip Edge Photo'),
@@ -310,6 +316,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
               buildingName: buildingName,
               roofName: roofName,
               photoLabel: 'Ice & Water Barrier - Image 1',
+              previousFile: roof.iceAndWaterBarrierPhoto,
               onSaved: (f) => roof.iceAndWaterBarrierPhoto = f,
             ),
             child: const Text('Take Ice & Water Barrier Photo'),
@@ -383,6 +390,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
               buildingName: buildingName,
               roofName: roofName,
               photoLabel: 'Ridge Vent - Image 1',
+              previousFile: roof.ridgeVentPhoto,
               onSaved: (f) => roof.ridgeVentPhoto = f,
             ),
             child: const Text('Take Ridge Vent Photo'),
@@ -439,6 +447,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
               buildingName: buildingName,
               roofName: roofName,
               photoLabel: 'Valley Metal - Image 1',
+              previousFile: roof.valleyMetalPhoto,
               onSaved: (f) => roof.valleyMetalPhoto = f,
             ),
             child: const Text('Take Valley Metal Photo'),
@@ -599,6 +608,8 @@ DropdownButtonFormField<bool>(
                       IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
                         onPressed: () {
+                          final flashing = roof.shingleFlashings[idx];
+                          removePhotos([flashing.photo, ...flashing.extraPhotos]);
                           setState(() {
                             roof.shingleFlashings.removeAt(idx);
                             sync();
@@ -672,6 +683,7 @@ DropdownButtonFormField<bool>(
                       buildingName: buildingName,
                       roofName: roofName,
                       photoLabel: 'Flashing ${idx + 1} - Image 1',
+                      previousFile: flashing.photo,
                       onSaved: (f) => flashing.photo = f,
                     ),
                     child: const Text('Take Flashing Photo'),
@@ -753,6 +765,8 @@ DropdownButtonFormField<bool>(
                         IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
                           onPressed: () {
+                            final vent = roof.shingleVents[ventIndex];
+                            removePhotos([vent.photo, ...vent.extraPhotos]);
                             setState(() {
                               roof.shingleVents.removeAt(ventIndex);
                               sync();
@@ -861,6 +875,7 @@ DropdownButtonFormField<bool>(
                         buildingName: buildingName,
                         roofName: roofName,
                         photoLabel: 'Vent ${ventIndex + 1} - Image 1',
+                        previousFile: vent.photo,
                         onSaved: (f) => vent.photo = f,
                       ),
                       child: const Text('Take Vent Photo'),
@@ -929,6 +944,7 @@ DropdownButtonFormField<bool>(
             mechanicalItems: roof.mechanicalUnits,
             onChanged: sync,
             takePhoto: takeCommercialPhoto,
+            removePhotos: removePhotos,
             buildingName: buildingName,
             roofName: roofName,
             showHvac: roof.hasHvacEquipment,

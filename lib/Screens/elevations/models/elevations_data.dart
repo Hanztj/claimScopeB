@@ -498,6 +498,7 @@ class EifsData {
 
   File? photo;
   File? extraPhoto;
+  List<File> extraPhotos = [];
 
   bool get hasAnyData =>
       present ||
@@ -510,7 +511,8 @@ class EifsData {
       finish.trim().isNotEmpty ||
       additionalNotes.trim().isNotEmpty ||
       photo != null ||
-      extraPhoto != null;
+      extraPhoto != null ||
+      extraPhotos.isNotEmpty;
 
   Map<String, dynamic> toJson() => {
         'present': present,
@@ -524,6 +526,7 @@ class EifsData {
         'additionalNotes': additionalNotes,
         'photo': FileHelper.fileToPath(photo),
         'extraPhoto': FileHelper.fileToPath(extraPhoto),
+        'extraPhotos': FileHelper.filesToPaths(extraPhotos).toList(),
       };
 
   factory EifsData.fromJson(Map<String, dynamic> j) => EifsData()
@@ -537,7 +540,8 @@ class EifsData {
     ..finish = j['finish'] as String? ?? ''
     ..additionalNotes = j['additionalNotes'] as String? ?? ''
     ..photo = FileHelper.pathToFile(j['photo'])
-    ..extraPhoto = FileHelper.pathToFile(j['extraPhoto']);
+    ..extraPhoto = FileHelper.pathToFile(j['extraPhoto'])
+    ..extraPhotos = FileHelper.pathsToFiles(j['extraPhotos']).toList();
 }
 
 // ============================================================================
@@ -575,6 +579,7 @@ class EifsData {
   // Fotos (Photo + ExtraPhoto, igual que residential Add Flashing/Add Vent)
   File? photo;
   File? extraPhoto;
+  List<File> extraPhotos = [];
 
   Map<String, dynamic> toJson() => {
         'trimType': trimType,
@@ -590,6 +595,7 @@ class EifsData {
         'skirtingSize': skirtingSize,
         'photo': FileHelper.fileToPath(photo),
         'extraPhoto': FileHelper.fileToPath(extraPhoto),
+        'extraPhotos': FileHelper.filesToPaths(extraPhotos).toList(),
       };
 
   factory TrimEntry.fromJson(Map<String, dynamic> j) {
@@ -608,7 +614,8 @@ class EifsData {
       ..skirtingMaterial = s('skirtingMaterial')
       ..skirtingSize = s('skirtingSize')
       ..photo = FileHelper.pathToFile(j['photo'])
-      ..extraPhoto = FileHelper.pathToFile(j['extraPhoto']);
+      ..extraPhoto = FileHelper.pathToFile(j['extraPhoto'])
+      ..extraPhotos = FileHelper.pathsToFiles(j['extraPhotos']).toList();
   }
 }
 
@@ -632,6 +639,7 @@ class WindowEntry {
   String additionalNotes = '';
   File? photo;
   File? extraPhoto;
+  List<File> extraPhotos = [];
 
   bool get hasAnyData =>
       windowType.isNotEmpty ||
@@ -649,7 +657,8 @@ class WindowEntry {
       shuttersSize.isNotEmpty ||
       additionalNotes.isNotEmpty ||
       photo != null ||
-      extraPhoto != null;
+      extraPhoto != null ||
+      extraPhotos.isNotEmpty;
 
   Map<String, dynamic> toJson() => {
         'windowType': windowType,
@@ -669,6 +678,7 @@ class WindowEntry {
         'additionalNotes': additionalNotes,
         'photo': FileHelper.fileToPath(photo),
         'extraPhoto': FileHelper.fileToPath(extraPhoto),
+        'extraPhotos': FileHelper.filesToPaths(extraPhotos).toList(),
       };
 
   factory WindowEntry.fromJson(Map<String, dynamic> j) {
@@ -694,7 +704,8 @@ class WindowEntry {
       ..shuttersSize = s('shuttersSize')
       ..additionalNotes = s('additionalNotes')
       ..photo = FileHelper.pathToFile(j['photo'])
-      ..extraPhoto = FileHelper.pathToFile(j['extraPhoto']);
+      ..extraPhoto = FileHelper.pathToFile(j['extraPhoto'])
+      ..extraPhotos = FileHelper.pathsToFiles(j['extraPhotos']).toList();
   }
 }
 
@@ -704,6 +715,7 @@ class DoorEntry {
   String doorType = '';
   File? photo;
   File? extraPhoto;
+  List<File> extraPhotos = [];
 
   // Exterior Door / Entry Door
   String entryDoorType = '';
@@ -754,6 +766,7 @@ class DoorEntry {
       doorType.isNotEmpty ||
       photo != null ||
       extraPhoto != null ||
+      extraPhotos.isNotEmpty ||
       entryDoorType.isNotEmpty ||
       entryMaterial.isNotEmpty ||
       entryStyle.isNotEmpty ||
@@ -793,6 +806,7 @@ class DoorEntry {
         'doorType': doorType,
         'photo': FileHelper.fileToPath(photo),
         'extraPhoto': FileHelper.fileToPath(extraPhoto),
+        'extraPhotos': FileHelper.filesToPaths(extraPhotos).toList(),
         'entryDoorType': entryDoorType,
         'entryMaterial': entryMaterial,
         'entryStyle': entryStyle,
@@ -837,6 +851,7 @@ class DoorEntry {
       ..doorType = s('doorType')
       ..photo = FileHelper.pathToFile(j['photo'])
       ..extraPhoto = FileHelper.pathToFile(j['extraPhoto'])
+      ..extraPhotos = FileHelper.pathsToFiles(j['extraPhotos']).toList()
       ..entryDoorType = s('entryDoorType')
       ..entryMaterial = s('entryMaterial')
       ..entryStyle = s('entryStyle')
@@ -884,6 +899,7 @@ class AccessoryEntry {
   String additionalNotes = '';
   File? photo;
   File? extraPhoto;
+  List<File> extraPhotos = [];
 
   bool get hasAnyData =>
       accessoryType.isNotEmpty ||
@@ -892,7 +908,8 @@ class AccessoryEntry {
       count.isNotEmpty ||
       additionalNotes.isNotEmpty ||
       photo != null ||
-      extraPhoto != null;
+      extraPhoto != null ||
+      extraPhotos.isNotEmpty;
 
   Map<String, dynamic> toJson() => {
         'accessoryType': accessoryType,
@@ -902,6 +919,7 @@ class AccessoryEntry {
         'additionalNotes': additionalNotes,
         'photo': FileHelper.fileToPath(photo),
         'extraPhoto': FileHelper.fileToPath(extraPhoto),
+        'extraPhotos': FileHelper.filesToPaths(extraPhotos).toList(),
       };
 
   factory AccessoryEntry.fromJson(Map<String, dynamic> j) {
@@ -913,7 +931,8 @@ class AccessoryEntry {
       ..count = s('count')
       ..additionalNotes = s('additionalNotes')
       ..photo = FileHelper.pathToFile(j['photo'])
-      ..extraPhoto = FileHelper.pathToFile(j['extraPhoto']);
+      ..extraPhoto = FileHelper.pathToFile(j['extraPhoto'])
+      ..extraPhotos = FileHelper.pathsToFiles(j['extraPhotos']).toList();
   }
 }
 

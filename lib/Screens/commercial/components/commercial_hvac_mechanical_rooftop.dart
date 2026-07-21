@@ -15,7 +15,9 @@ class CommercialHvacMechanicalRooftop extends StatefulWidget {
     required String roofName,
     required String photoLabel,
     required void Function(File) onSaved,
+    File? previousFile,
   }) takePhoto;
+  final void Function(Iterable<File?> files) removePhotos;
 
    final String buildingName;
   final String roofName;
@@ -28,6 +30,7 @@ class CommercialHvacMechanicalRooftop extends StatefulWidget {
     required this.mechanicalItems,
     required this.onChanged,
     required this.takePhoto,
+    required this.removePhotos,
     required this.buildingName,
     required this.roofName,
     this.showHvac = true,
@@ -47,6 +50,8 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
   }
 
   void _removeHvac(int index) {
+    final item = widget.hvacItems[index];
+    widget.removePhotos([item.photo, item.nameplatePhoto, ...item.extraPhotos]);
     setState(() {
       widget.hvacItems.removeAt(index);
     });
@@ -58,6 +63,7 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
       buildingName: widget.buildingName,
       roofName: widget.roofName,
       photoLabel: 'HVAC ${index + 1} - Image 1',
+      previousFile: widget.hvacItems[index].photo,
       onSaved: (file) {
        setState(() => widget.hvacItems[index].photo = file);
         widget.onChanged();
@@ -85,6 +91,8 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
   }
 
   void _removeMechanical(int index) {
+    final item = widget.mechanicalItems[index];
+    widget.removePhotos([item.photo, item.nameplatePhoto, ...item.extraPhotos]);
     setState(() {
       widget.mechanicalItems.removeAt(index);
     });
@@ -96,6 +104,7 @@ class _CommercialHvacMechanicalRooftopState extends State<CommercialHvacMechanic
       buildingName: widget.buildingName,
       roofName: widget.roofName,
       photoLabel: 'Mechanical ${index + 1} - Image 1',
+      previousFile: widget.mechanicalItems[index].photo,
       onSaved: (file) {
         setState(() => widget.mechanicalItems[index].photo = file);
         widget.onChanged();

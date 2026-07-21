@@ -15,7 +15,9 @@ class CommercialFlashingsSection extends StatefulWidget {
     required String roofName,
     required String photoLabel,
     required void Function(File) onSaved,
+    File? previousFile,
   }) takePhoto;
+  final void Function(Iterable<File?> files) removePhotos;
 
   final String buildingName;
   final String roofName;
@@ -26,6 +28,7 @@ class CommercialFlashingsSection extends StatefulWidget {
     required this.flashings,
     required this.onChanged,
     required this.takePhoto,
+    required this.removePhotos,
     required this.buildingName,
     required this.roofName,
   });
@@ -45,6 +48,8 @@ class _CommercialFlashingsSectionState extends State<CommercialFlashingsSection>
   }
 
   void _removeFlashing(int index) {
+    final flashing = widget.flashings[index];
+    widget.removePhotos([flashing.photo, ...flashing.extraPhotos]);
     setState(() {
       widget.flashings.removeAt(index);
     });
@@ -56,6 +61,7 @@ class _CommercialFlashingsSectionState extends State<CommercialFlashingsSection>
       buildingName: widget.buildingName,
       roofName: widget.roofName,
       photoLabel: 'Flashing ${index + 1} - Image 1',
+      previousFile: widget.flashings[index].photo,
       onSaved: (file) {
         setState(() => widget.flashings[index].photo = file);
         widget.onChanged();

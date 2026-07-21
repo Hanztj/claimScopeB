@@ -100,6 +100,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
   }
 
   void _clearSiding() {
+  _removeElevationCategoryPhotos('Siding');
   _s.sidingMain = '';
 
   _s.vinylType = '';
@@ -306,6 +307,37 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
             .where((p) => p.label.startsWith(prefix))
             .length +
         1;
+  }
+
+  String? _storedPhotoLabel(File? file) {
+    if (file == null) return null;
+    final path = file.absolute.path;
+    for (final item in widget.report.photoReportItems) {
+      if (item.file.absolute.path == path) return item.label;
+    }
+    return null;
+  }
+
+  String _mainPhotoLabel({
+    required String category,
+    required File? previousFile,
+  }) {
+    return _storedPhotoLabel(previousFile) ??
+        buildElevationsPhotoLabel(
+          elev: widget.elevation.side.display,
+          category: category,
+          label: 'Image ${_nextElevationPhotoIndex(category)}',
+        );
+  }
+
+  void _removeElevationCategoryPhotos(String category) {
+    final side = widget.elevation.side.display;
+    widget.report.removePhotosWhere((item) {
+      final parsed = tryParseElevationsPhotoLabel(item.label);
+      return parsed != null &&
+          parsed.elev == side &&
+          parsed.category == category;
+    });
   }
 
   /// Captura una foto desde la cámara y la registra en
@@ -891,20 +923,32 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     if (picked == null) return;
 
     final file = File(picked.path);
-    final n = _nextElevationPhotoIndex('EIFS');
+    final previousFile = extra ? null : _eifs.photo;
+    final label = extra
+        ? buildElevationsPhotoLabel(
+            elev: widget.elevation.side.display,
+            category: 'EIFS',
+            label: 'Image ${_nextElevationPhotoIndex('EIFS')}',
+          )
+        : _mainPhotoLabel(
+            category: 'EIFS',
+            previousFile: previousFile,
+          );
 
-    widget.report.addPhoto(
-      file,
-      buildElevationsPhotoLabel(
-        elev: widget.elevation.side.display,
-        category: 'EIFS',
-        label: 'Image $n',
-      ),
-    );
+    if (extra) {
+      widget.report.addPhoto(file, label);
+    } else {
+      widget.report.replacePhoto(
+        file,
+        label,
+        previousFile: previousFile,
+      );
+    }
 
     setState(() {
       if (extra) {
         _eifs.extraPhoto = file;
+        _eifs.extraPhotos.add(file);
       } else {
         _eifs.photo = file;
       }
@@ -927,6 +971,11 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
   }
 
   void _clearEifsData({required bool keepPresent}) {
+    widget.report.removePhotosByFiles([
+      _eifs.photo,
+      _eifs.extraPhoto,
+      ..._eifs.extraPhotos,
+    ]);
     _eifs.present = keepPresent ? _eifs.present : false;
     _eifs.wholeReplacement = false;
     _eifs.partialRepair = false;
@@ -938,6 +987,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     _eifs.additionalNotes = '';
     _eifs.photo = null;
     _eifs.extraPhoto = null;
+    _eifs.extraPhotos.clear();
     _eifsPartialRepairSf.clear();
     _eifsNotes.clear();
   }
@@ -1578,8 +1628,10 @@ if (_showsSidingHeight()) ...[
   }
 
   void _removeTrim(int i) {
+    final t = _trims[i];
+    widget.report.removePhotosByFiles([t.photo, t.extraPhoto, ...t.extraPhotos]);
     setState(() {
-      final t = _trims.removeAt(i);
+      _trims.removeAt(i);
       _trimCtl.remove(t)?.dispose();
       _mark();
     });
@@ -1679,37 +1731,46 @@ if (_showsSidingHeight()) ...[
     if (picked == null) return;
 
     final file = File(picked.path);
-    final n = _nextElevationPhotoIndex('Trim');
+    final previousFile = extra ? null : t.photo;
+    final label = extra
+        ? buildElevationsPhotoLabel(
+            elev: widget.elevation.side.display,
+            category: 'Trim',
+            label: 'Image ${_nextElevationPhotoIndex('Trim')}',
+          )
+        : _mainPhotoLabel(
+            category: 'Trim',
+            previousFile: previousFile,
+          );
 
-    // Paso 4.5b: además del thumbnail local, registrar la foto
-    // en el Photo PDF / ZIP con label estructurado de Elevations.
-    widget.report.addPhoto(
-      file,
-      buildElevationsPhotoLabel(
-        elev: widget.elevation.side.display,
-        category: 'Trim',
-        label: 'Image $n',
-      ),
-    );
+    if (extra) {
+      widget.report.addPhoto(file, label);
+    } else {
+      widget.report.replacePhoto(
+        file,
+        label,
+        previousFile: previousFile,
+      );
+    }
 
     setState(() {
       if (extra) {
         t.extraPhoto = file;
+        t.extraPhotos.add(file);
       } else {
         t.photo = file;
       }
       _mark();
     });
 
-    
-if (extra && mounted) {
+    if (extra && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Photo stored'),
           duration: Duration(seconds: 2),
         ),
-);
-}
+      );
+    }
   }
 
   List<Widget> _buildTrimReplaceFields(TrimEntry t, _TrimControllers c) {
@@ -1852,8 +1913,10 @@ if (extra && mounted) {
   }
 
   void _removeWindow(int i) {
+    final w = _windows[i];
+    widget.report.removePhotosByFiles([w.photo, w.extraPhoto, ...w.extraPhotos]);
     setState(() {
-      final w = _windows.removeAt(i);
+      _windows.removeAt(i);
       _windowCtl.remove(w)?.dispose();
       _mark();
     });
@@ -2166,20 +2229,32 @@ if (extra && mounted) {
     if (picked == null) return;
 
     final file = File(picked.path);
-    final n = _nextElevationPhotoIndex('Window');
+    final previousFile = extra ? null : w.photo;
+    final label = extra
+        ? buildElevationsPhotoLabel(
+            elev: widget.elevation.side.display,
+            category: 'Window',
+            label: 'Image ${_nextElevationPhotoIndex('Window')}',
+          )
+        : _mainPhotoLabel(
+            category: 'Window',
+            previousFile: previousFile,
+          );
 
-    widget.report.addPhoto(
-      file,
-      buildElevationsPhotoLabel(
-        elev: widget.elevation.side.display,
-        category: 'Window',
-        label: 'Image $n',
-      ),
-    );
+    if (extra) {
+      widget.report.addPhoto(file, label);
+    } else {
+      widget.report.replacePhoto(
+        file,
+        label,
+        previousFile: previousFile,
+      );
+    }
 
     setState(() {
       if (extra) {
         w.extraPhoto = file;
+        w.extraPhotos.add(file);
       } else {
         w.photo = file;
       }
@@ -2231,7 +2306,9 @@ if (extra && mounted) {
   }
 
   void _removeDoor(int i) {
-    final d = _doors.removeAt(i);
+    final d = _doors[i];
+    widget.report.removePhotosByFiles([d.photo, d.extraPhoto, ...d.extraPhotos]);
+    _doors.removeAt(i);
     _doorCtl.remove(d)?.dispose();
     setState(_mark);
   }
@@ -2884,20 +2961,32 @@ if (extra && mounted) {
     if (picked == null) return;
 
     final file = File(picked.path);
-    final n = _nextElevationPhotoIndex('Door');
+    final previousFile = extra ? null : d.photo;
+    final label = extra
+        ? buildElevationsPhotoLabel(
+            elev: widget.elevation.side.display,
+            category: 'Door',
+            label: 'Image ${_nextElevationPhotoIndex('Door')}',
+          )
+        : _mainPhotoLabel(
+            category: 'Door',
+            previousFile: previousFile,
+          );
 
-    widget.report.addPhoto(
-      file,
-      buildElevationsPhotoLabel(
-        elev: widget.elevation.side.display,
-        category: 'Door',
-        label: 'Image $n',
-      ),
-    );
+    if (extra) {
+      widget.report.addPhoto(file, label);
+    } else {
+      widget.report.replacePhoto(
+        file,
+        label,
+        previousFile: previousFile,
+      );
+    }
 
     setState(() {
       if (extra) {
         d.extraPhoto = file;
+        d.extraPhotos.add(file);
       } else {
         d.photo = file;
       }
@@ -2948,8 +3037,10 @@ if (extra && mounted) {
   }
 
   void _removeAccessory(int i) {
+    final a = _accessories[i];
+    widget.report.removePhotosByFiles([a.photo, a.extraPhoto, ...a.extraPhotos]);
     setState(() {
-      final a = _accessories.removeAt(i);
+      _accessories.removeAt(i);
       _accessoryCtl.remove(a)?.dispose();
       _mark();
     });
@@ -3075,20 +3166,32 @@ if (extra && mounted) {
     if (picked == null) return;
 
     final file = File(picked.path);
-    final n = _nextElevationPhotoIndex('Accessory');
+    final previousFile = extra ? null : a.photo;
+    final label = extra
+        ? buildElevationsPhotoLabel(
+            elev: widget.elevation.side.display,
+            category: 'Accessory',
+            label: 'Image ${_nextElevationPhotoIndex('Accessory')}',
+          )
+        : _mainPhotoLabel(
+            category: 'Accessory',
+            previousFile: previousFile,
+          );
 
-    widget.report.addPhoto(
-      file,
-      buildElevationsPhotoLabel(
-        elev: widget.elevation.side.display,
-        category: 'Accessory',
-        label: 'Image $n',
-      ),
-    );
+    if (extra) {
+      widget.report.addPhoto(file, label);
+    } else {
+      widget.report.replacePhoto(
+        file,
+        label,
+        previousFile: previousFile,
+      );
+    }
 
     setState(() {
       if (extra) {
         a.extraPhoto = file;
+        a.extraPhotos.add(file);
       } else {
         a.photo = file;
       }
@@ -3104,6 +3207,7 @@ if (extra && mounted) {
       );
     }
   }
+
 
   // =====================================================================
   // HELPERS UI

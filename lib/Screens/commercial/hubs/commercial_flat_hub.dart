@@ -25,7 +25,9 @@ class CommercialFlatHubForm extends StatelessWidget {
     required String roofName,
     required String photoLabel,
     required void Function(File file) onSaved,
+    File? previousFile,
   }) takeCommercialPhoto;
+  final void Function(Iterable<File?> files) removePhotos;
 
   const CommercialFlatHubForm({
     super.key,
@@ -39,6 +41,7 @@ class CommercialFlatHubForm extends StatelessWidget {
     required this.setState,
     required this.sync,
     required this.takeCommercialPhoto,
+    required this.removePhotos,
   });
 
       bool get _supportsFlatAccessories =>
@@ -114,6 +117,7 @@ class CommercialFlatHubForm extends StatelessWidget {
               buildingName: buildingName,
               roofName: roofName,
               photoLabel: 'Core Sample - Image 1',
+              previousFile: roof.coreSamplePhoto,
               onSaved: (f) => roof.coreSamplePhoto = f,
             ),
             child: const Text('Take core sample photo'),
@@ -422,6 +426,7 @@ class CommercialFlatHubForm extends StatelessWidget {
             flashings: roof.tpoFlashings,
             onChanged: sync,
             takePhoto: takeCommercialPhoto,
+            removePhotos: removePhotos,
             buildingName: buildingName,
             roofName: roofName,
           ),
@@ -431,6 +436,7 @@ class CommercialFlatHubForm extends StatelessWidget {
             vents: roof.tpoVents,
             onChanged: sync,
             takePhoto: takeCommercialPhoto,
+            removePhotos: removePhotos,
             buildingName: buildingName,
             roofName: roofName,
           ),
@@ -441,6 +447,7 @@ class CommercialFlatHubForm extends StatelessWidget {
             mechanicalItems: roof.mechanicalUnits,
             onChanged: sync,
             takePhoto: takeCommercialPhoto,
+            removePhotos: removePhotos,
             buildingName: buildingName,
             roofName: roofName,
           ),

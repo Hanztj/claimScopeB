@@ -98,7 +98,10 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
     int? flashingIndex,
     int? otherElementIndex,
   }) takePhoto;
-  final Future<void> Function(String label) takeExtraPhotoForLabel;
+  final Future<void> Function(
+    String label, {
+    List<File>? owner,
+  }) takeExtraPhotoForLabel;
 
   final Widget Function(
     String label,
@@ -200,7 +203,13 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
   void _clearMappedPhoto(Map<String, dynamic> data) {
     final photo = data['photo'];
     clearPhotoArtifacts(file: photo is File ? photo : null);
+    final extraPhotos =
+        (data['extraPhotos'] as List<File>?) ?? const <File>[];
+    for (final extraPhoto in extraPhotos) {
+      clearPhotoArtifacts(file: extraPhoto);
+    }
     data['photo'] = null;
+    data['extraPhotos'] = <File>[];
   }
     
   @override
@@ -538,6 +547,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
                         otherController: data['otherController']
                             as TextEditingController?,
                       )} extra photo',
+                      owner: data['extraPhotos'] as List<File>,
                     ),
                     child: const Text('Add extra Flashing photo'),
                   ),
@@ -668,6 +678,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
                         otherController: ventData['otherSpecifyController']
                             as TextEditingController?,
                       )} extra photo',
+                      owner: ventData['extraPhotos'] as List<File>,
                     ),
                     child: const Text('Add extra Vent photo'),
                   ),
@@ -796,6 +807,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
                   TextButton(
                     onPressed: () => takeExtraPhotoForLabel(
                       'Other element ${idx + 1} (${data['type'] ?? 'Unknown'}) extra photo',
+                      owner: data['extraPhotos'] as List<File>,
                     ),
                     child: const Text('Add extra element photo'),
                   ),
