@@ -171,7 +171,7 @@ class _PdfPhotoItemBytes {
 }
 
 class PdfService {
-  static const String photoCacheVersionFolder = 'photo_cache_v1';
+  static const String photoCacheVersionFolder = 'photo_cache_v2';
 
   /// Builds a stable cache namespace for one inspection report.
   ///
@@ -329,6 +329,141 @@ class PdfService {
     await File(path).writeAsString(hash.trim(), flush: true);
   }
 
+  static Map<String, String> _commercialPhotoPdfLabelOverrides(
+    InspectionReport report,
+  ) {
+    final overrides = <String, String>{};
+
+    void addIndexedPhotoGroup({
+      required String buildingName,
+      required String roofName,
+      required String elementName,
+      required int elementIndex,
+      required File? mainPhoto,
+      required List<File> extraPhotos,
+    }) {
+      final baseLabel = '$elementName ${elementIndex + 1}';
+
+      if (mainPhoto != null) {
+        overrides[mainPhoto.absolute.path] = buildCommercialPhotoLabel(
+          building: buildingName,
+          roof: roofName,
+          label: '$baseLabel - Image 1',
+        );
+      }
+
+      for (var photoIndex = 0;
+          photoIndex < extraPhotos.length;
+          photoIndex++) {
+        final photo = extraPhotos[photoIndex];
+        overrides[photo.absolute.path] = buildCommercialPhotoLabel(
+          building: buildingName,
+          roof: roofName,
+          label: '$baseLabel - Image ${photoIndex + 2}',
+        );
+      }
+    }
+
+    for (var buildingIndex = 0;
+        buildingIndex < report.commercialBuildings.length;
+        buildingIndex++) {
+      final building = report.commercialBuildings[buildingIndex];
+      final buildingName = building.displayName(buildingIndex);
+
+      for (var roofIndex = 0;
+          roofIndex < building.roofs.length;
+          roofIndex++) {
+        final roof = building.roofs[roofIndex];
+        final roofName = (roof.roofLabel ?? '').trim().isEmpty
+            ? 'Roof ${roofIndex + 1}'
+            : roof.roofLabel!.trim();
+
+        for (var i = 0; i < roof.shingleFlashings.length; i++) {
+          final flashing = roof.shingleFlashings[i];
+          addIndexedPhotoGroup(
+            buildingName: buildingName,
+            roofName: roofName,
+            elementName: 'Flashing',
+            elementIndex: i,
+            mainPhoto: flashing.photo,
+            extraPhotos: flashing.extraPhotos,
+          );
+        }
+
+        for (var i = 0; i < roof.tpoFlashings.length; i++) {
+          final flashing = roof.tpoFlashings[i];
+          addIndexedPhotoGroup(
+            buildingName: buildingName,
+            roofName: roofName,
+            elementName: 'Flashing',
+            elementIndex: i,
+            mainPhoto: flashing.photo,
+            extraPhotos: flashing.extraPhotos,
+          );
+        }
+
+        for (var i = 0; i < roof.shingleVents.length; i++) {
+          final vent = roof.shingleVents[i];
+          addIndexedPhotoGroup(
+            buildingName: buildingName,
+            roofName: roofName,
+            elementName: 'Vent',
+            elementIndex: i,
+            mainPhoto: vent.photo,
+            extraPhotos: vent.extraPhotos,
+          );
+        }
+
+        for (var i = 0; i < roof.tpoVents.length; i++) {
+          final vent = roof.tpoVents[i];
+          addIndexedPhotoGroup(
+            buildingName: buildingName,
+            roofName: roofName,
+            elementName: 'Vent',
+            elementIndex: i,
+            mainPhoto: vent.photo,
+            extraPhotos: vent.extraPhotos,
+          );
+        }
+
+        for (var i = 0; i < roof.hvacUnits.length; i++) {
+          final unit = roof.hvacUnits[i];
+          addIndexedPhotoGroup(
+            buildingName: buildingName,
+            roofName: roofName,
+            elementName: 'HVAC',
+            elementIndex: i,
+            mainPhoto: unit.photo,
+            extraPhotos: unit.extraPhotos,
+          );
+        }
+
+        for (var i = 0; i < roof.mechanicalUnits.length; i++) {
+          final unit = roof.mechanicalUnits[i];
+          addIndexedPhotoGroup(
+            buildingName: buildingName,
+            roofName: roofName,
+            elementName: 'Mechanical',
+            elementIndex: i,
+            mainPhoto: unit.photo,
+            extraPhotos: unit.extraPhotos,
+          );
+        }
+      }
+    }
+
+    return overrides;
+  }
+
+  static PhotoItem _commercialPhotoItemForPdf(
+    PhotoItem item,
+    Map<String, String> labelOverrides,
+  ) {
+    final label = labelOverrides[item.file.absolute.path];
+    if (label == null || label == item.label) return item;
+    return PhotoItem(file: item.file, label: label);
+  }
+
   static List<PhotoItem> _commercialSectionPhotoItems({
     required InspectionReport report,
     required int buildingIndex,
@@ -370,13 +505,14 @@ class PdfService {
       }
     }
 
+    final labelOverrides = _commercialPhotoPdfLabelOverrides(report);
     final sectionItems = <PhotoItem>[];
     for (final item in report.photoReportItems) {
       final parsed = tryParseCommercialPhotoLabel(item.label);
       if (parsed == null) continue;
 
       if (acceptedGroups.contains(groupKey(parsed.building, parsed.roof))) {
-        sectionItems.add(item);
+        sectionItems.add(_commercialPhotoItemForPdf(item, labelOverrides));
       }
     }
 
@@ -788,17 +924,31 @@ class PdfService {
     await techFile.writeAsBytes(await pdfTech.save());
     pdfTech = null;
                           // --- PDF DE FOTOS COMERCIAL ---
-    // Usar la lista unificada report.photoReportItems (misma fuente que el ZIP
-    // etiquetado). Los labels ya vienen construidos por commercial_roof_section_screen
-    // con displayName(index) ("Main Building"/"Building N") y roofLabel ??
-    // "Roof {n+1}", así el PDF respeta indices y nombres editables por el usuario.
+    // Usar la lista unificada report.photoReportItems. Para Flashing, Vent,
+    // HVAC y Mechanical, el PDF aplica captions temporales basados en el orden
+    // actual del modelo; los labels almacenados que utiliza el ZIP no cambian.
     // _buildPhotoFrame decodifica el label estructurado (Bldg=|Roof=|Label=)
     // para mostrar un caption legible.
+    final commercialPhotoLabelOverrides =
+        _commercialPhotoPdfLabelOverrides(report);
     for (var i = 0; i < report.photoReportItems.length; i += 2) {
       // Palanca 3: preset agresivo (800px/q65) en commercial.
-      final firstPhoto = await _loadPdfPhotoItemBytes(report.photoReportItems[i], isCommercial: true);
+      final firstItem = _commercialPhotoItemForPdf(
+        report.photoReportItems[i],
+        commercialPhotoLabelOverrides,
+      );
+      final firstPhoto = await _loadPdfPhotoItemBytes(
+        firstItem,
+        isCommercial: true,
+      );
       final secondPhoto = i + 1 < report.photoReportItems.length
-          ? await _loadPdfPhotoItemBytes(report.photoReportItems[i + 1], isCommercial: true)
+          ? await _loadPdfPhotoItemBytes(
+              _commercialPhotoItemForPdf(
+                report.photoReportItems[i + 1],
+                commercialPhotoLabelOverrides,
+              ),
+              isCommercial: true,
+            )
           : null;
 
       pdfPhotos.addPage(

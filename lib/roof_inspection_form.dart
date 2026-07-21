@@ -6,6 +6,7 @@ import 'package:claimscope_clean/catalogs/roof_components_catalog.dart';
 import 'package:claimscope_clean/inspection_report_model.dart';
 import 'package:claimscope_clean/screens/my_reports_screen.dart';
 import 'package:claimscope_clean/screens/residential/hubs/residential_facet_inspection_hub.dart';
+import 'package:claimscope_clean/utils/blocking_progress_dialog.dart';
 import 'package:claimscope_clean/screens/elevations/elevations_inspection_screen.dart';
 import 'package:claimscope_clean/screens/residential/hubs/residential_metal_hub.dart';
 import 'package:claimscope_clean/screens/residential/hubs/residential_roll_roofing_hub.dart';
@@ -43,6 +44,7 @@ import 'package:image_picker/image_picker.dart';
 
  class _RoofInspectionFormState extends State<RoofInspectionForm> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  bool _isSubmitting = false;
   final picker = ImagePicker();
                     
  // Añadir dentro de class _RoofInspectionFormState extends State<RoofInspectionForm> {
@@ -1006,6 +1008,7 @@ String? noAction;
 
   // --- SUBMIT FORM CORREGIDO ---
   void submitForm() async {
+    if (_isSubmitting) return;
           // 1. Flashings
           final flashingMissing = _currentFacetFlashingsData.any((f) => 
           (f['shouldBeChanged'] == true) && (f['photo'] == null));
@@ -1071,20 +1074,18 @@ if (!isValid) {
 }
 
 _saveCurrentResidentialProgress();
-      // Mostrar Cargando
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
-      try {
-        // Generar PDFs usando el servicio externo
-        final pdfs = await PdfService.generateReports(widget.report);
-        
-        if (!mounted) return;
-        Navigator.pop(context); // Quitar Cargando
+      final messenger = ScaffoldMessenger.of(context);
+      setState(() => _isSubmitting = true);
 
-        // Mostrar opciones de envío
+      try {
+        final pdfs = await runWithBlockingProgress<Map<String, File>>(
+          context: context,
+          message: 'Generating inspection reports...',
+          task: () => PdfService.generateReports(widget.report),
+        );
+
+        if (!mounted) return;
+
         await InspectionSubmissionService.showOptions(
           context: context,
           report: widget.report,
@@ -1095,10 +1096,15 @@ _saveCurrentResidentialProgress();
         );
       } catch (e) {
         if (!mounted) return;
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text('Error generating PDFs: $e')),
         );
+      } finally {
+        if (mounted) {
+          setState(() => _isSubmitting = false);
+        } else {
+          _isSubmitting = false;
+        }
       }
     
   }
@@ -2266,6 +2272,7 @@ rollExposure: rollExposure,
                   submitForm: isRollRoofing
                       ? _attemptSubmitSingleRoofSection
                       : submitForm,
+                  isSubmitting: _isSubmitting,
                   onInspectElevations: _attemptInspectElevations,
                   isSingleRoofSection: isRollRoofing,
                   takePhoto: _takePhoto,

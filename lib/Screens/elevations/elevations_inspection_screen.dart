@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:claimscope_clean/services/pdf_service.dart';
 import 'package:claimscope_clean/inspection_report_model.dart';
 import 'package:claimscope_clean/screens/elevations/building_elevations_section.dart';
@@ -5,6 +7,7 @@ import 'package:claimscope_clean/screens/elevations/global_elevations_hub.dart';
 import 'package:claimscope_clean/screens/elevations/models/elevations_data.dart';
 import 'package:claimscope_clean/screens/elevations/state/elevations_autosaver.dart';
 import 'package:claimscope_clean/screens/elevations/widgets/elevation_tab_strip.dart';
+import 'package:claimscope_clean/utils/blocking_progress_dialog.dart';
 import 'package:claimscope_clean/services/inspection_submission_service.dart';
 import 'package:claimscope_clean/utils/required_photo_validation.dart';
 import 'package:flutter/material.dart';
@@ -35,6 +38,7 @@ class _ElevationsInspectionScreenState extends State<ElevationsInspectionScreen>
   late final ElevationsAutoSaver _saver;
   int _activeIdx = 0;
   bool _showElevationStrip = false;
+  bool _isSubmitting = false;
 
   String get _reportId =>
       '${widget.report.claimNumber}_${widget.report.dateInspected}';
@@ -133,8 +137,7 @@ class _ElevationsInspectionScreenState extends State<ElevationsInspectionScreen>
   }
 
   Future<void> _submitInspection() async {
-    final navigator = Navigator.of(context);
-    bool loadingShown = false;
+    if (_isSubmitting) return;
 
     final missingPhotoMessage = _firstMissingElementPhotoMessage();
     if (missingPhotoMessage != null) {
@@ -147,27 +150,22 @@ class _ElevationsInspectionScreenState extends State<ElevationsInspectionScreen>
       return;
     }
 
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _isSubmitting = true);
+
     try {
-      await _saver.flush();
-      if (!mounted) return;
-
-      widget.report.isCommercial = widget.isCommercial;
-
-      showDialog(
+      final pdfs = await runWithBlockingProgress<Map<String, File>>(
         context: context,
-        barrierDismissible: false,
-        builder: (_) => const Center(child: CircularProgressIndicator()),
+        message: 'Generating inspection reports...',
+        task: () async {
+          await _saver.flush();
+          widget.report.isCommercial = widget.isCommercial;
+          await PdfService.buildPartialPhotoPdfsForElevations(widget.report);
+          return PdfService.generateReports(widget.report);
+        },
       );
-      loadingShown = true;
 
-      await PdfService.buildPartialPhotoPdfsForElevations(widget.report);
-      final pdfs = await PdfService.generateReports(widget.report);
       if (!mounted) return;
-
-      if (loadingShown && navigator.canPop()) {
-        navigator.pop();
-        loadingShown = false;
-      }
 
       await InspectionSubmissionService.showOptions(
         context: context,
@@ -179,16 +177,18 @@ class _ElevationsInspectionScreenState extends State<ElevationsInspectionScreen>
       );
     } catch (e) {
       if (!mounted) return;
-      if (loadingShown && navigator.canPop()) {
-        navigator.pop();
-        loadingShown = false;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text('Error generating PDFs: $e'),
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      } else {
+        _isSubmitting = false;
+      }
     }
   }
 
@@ -318,8 +318,21 @@ class _ElevationsInspectionScreenState extends State<ElevationsInspectionScreen>
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _submitInspection,
-                  child: const Text('Submit Inspection'),
+                  onPressed: _isSubmitting ? null : _submitInspection,
+                  child: _isSubmitting
+                      ? const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            SizedBox(width: 10),
+                            Text('Generating reports...'),
+                          ],
+                        )
+                      : const Text('Submit Inspection'),
                 ),
               ),
             ),

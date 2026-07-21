@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:claimscope_clean/inspection_report_model.dart';
 import 'package:claimscope_clean/utils/photo_labels.dart';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 
@@ -165,17 +166,37 @@ String sanitizeFilename(String input) {
   return s.isEmpty ? 'UNKNOWN' : s;
 }
 
+
+String _generateLabeledPhotosZipInBackground(Map<String, dynamic> payload) {
+  final rawItems = (payload['items'] as List<dynamic>?) ?? const <dynamic>[];
+  final items = rawItems.map((raw) {
+    final item = Map<String, dynamic>.from(raw as Map);
+    return PhotoItem(
+      file: File(item['path'] as String),
+      label: item['label'] as String,
+    );
+  }).toList(growable: false);
+
+  final outputPath = payload['outputPath'] as String;
+  final archive = buildLabeledPhotosArchive(items);
+  final zipBytes = encodeZipBytes(archive);
+  File(outputPath).writeAsBytesSync(zipBytes, flush: true);
+  return outputPath;
+}
+
 Future<File> generateLabeledPhotosZip(
   InspectionReport report,
 ) async {
-  // Excluir imágenes de galería
-  final items = report.photoReportItems.where((p) {
-    return p.label.trim() != 'User Image';
-  }).toList();
-
-  final archive = buildLabeledPhotosArchive(items);
-
-  final zipBytes = encodeZipBytes(archive);
+  // Excluir imágenes de galería.
+  final items = report.photoReportItems
+      .where((item) => item.label.trim() != 'User Image')
+      .map(
+        (item) => <String, String>{
+          'path': item.file.path,
+          'label': item.label,
+        },
+      )
+      .toList(growable: false);
 
   final claim = report.claimNumber.trim().isEmpty
       ? 'NOCLAIM'
@@ -186,15 +207,16 @@ Future<File> generateLabeledPhotosZip(
       : sanitizeFilename(report.clientName);
 
   final dir = await getApplicationDocumentsDirectory();
+  final filename = '$claim - $insured - Inspection Photos (ZIP).zip';
+  final outputPath = '${dir.path}/${sanitizeZipPathPart(filename)}';
 
-  final filename =
-      '$claim - $insured - Inspection Photos (ZIP).zip';
-
-  final zipFile = await writeZipToFile(
-    zipBytes: zipBytes,
-    outputDir: dir,
-    filename: filename,
+  final generatedPath = await compute(
+    _generateLabeledPhotosZipInBackground,
+    <String, dynamic>{
+      'items': items,
+      'outputPath': outputPath,
+    },
   );
 
-  return zipFile;
+  return File(generatedPath);
 }

@@ -83,6 +83,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
   final VoidCallback addNextFacet;
   final VoidCallback onDeleteCurrentFacet;
   final VoidCallback submitForm;
+  final bool isSubmitting;
   final VoidCallback onInspectElevations;
   final bool isSingleRoofSection;
 
@@ -178,6 +179,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
     required this.addNextFacet,
     required this.onDeleteCurrentFacet,
     required this.submitForm,
+    required this.isSubmitting,
     required this.onInspectElevations,
     this.isSingleRoofSection = false,
     required this.clearPhotoArtifacts,
@@ -976,11 +978,27 @@ if (isSingleRoofSection || isLastFacet)
 
       // Segundo botón: Submit Inspection
       ElevatedButton(
-        onPressed: submitForm,
-        child: const Text(
-          'Submit Inspection',
-          style: TextStyle(fontSize: 18),
-        ),
+        onPressed: isSubmitting ? null : submitForm,
+        child: isSubmitting
+            ? const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  SizedBox(width: 10),
+                  Text(
+                    'Generating reports...',
+                    style: TextStyle(fontSize: 18),
+                  ),
+                ],
+              )
+            : const Text(
+                'Submit Inspection',
+                style: TextStyle(fontSize: 18),
+              ),
       ),
     ],
   ),

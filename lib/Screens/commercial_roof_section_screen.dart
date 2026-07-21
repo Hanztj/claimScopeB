@@ -11,6 +11,7 @@ import 'package:claimscope_clean/screens/commercial/hubs/commercial_slate_hub.da
 import 'package:claimscope_clean/screens/commercial/hubs/commercial_tile_hub.dart';
 import 'package:claimscope_clean/screens/commercial_building_details_screen.dart';
 import 'package:claimscope_clean/screens/elevations/elevations_inspection_screen.dart';
+import 'package:claimscope_clean/utils/blocking_progress_dialog.dart';
 import 'package:claimscope_clean/services/inspection_submission_service.dart';
 import 'package:claimscope_clean/services/pdf_service.dart';
 import 'package:claimscope_clean/utils/gallery_photo_helper.dart';
@@ -40,6 +41,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
  class _CommercialRoofSectionScreenState extends State<CommercialRoofSectionScreen> {
   late final CommercialRoofSectionData roof;
   bool _submitRoofOnly = false;
+  bool _isSubmitting = false;
 
   final _picker = ImagePicker();
 
@@ -684,7 +686,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                 }
 
                 return ElevatedButton(
-                  onPressed: () async {
+                  onPressed: _isSubmitting ? null : () async {
                     final messenger = ScaffoldMessenger.of(context);
                     final navigator = Navigator.of(context);
                     _sync();
@@ -1069,6 +1071,12 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                         }
                       }
 
+                    final willSubmitDirectly = isFinalStep &&
+                        (!widget.report.inspectElevations || _submitRoofOnly);
+                    if (willSubmitDirectly) {
+                      setState(() => _isSubmitting = true);
+                    }
+
                     try {
                       await PdfService.buildPartialPhotoPdfForCommercialSection(
                         report: widget.report,
@@ -1078,6 +1086,13 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                         roofName: roofName,
                       );
                     } catch (e) {
+                      if (willSubmitDirectly) {
+                        if (mounted) {
+                          setState(() => _isSubmitting = false);
+                        } else {
+                          _isSubmitting = false;
+                        }
+                      }
                       if (!mounted) return;
                       messenger.showSnackBar(
                         SnackBar(
@@ -1178,7 +1193,9 @@ if (isFinalStep) {
     return;   
   }
 
-  await _submitCommercialReport();
+  await _submitCommercialReport(
+    submissionLockHeld: willSubmitDirectly,
+  );
   return;
 }
 
@@ -1218,7 +1235,28 @@ if (isFinalStep) {
                       );
                     }
                   },
-                  child: Text(isFinalStep ? (widget.report.inspectElevations ? (_submitRoofOnly ? 'Submit Inspection' : 'Save & Continue') : 'Submit Inspection') : 'Save & Continue'),
+                  child: _isSubmitting
+                      ? const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            SizedBox(width: 10),
+                            Text('Generating reports...'),
+                          ],
+                        )
+                      : Text(
+                          isFinalStep
+                              ? (widget.report.inspectElevations
+                                  ? (_submitRoofOnly
+                                      ? 'Submit Inspection'
+                                      : 'Save & Continue')
+                                  : 'Submit Inspection')
+                              : 'Save & Continue',
+                        ),
                 );
               },
             ),
@@ -1228,8 +1266,15 @@ if (isFinalStep) {
     );
   }
   // === FUNCIÓN PARA ENVIAR REPORTE COMERCIAL ===
- Future<void> _submitCommercialReport() async {
+ Future<void> _submitCommercialReport({
+  bool submissionLockHeld = false,
+}) async {
+  if (_isSubmitting && !submissionLockHeld) return;
+
   if (roof.roofType == null) {
+    if (submissionLockHeld) {
+      setState(() => _isSubmitting = false);
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Select the type of roof covering.'),
@@ -1239,24 +1284,20 @@ if (isFinalStep) {
     return;
   }
 
-  final navigator = Navigator.of(context);
-  bool loadingShown = false;
+  final messenger = ScaffoldMessenger.of(context);
+  if (!submissionLockHeld) {
+    setState(() => _isSubmitting = true);
+  }
 
   try {
     widget.report.isCommercial = true;
     roof.reportType = 'commercial';
 
-    showDialog(
+    final pdfs = await runWithBlockingProgress<Map<String, File>>(
       context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      message: 'Generating inspection reports...',
+      task: () => PdfService.generateReports(widget.report),
     );
-
-    loadingShown = true;
-
-    final pdfs = await PdfService.generateReports(widget.report);
 
     if (!mounted) return;
 
@@ -1264,11 +1305,6 @@ if (isFinalStep) {
       throw Exception(
         'PDF generation did not return the expected reports.',
       );
-    }
-
-    if (loadingShown && navigator.canPop()) {
-      navigator.pop();
-      loadingShown = false;
     }
 
     await InspectionSubmissionService.showOptions(
@@ -1281,18 +1317,18 @@ if (isFinalStep) {
     );
   } catch (e) {
     if (!mounted) return;
-
-    if (loadingShown && navigator.canPop()) {
-      navigator.pop();
-      loadingShown = false;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       SnackBar(
         content: Text('Error generating PDFs: $e'),
         backgroundColor: Colors.red,
       ),
     );
+  } finally {
+    if (mounted) {
+      setState(() => _isSubmitting = false);
+    } else {
+      _isSubmitting = false;
+    }
   }
 }
 }
