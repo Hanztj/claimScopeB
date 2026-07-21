@@ -98,6 +98,60 @@ class CommercialRoofSectionScreen extends StatefulWidget {
   bool get _isSlate => roof.roofType == 'Slate Roof';
   bool get _isOther => roof.roofType == 'Other';
 
+  String _prepareCommercialPhotoLabel({
+    required String buildingName,
+    required String roofName,
+    required String requestedLabel,
+  }) {
+    final match = RegExp(r'^(.*) - Image 2$').firstMatch(requestedLabel.trim());
+    if (match == null) return requestedLabel;
+
+    final baseLabel = match.group(1)!.trim();
+    final extraPattern = RegExp(
+      '^${RegExp.escape(baseLabel)} - Image ([0-9]+)\$',
+    );
+    final matchingIndexes = <int>[];
+
+    for (var i = 0; i < widget.report.photoReportItems.length; i++) {
+      final parsed = tryParseCommercialPhotoLabel(
+        widget.report.photoReportItems[i].label,
+      );
+      if (parsed == null ||
+          parsed.building != buildingName ||
+          parsed.roof != roofName) {
+        continue;
+      }
+
+      final imageMatch = extraPattern.firstMatch(parsed.label);
+      final imageNumber = imageMatch == null
+          ? null
+          : int.tryParse(imageMatch.group(1)!);
+      if (imageNumber != null && imageNumber >= 2) {
+        matchingIndexes.add(i);
+      }
+    }
+
+    // Normalize any duplicate/gapped extra labels already present in this
+    // Building/Roof/element group before assigning the next number.
+    for (var i = 0; i < matchingIndexes.length; i++) {
+      final itemIndex = matchingIndexes[i];
+      final item = widget.report.photoReportItems[itemIndex];
+      final normalizedLabel = buildCommercialPhotoLabel(
+        building: buildingName,
+        roof: roofName,
+        label: '$baseLabel - Image ${i + 2}',
+      );
+      if (item.label != normalizedLabel) {
+        widget.report.photoReportItems[itemIndex] = PhotoItem(
+          file: item.file,
+          label: normalizedLabel,
+        );
+      }
+    }
+
+    return '$baseLabel - Image ${matchingIndexes.length + 2}';
+  }
+
   Future<void> _takeCommercialPhoto({
     required String buildingName,
     required String roofName,
@@ -115,10 +169,15 @@ class CommercialRoofSectionScreen extends StatefulWidget {
     if (picked == null) return;
 
     final file = File(picked.path);
+    final resolvedPhotoLabel = _prepareCommercialPhotoLabel(
+      buildingName: buildingName,
+      roofName: roofName,
+      requestedLabel: photoLabel,
+    );
     final storedLabel = buildCommercialPhotoLabel(
       building: buildingName,
       roof: roofName,
-      label: photoLabel,
+      label: resolvedPhotoLabel,
     );
 
     setState(() {

@@ -504,7 +504,7 @@ DropdownButtonFormField<bool>(
                     onPressed: () => takeCommercialPhoto(
                       buildingName: buildingName,
                       roofName: roofName,
-                      photoLabel: 'Flashing - Image 2',
+                      photoLabel: 'Flashing ${idx + 1} - Image 2',
                       onSaved: (f) => flashing.extraPhotos.add(f),
                     ),
                     child: const Text('Add extra Flashing photo'),
@@ -696,7 +696,7 @@ DropdownButtonFormField<bool>(
                       onPressed: () => takeCommercialPhoto(
                         buildingName: buildingName,
                         roofName: roofName,
-                        photoLabel: 'Vent - Image 2',
+                        photoLabel: 'Vent ${ventIndex + 1} - Image 2',
                         onSaved: (f) => vent.extraPhotos.add(f),
                       ),
                       child: const Text('Add extra Vent photo'),

@@ -117,6 +117,7 @@ import 'package:image_picker/image_picker.dart';
    bool _currentHasRidgeVent = false;
    String? _currentRidgeVentType;
    File? _currentRidgeVentPhoto;
+   List<File> _currentRidgeVentExtraPhotos = <File>[];
 
    bool gravelBallastPresent = false;
 
@@ -214,9 +215,11 @@ String? noAction;
    bool _currentAtrPerformed = false;
    String? _currentAtrResult;
    File? _currentAtrPhoto;
+   List<File> _currentAtrExtraPhotos = <File>[];
    bool _currentHasValleyMetal = false;
    String? _currentValleyMetalType;
    File? _currentValleyMetalPhoto;
+   List<File> _currentValleyMetalExtraPhotos = <File>[];
 
    final List<Map<String, dynamic>> _currentFacetVentsData = [];
    final List<TextEditingController> _currentVentCountControllers = [];
@@ -594,6 +597,9 @@ String? noAction;
        _currentRidgeVentPhoto,
        _currentAtrPhoto,
        _currentValleyMetalPhoto,
+       ..._currentRidgeVentExtraPhotos,
+       ..._currentAtrExtraPhotos,
+       ..._currentValleyMetalExtraPhotos,
      ]) {
        _clearPhotoArtifacts(file: file);
      }
@@ -1107,13 +1113,25 @@ _saveCurrentResidentialProgress();
     _currentHasRidgeVent = currentFacetData['hasRidgeVent'] ?? false;
     _currentRidgeVentType = currentFacetData['ridgeVentType'];
     _currentRidgeVentPhoto = currentFacetData['ridgeVentPhoto'];
+    _currentRidgeVentExtraPhotos = List<File>.from(
+      (currentFacetData['ridgeVentExtraPhotos'] as List?)?.whereType<File>() ??
+          const <File>[],
+    );
     _currentPitchFacetController.text = currentFacetData['pitchFacetValue'] ?? '';
     _currentAtrPerformed = currentFacetData['atrPerformed'] ?? false;
     _currentAtrResult = currentFacetData['atrResult'];
     _currentAtrPhoto = currentFacetData['atrPhoto'];
+    _currentAtrExtraPhotos = List<File>.from(
+      (currentFacetData['atrExtraPhotos'] as List?)?.whereType<File>() ??
+          const <File>[],
+    );
     _currentHasValleyMetal = currentFacetData['hasValleyMetal'] ?? false;
     _currentValleyMetalType = currentFacetData['valleyMetalType'];
     _currentValleyMetalPhoto = currentFacetData['valleyMetalPhoto'];
+    _currentValleyMetalExtraPhotos = List<File>.from(
+      (currentFacetData['valleyMetalExtraPhotos'] as List?)?.whereType<File>() ??
+          const <File>[],
+    );
     _currentFacetCommentController.text = currentFacetData['comment'] ?? '';
                             // Vents: limpiar y recargar SIEMPRE
   _currentFacetVentsData.clear();
@@ -1198,13 +1216,17 @@ _saveCurrentResidentialProgress();
     'hasRidgeVent': _currentHasRidgeVent,
     'ridgeVentType': _currentRidgeVentType,
     'ridgeVentPhoto': _currentRidgeVentPhoto,
+    'ridgeVentExtraPhotos': List<File>.from(_currentRidgeVentExtraPhotos),
     'pitchFacetValue': _currentPitchFacetController.text,
     'atrPerformed': _currentAtrPerformed,
     'atrResult': _currentAtrResult,
     'atrPhoto': _currentAtrPhoto,
+    'atrExtraPhotos': List<File>.from(_currentAtrExtraPhotos),
     'hasValleyMetal': _currentHasValleyMetal,
     'valleyMetalType': _currentValleyMetalType,
     'valleyMetalPhoto': _currentValleyMetalPhoto,
+    'valleyMetalExtraPhotos':
+        List<File>.from(_currentValleyMetalExtraPhotos),
              'vents': _currentFacetVentsData
       .map((m) {
         final copy = Map<String, dynamic>.from(m);
@@ -1309,6 +1331,9 @@ _saveCurrentResidentialProgress();
       'hasRidgeVent': false,
       'ridgeVentType': null,
       'ridgeVentPhoto': null,
+      'ridgeVentExtraPhotos': <File>[],
+      'atrExtraPhotos': <File>[],
+      'valleyMetalExtraPhotos': <File>[],
     };
   }
 
@@ -2068,10 +2093,16 @@ rollExposure: rollExposure,
                     _currentHasRidgeVent = val;
                     if (!_currentHasRidgeVent) {
                       _clearPhotoArtifacts(file: _currentRidgeVentPhoto);
+                      for (final extraPhoto in _currentRidgeVentExtraPhotos) {
+                        _clearPhotoArtifacts(file: extraPhoto);
+                      }
+                      _currentRidgeVentExtraPhotos.clear();
                       _currentRidgeVentType = null;
                       _currentRidgeVentPhoto = null;
                       _facets[_currentFacetIndex]['ridgeVentType'] = null;
                       _facets[_currentFacetIndex]['ridgeVentPhoto'] = null;
+                      _facets[_currentFacetIndex]['ridgeVentExtraPhotos'] =
+                          <File>[];
                     }
                     _facets[_currentFacetIndex]['hasRidgeVent'] = _currentHasRidgeVent;
                   },
@@ -2082,15 +2113,21 @@ rollExposure: rollExposure,
                     _facets[_currentFacetIndex]['ridgeVentType'] = val;
                   },
                   currentRidgeVentPhoto: _currentRidgeVentPhoto,
+                  currentRidgeVentExtraPhotos: _currentRidgeVentExtraPhotos,
                   currentAtrPerformed: _currentAtrPerformed,
                   onCurrentAtrPerformedChanged: (val) {
                     _currentAtrPerformed = val;
                     if (!val) {
                       _clearPhotoArtifacts(file: _currentAtrPhoto);
+                      for (final extraPhoto in _currentAtrExtraPhotos) {
+                        _clearPhotoArtifacts(file: extraPhoto);
+                      }
+                      _currentAtrExtraPhotos.clear();
                       _currentAtrResult = null;
                       _currentAtrPhoto = null;
                       _facets[_currentFacetIndex]['atrResult'] = null;
                       _facets[_currentFacetIndex]['atrPhoto'] = null;
+                      _facets[_currentFacetIndex]['atrExtraPhotos'] = <File>[];
                     }
                     _facets[_currentFacetIndex]['atrPerformed'] = _currentAtrPerformed;
                   },
@@ -2100,15 +2137,22 @@ rollExposure: rollExposure,
                     _currentAtrResult = val;
                   },
                   currentAtrPhoto: _currentAtrPhoto,
+                  currentAtrExtraPhotos: _currentAtrExtraPhotos,
                   currentHasValleyMetal: _currentHasValleyMetal,
                   onCurrentHasValleyMetalChanged: (val) {
                     _currentHasValleyMetal = val;
                     if (!val) {
                       _clearPhotoArtifacts(file: _currentValleyMetalPhoto);
+                      for (final extraPhoto in _currentValleyMetalExtraPhotos) {
+                        _clearPhotoArtifacts(file: extraPhoto);
+                      }
+                      _currentValleyMetalExtraPhotos.clear();
                       _currentValleyMetalType = null;
                       _currentValleyMetalPhoto = null;
                       _facets[_currentFacetIndex]['valleyMetalType'] = null;
                       _facets[_currentFacetIndex]['valleyMetalPhoto'] = null;
+                      _facets[_currentFacetIndex]['valleyMetalExtraPhotos'] =
+                          <File>[];
                     }
                     _facets[_currentFacetIndex]['hasValleyMetal'] = _currentHasValleyMetal;
                   },
@@ -2118,6 +2162,8 @@ rollExposure: rollExposure,
                     _currentValleyMetalType = val;
                   },
                   currentValleyMetalPhoto: _currentValleyMetalPhoto,
+                  currentValleyMetalExtraPhotos:
+                      _currentValleyMetalExtraPhotos,
                   currentFacetFlashingsData: _currentFacetFlashingsData,
                   currentFlashingOtherControllers: _currentFlashingOtherControllers,
                   onRemoveFlashing: (idx) {

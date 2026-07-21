@@ -30,6 +30,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
   final String? currentRidgeVentType;
   final void Function(String? value) onCurrentRidgeVentTypeChanged;
   final File? currentRidgeVentPhoto;
+  final List<File> currentRidgeVentExtraPhotos;
 
   final bool currentAtrPerformed;
   final void Function(bool value) onCurrentAtrPerformedChanged;
@@ -37,6 +38,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
   final String? currentAtrResult;
   final void Function(String? value) onCurrentAtrResultChanged;
   final File? currentAtrPhoto;
+  final List<File> currentAtrExtraPhotos;
 
   final bool currentHasValleyMetal;
   final void Function(bool value) onCurrentHasValleyMetalChanged;
@@ -44,6 +46,7 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
   final String? currentValleyMetalType;
   final void Function(String? value) onCurrentValleyMetalTypeChanged;
   final File? currentValleyMetalPhoto;
+  final List<File> currentValleyMetalExtraPhotos;
 
   final List<Map<String, dynamic>> currentFacetFlashingsData;
   final List<TextEditingController> currentFlashingOtherControllers;
@@ -132,18 +135,21 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
     required this.currentRidgeVentType,
     required this.onCurrentRidgeVentTypeChanged,
     required this.currentRidgeVentPhoto,
+    required this.currentRidgeVentExtraPhotos,
     required this.currentAtrPerformed,
     required this.onCurrentAtrPerformedChanged,
     required this.atrResults,
     required this.currentAtrResult,
     required this.onCurrentAtrResultChanged,
     required this.currentAtrPhoto,
+    required this.currentAtrExtraPhotos,
     required this.currentHasValleyMetal,
     required this.onCurrentHasValleyMetalChanged,
     required this.valleyMetalTypes,
     required this.currentValleyMetalType,
     required this.onCurrentValleyMetalTypeChanged,
     required this.currentValleyMetalPhoto,
+    required this.currentValleyMetalExtraPhotos,
     required this.currentFacetFlashingsData,
     required this.currentFlashingOtherControllers,
     required this.onRemoveFlashing,
@@ -334,7 +340,10 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
                 child: const Text("Take Ridge Vent Photo"),
               ),
               TextButton(
-                onPressed: () => takeExtraPhotoForLabel('Ridge Vent extra photo'),
+                onPressed: () => takeExtraPhotoForLabel(
+                  'Ridge Vent extra photo',
+                  owner: currentRidgeVentExtraPhotos,
+                ),
                 child: const Text('Add extra Ridge Vent photo'),
               ),
               if (currentRidgeVentPhoto != null)
@@ -373,7 +382,10 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
                 child: const Text("Take ATR Photo"),
               ),
               TextButton(
-                onPressed: () => takeExtraPhotoForLabel('ATR extra photo'),
+                onPressed: () => takeExtraPhotoForLabel(
+                  'ATR extra photo',
+                  owner: currentAtrExtraPhotos,
+                ),
                 child: const Text('Add extra ATR photo'),
               ),
               if (currentAtrPhoto != null)
@@ -410,8 +422,10 @@ class ResidentialFacetInspectionHub extends StatelessWidget {
                 child: const Text("Take Valley Metal Photo"),
               ),
               TextButton(
-                onPressed:
-                    () => takeExtraPhotoForLabel('Valley Metal extra photo'),
+                onPressed: () => takeExtraPhotoForLabel(
+                  'Valley Metal extra photo',
+                  owner: currentValleyMetalExtraPhotos,
+                ),
                 child: const Text('Add extra Valley Metal photo'),
               ),
               if (currentValleyMetalPhoto != null)
