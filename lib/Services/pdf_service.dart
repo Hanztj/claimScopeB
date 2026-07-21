@@ -58,6 +58,66 @@ class PdfBusyFlag {
   static bool busy = false;
 }
 
+/// Logical unit used by the incremental Photo PDF cache.
+///
+/// Patch 1 only defines stable section identifiers and cache paths. Existing
+/// PDF generation remains unchanged until the later incremental patches.
+enum PhotoSectionType {
+  commercialRoof,
+  elevation,
+  globalElevation,
+}
+
+class PhotoSection {
+  final String id;
+  final PhotoSectionType type;
+
+  const PhotoSection._({
+    required this.id,
+    required this.type,
+  });
+
+  factory PhotoSection.commercialRoof({
+    required int buildingIndex,
+    required int roofIndex,
+  }) {
+    assert(buildingIndex >= 0);
+    assert(roofIndex >= 0);
+
+    final buildingNumber = buildingIndex + 1;
+    final roofToken = roofIndex == 0 ? 'mainroof' : 'roof${roofIndex + 1}';
+
+    return PhotoSection._(
+      id: 'building${buildingNumber}_$roofToken',
+      type: PhotoSectionType.commercialRoof,
+    );
+  }
+
+  factory PhotoSection.elevation({required String sideKey}) {
+    final normalizedSide = _normalizePhotoCacheToken(sideKey);
+    final sideToken = normalizedSide.isEmpty ? 'other' : normalizedSide;
+
+    return PhotoSection._(
+      id: '${sideToken}_elevation',
+      type: PhotoSectionType.elevation,
+    );
+  }
+
+  factory PhotoSection.globalElevation() {
+    return const PhotoSection._(
+      id: 'global_elevation',
+      type: PhotoSectionType.globalElevation,
+    );
+  }
+}
+
+String _normalizePhotoCacheToken(String value) {
+  var normalized = value.trim().toLowerCase();
+  normalized = normalized.replaceAll(RegExp(r'[^a-z0-9]+'), '_');
+  normalized = normalized.replaceAll(RegExp(r'_+'), '_');
+  return normalized.replaceAll(RegExp(r'^_|_$'), '');
+}
+
 /// Palanca 3: preset agresivo para commercial (multi-building/section aumenta
 /// mucho el conteo de fotos). Target: max 800px, JPEG quality 65.
 /// Skip: <=800px longSide AND <=150 KB.
@@ -92,6 +152,89 @@ class _PdfPhotoItemBytes {
 }
 
 class PdfService {
+  static const String photoCacheVersionFolder = 'photo_cache_v1';
+
+  /// Builds a stable cache namespace for one inspection report.
+  ///
+  /// Keeping each report in its own directory prevents sections such as
+  /// `building1_mainroof` from colliding across different inspections.
+  static String buildPhotoCacheReportKey(InspectionReport report) {
+    final parts = <String>[
+      report.claimNumber,
+      report.dateInspected,
+      report.clientName,
+      report.address,
+    ].map(_normalizePhotoCacheToken).where((value) => value.isNotEmpty);
+
+    final key = parts.join('_');
+    return key.isEmpty ? 'unspecified_report' : key;
+  }
+
+  /// Creates and returns the versioned cache folder for one report.
+  static Future<Directory> ensurePhotoCacheDirectory({
+    required String reportCacheKey,
+  }) async {
+    final supportDirectory = await getApplicationSupportDirectory();
+    final normalizedReportKey = _normalizePhotoCacheToken(reportCacheKey);
+    final safeReportKey = normalizedReportKey.isEmpty
+        ? 'unspecified_report'
+        : normalizedReportKey;
+    final directory = Directory(
+      '${supportDirectory.path}/$photoCacheVersionFolder/$safeReportKey',
+    );
+
+    if (!await directory.exists()) {
+      await directory.create(recursive: true);
+    }
+    return directory;
+  }
+
+  static Future<String> sectionPdfPath({
+    required String reportCacheKey,
+    required PhotoSection section,
+  }) async {
+    final directory = await ensurePhotoCacheDirectory(
+      reportCacheKey: reportCacheKey,
+    );
+    return '${directory.path}/${section.id}.pdf';
+  }
+
+  static Future<String> sectionHashPath({
+    required String reportCacheKey,
+    required PhotoSection section,
+  }) async {
+    final directory = await ensurePhotoCacheDirectory(
+      reportCacheKey: reportCacheKey,
+    );
+    return '${directory.path}/${section.id}.hash';
+  }
+
+  static Future<String?> readSectionHash({
+    required String reportCacheKey,
+    required PhotoSection section,
+  }) async {
+    final path = await sectionHashPath(
+      reportCacheKey: reportCacheKey,
+      section: section,
+    );
+    final file = File(path);
+    if (!await file.exists()) return null;
+
+    final value = (await file.readAsString()).trim();
+    return value.isEmpty ? null : value;
+  }
+
+  static Future<void> writeSectionHash({
+    required String reportCacheKey,
+    required PhotoSection section,
+    required String hash,
+  }) async {
+    final path = await sectionHashPath(
+      reportCacheKey: reportCacheKey,
+      section: section,
+    );
+    await File(path).writeAsString(hash.trim(), flush: true);
+  }
 
   static Future<Map<String, File>> generateReports(InspectionReport report) async {
     // Palanca 1: pausar auto-savers durante la generación pesada.
