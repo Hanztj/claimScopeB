@@ -329,6 +329,165 @@ class PdfService {
     await File(path).writeAsString(hash.trim(), flush: true);
   }
 
+  static List<PhotoItem> _commercialSectionPhotoItems({
+    required InspectionReport report,
+    required int buildingIndex,
+    required int roofIndex,
+    required String buildingName,
+    required String roofName,
+  }) {
+    if (buildingIndex < 0 ||
+        buildingIndex >= report.commercialBuildings.length) {
+      throw RangeError.index(
+        buildingIndex,
+        report.commercialBuildings,
+        'buildingIndex',
+      );
+    }
+
+    final building = report.commercialBuildings[buildingIndex];
+    if (roofIndex < 0 || roofIndex >= building.roofs.length) {
+      throw RangeError.index(roofIndex, building.roofs, 'roofIndex');
+    }
+
+    String groupKey(String building, String roof) => '$building\u0000$roof';
+
+    final acceptedGroups = <String>{
+      groupKey(buildingName.trim(), roofName.trim()),
+    };
+
+    // The overview photo is required for every commercial roof section. Its
+    // stored structured label gives us the original section caption group if
+    // the editable roof label changed after photos were captured.
+    final overviewPath = building.roofs[roofIndex].overviewPhoto?.absolute.path;
+    if (overviewPath != null) {
+      for (final item in report.photoReportItems) {
+        if (item.file.absolute.path != overviewPath) continue;
+        final parsed = tryParseCommercialPhotoLabel(item.label);
+        if (parsed != null) {
+          acceptedGroups.add(groupKey(parsed.building, parsed.roof));
+        }
+      }
+    }
+
+    final sectionItems = <PhotoItem>[];
+    for (final item in report.photoReportItems) {
+      final parsed = tryParseCommercialPhotoLabel(item.label);
+      if (parsed == null) continue;
+
+      if (acceptedGroups.contains(groupKey(parsed.building, parsed.roof))) {
+        sectionItems.add(item);
+      }
+    }
+
+    return sectionItems;
+  }
+
+  /// Generates or reuses the cached Photo PDF for one commercial roof section.
+  ///
+  /// This is the Patch 3 entry point used by Commercial `Save & Continue`.
+  /// It writes only the current section's partial PDF and hash. The existing
+  /// final Photo PDF remains monolithic until the later merge patch.
+  static Future<File> buildPartialPhotoPdfForCommercialSection({
+    required InspectionReport report,
+    required int buildingIndex,
+    required int roofIndex,
+    required String buildingName,
+    required String roofName,
+  }) async {
+    final wasBusy = PdfBusyFlag.busy;
+    PdfBusyFlag.busy = true;
+
+    try {
+      final section = PhotoSection.commercialRoof(
+        buildingIndex: buildingIndex,
+        roofIndex: roofIndex,
+      );
+      final reportCacheKey = buildPhotoCacheReportKey(report);
+      final photoItems = _commercialSectionPhotoItems(
+        report: report,
+        buildingIndex: buildingIndex,
+        roofIndex: roofIndex,
+        buildingName: buildingName,
+        roofName: roofName,
+      );
+
+      if (photoItems.isEmpty) {
+        throw StateError(
+          'No commercial photos were found for $buildingName - $roofName.',
+        );
+      }
+
+      final hashState = await evaluateSectionHash(
+        reportCacheKey: reportCacheKey,
+        section: section,
+        photos: photoItems.map((item) => item.file),
+      );
+
+      final partialFile = File(hashState.partialPdfPath);
+      if (!hashState.isDirty) return partialFile;
+
+      final fontDataRegular =
+          await rootBundle.load('assets/fonts/Roboto-Regular.ttf');
+      final fontDataBold =
+          await rootBundle.load('assets/fonts/Roboto-Bold.ttf');
+      final pdfTheme = pw.ThemeData.withFont(
+        base: pw.Font.ttf(fontDataRegular),
+        bold: pw.Font.ttf(fontDataBold),
+      );
+      final partialPdf = pw.Document();
+
+      for (var i = 0; i < photoItems.length; i += 2) {
+        final firstPhoto = await _loadPdfPhotoItemBytes(
+          photoItems[i],
+          isCommercial: true,
+        );
+        final secondPhoto = i + 1 < photoItems.length
+            ? await _loadPdfPhotoItemBytes(
+                photoItems[i + 1],
+                isCommercial: true,
+              )
+            : null;
+
+        partialPdf.addPage(
+          pw.Page(
+            theme: pdfTheme,
+            build: (context) => pw.Column(
+              children: [
+                _buildPhotoFrame(firstPhoto),
+                if (secondPhoto != null) ...[
+                  pw.SizedBox(height: 20),
+                  _buildPhotoFrame(secondPhoto),
+                ],
+              ],
+            ),
+          ),
+        );
+      }
+
+      final tempFile = File('${hashState.partialPdfPath}.tmp');
+      if (await tempFile.exists()) {
+        await tempFile.delete();
+      }
+      await tempFile.writeAsBytes(await partialPdf.save(), flush: true);
+
+      if (await partialFile.exists()) {
+        await partialFile.delete();
+      }
+      await tempFile.rename(partialFile.path);
+
+      await writeSectionHash(
+        reportCacheKey: reportCacheKey,
+        section: section,
+        hash: hashState.currentHash,
+      );
+
+      return partialFile;
+    } finally {
+      PdfBusyFlag.busy = wasBusy;
+    }
+  }
+
   static Future<Map<String, File>> generateReports(InspectionReport report) async {
     // Palanca 1: pausar auto-savers durante la generación pesada.
     PdfBusyFlag.busy = true;

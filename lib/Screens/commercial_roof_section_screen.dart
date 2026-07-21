@@ -991,6 +991,27 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                         }
                       }
 
+                    try {
+                      await PdfService.buildPartialPhotoPdfForCommercialSection(
+                        report: widget.report,
+                        buildingIndex: widget.buildingIndex,
+                        roofIndex: widget.roofIndex,
+                        buildingName: buildingName,
+                        roofName: roofName,
+                      );
+                    } catch (e) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error saving section photos: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (!mounted) return;
+
                     // If this roof section has multiple facets, split into separate roof sections.
                     if ((_isShingles || _isMetal || _isTile || _isSlate || _isOther) &&
                         roof.hasMultipleFacets &&
