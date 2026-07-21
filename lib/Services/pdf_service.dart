@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:claimscope_clean/inspection_report_model.dart';
 import 'package:claimscope_clean/utils/photo_labels.dart';
+import 'package:crypto/crypto.dart' show sha256;
 import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:image/image.dart' as img;
@@ -60,12 +62,29 @@ class PdfBusyFlag {
 
 /// Logical unit used by the incremental Photo PDF cache.
 ///
-/// Patch 1 only defines stable section identifiers and cache paths. Existing
-/// PDF generation remains unchanged until the later incremental patches.
+/// Defines stable section identifiers and cache state for the incremental
+/// Photo PDF pipeline. Existing PDF generation remains unchanged until the
+/// later incremental patches.
 enum PhotoSectionType {
   commercialRoof,
   elevation,
   globalElevation,
+}
+
+class PhotoSectionHashState {
+  final String currentHash;
+  final String? storedHash;
+  final String partialPdfPath;
+  final bool partialPdfExists;
+
+  const PhotoSectionHashState({
+    required this.currentHash,
+    required this.storedHash,
+    required this.partialPdfPath,
+    required this.partialPdfExists,
+  });
+
+  bool get isDirty => !partialPdfExists || storedHash != currentHash;
 }
 
 class PhotoSection {
@@ -207,6 +226,80 @@ class PdfService {
       reportCacheKey: reportCacheKey,
     );
     return '${directory.path}/${section.id}.hash';
+  }
+
+  /// Builds a stable SHA-256 fingerprint for a section's photo payload.
+  ///
+  /// Only file identity and metadata are included: path, byte size, last
+  /// modified timestamp, item order, and total count. Captions/labels are
+  /// deliberately excluded so text-only edits do not invalidate image cache.
+  /// Image bytes are never loaded into memory.
+  static Future<String> hashSectionPhotoPayload(
+    Iterable<File> photos,
+  ) async {
+    final entries = <Map<String, Object?>>[];
+    var index = 0;
+
+    for (final photo in photos) {
+      final absolutePath = photo.absolute.path;
+      var size = -1;
+      var modifiedMicros = -1;
+
+      try {
+        final stat = await photo.stat();
+        if (stat.type != FileSystemEntityType.notFound) {
+          size = stat.size;
+          modifiedMicros = stat.modified.microsecondsSinceEpoch;
+        }
+      } on FileSystemException {
+        // Preserve a deterministic missing/unreadable marker. If a previously
+        // readable file becomes unavailable, its metadata fingerprint changes.
+      }
+
+      entries.add({
+        'index': index,
+        'path': absolutePath,
+        'size': size,
+        'modifiedMicros': modifiedMicros,
+      });
+      index++;
+    }
+
+    final payload = jsonEncode({
+      'schema': 'photo_section_hash_v1',
+      'count': entries.length,
+      'photos': entries,
+    });
+
+    return sha256.convert(utf8.encode(payload)).toString();
+  }
+
+  /// Evaluates whether a section cache must be regenerated.
+  ///
+  /// A section is dirty when its stored hash differs from the current photo
+  /// payload, no hash has been stored yet, or the partial PDF is missing.
+  /// This helper only inspects state; it does not generate or write a PDF/hash.
+  static Future<PhotoSectionHashState> evaluateSectionHash({
+    required String reportCacheKey,
+    required PhotoSection section,
+    required Iterable<File> photos,
+  }) async {
+    final currentHash = await hashSectionPhotoPayload(photos);
+    final storedHash = await readSectionHash(
+      reportCacheKey: reportCacheKey,
+      section: section,
+    );
+    final pdfPath = await sectionPdfPath(
+      reportCacheKey: reportCacheKey,
+      section: section,
+    );
+
+    return PhotoSectionHashState(
+      currentHash: currentHash,
+      storedHash: storedHash,
+      partialPdfPath: pdfPath,
+      partialPdfExists: await File(pdfPath).exists(),
+    );
   }
 
   static Future<String?> readSectionHash({
