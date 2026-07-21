@@ -609,6 +609,8 @@ class CommercialRoofSectionScreen extends StatefulWidget {
 
                 return ElevatedButton(
                   onPressed: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    final navigator = Navigator.of(context);
                     _sync();
                     widget.report.isCommercial = true;
                     roof.reportType = 'commercial';
@@ -1001,7 +1003,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                       );
                     } catch (e) {
                       if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         SnackBar(
                           content: Text('Error saving section photos: $e'),
                           backgroundColor: Colors.red,
@@ -1087,8 +1089,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
 
 if (isFinalStep) {
   if (widget.report.inspectElevations && !_submitRoofOnly) {
-    Navigator.pushReplacement(
-      context,
+    navigator.pushReplacement(
       MaterialPageRoute(
         builder: (_) => ElevationsInspectionScreen(
           report: widget.report,
@@ -1107,7 +1108,7 @@ if (isFinalStep) {
 
                     final nextRoofIndex = widget.roofIndex + 1;
                     if (nextRoofIndex < building.roofs.length) {
-                      Navigator.of(context).pushReplacement(
+                      navigator.pushReplacement(
                         MaterialPageRoute(
                           builder: (_) => CommercialRoofSectionScreen(
                             plan: widget.plan,
@@ -1130,7 +1131,7 @@ if (isFinalStep) {
                         );
                       }
 
-                      Navigator.of(context).pushReplacement(
+                      navigator.pushReplacement(
                         MaterialPageRoute(
                           builder: (_) => CommercialBuildingDetailScreen(
                             plan: widget.plan,

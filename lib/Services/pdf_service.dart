@@ -488,6 +488,173 @@ class PdfService {
     }
   }
 
+  static List<PhotoItem> _elevationPhotoItems({
+    required InspectionReport report,
+    required String elevationName,
+  }) {
+    final items = <PhotoItem>[];
+    for (final item in report.photoReportItems) {
+      final parsed = tryParseElevationsPhotoLabel(item.label);
+      if (parsed != null && parsed.elev == elevationName) {
+        items.add(item);
+      }
+    }
+    return items;
+  }
+
+  static Future<void> _removeCachedPhotoSection({
+    required String reportCacheKey,
+    required PhotoSection section,
+  }) async {
+    final pdfPath = await sectionPdfPath(
+      reportCacheKey: reportCacheKey,
+      section: section,
+    );
+    final hashPath = await sectionHashPath(
+      reportCacheKey: reportCacheKey,
+      section: section,
+    );
+
+    for (final file in <File>[
+      File(pdfPath),
+      File('$pdfPath.tmp'),
+      File(hashPath),
+    ]) {
+      if (await file.exists()) {
+        await file.delete();
+      }
+    }
+  }
+
+  static Future<File?> _buildPartialPhotoPdfForElevationSection({
+    required String reportCacheKey,
+    required PhotoSection section,
+    required List<PhotoItem> photoItems,
+    required bool isCommercial,
+    required pw.ThemeData pdfTheme,
+  }) async {
+    if (photoItems.isEmpty) {
+      await _removeCachedPhotoSection(
+        reportCacheKey: reportCacheKey,
+        section: section,
+      );
+      return null;
+    }
+
+    final hashState = await evaluateSectionHash(
+      reportCacheKey: reportCacheKey,
+      section: section,
+      photos: photoItems.map((item) => item.file),
+    );
+    final partialFile = File(hashState.partialPdfPath);
+    if (!hashState.isDirty) return partialFile;
+
+    final partialPdf = pw.Document();
+    for (var i = 0; i < photoItems.length; i += 2) {
+      final firstPhoto = await _loadPdfPhotoItemBytes(
+        photoItems[i],
+        isCommercial: isCommercial,
+      );
+      final secondPhoto = i + 1 < photoItems.length
+          ? await _loadPdfPhotoItemBytes(
+              photoItems[i + 1],
+              isCommercial: isCommercial,
+            )
+          : null;
+
+      partialPdf.addPage(
+        pw.Page(
+          theme: pdfTheme,
+          build: (context) => pw.Column(
+            children: [
+              _buildPhotoFrame(firstPhoto),
+              if (secondPhoto != null) ...[
+                pw.SizedBox(height: 20),
+                _buildPhotoFrame(secondPhoto),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
+
+    final tempFile = File('${hashState.partialPdfPath}.tmp');
+    if (await tempFile.exists()) {
+      await tempFile.delete();
+    }
+    await tempFile.writeAsBytes(await partialPdf.save(), flush: true);
+
+    if (await partialFile.exists()) {
+      await partialFile.delete();
+    }
+    await tempFile.rename(partialFile.path);
+
+    await writeSectionHash(
+      reportCacheKey: reportCacheKey,
+      section: section,
+      hash: hashState.currentHash,
+    );
+
+    return partialFile;
+  }
+
+  /// Generates or reuses all cached Elevations Photo PDF sections.
+  ///
+  /// Global photos and every building elevation are independent cache units.
+  /// This Patch 4 entry point runs before the existing monolithic final report;
+  /// no merge or final Photo PDF behavior changes yet.
+  static Future<List<File>> buildPartialPhotoPdfsForElevations(
+    InspectionReport report,
+  ) async {
+    final wasBusy = PdfBusyFlag.busy;
+    PdfBusyFlag.busy = true;
+
+    try {
+      final reportCacheKey = buildPhotoCacheReportKey(report);
+      final isCommercial =
+          report.isCommercial == true || report.commercialBuildings.isNotEmpty;
+      final fontDataRegular =
+          await rootBundle.load('assets/fonts/Roboto-Regular.ttf');
+      final fontDataBold =
+          await rootBundle.load('assets/fonts/Roboto-Bold.ttf');
+      final pdfTheme = pw.ThemeData.withFont(
+        base: pw.Font.ttf(fontDataRegular),
+        bold: pw.Font.ttf(fontDataBold),
+      );
+      final partialFiles = <File>[];
+
+      final globalFile = await _buildPartialPhotoPdfForElevationSection(
+        reportCacheKey: reportCacheKey,
+        section: PhotoSection.globalElevation(),
+        photoItems: _elevationPhotoItems(
+          report: report,
+          elevationName: 'Global',
+        ),
+        isCommercial: isCommercial,
+        pdfTheme: pdfTheme,
+      );
+      if (globalFile != null) partialFiles.add(globalFile);
+
+      for (final elevation in report.elevations.elevations) {
+        final partialFile = await _buildPartialPhotoPdfForElevationSection(
+          reportCacheKey: reportCacheKey,
+          section: PhotoSection.elevation(sideKey: elevation.side.key),
+          photoItems: _elevationPhotoItems(
+            report: report,
+            elevationName: elevation.side.display,
+          ),
+          isCommercial: isCommercial,
+          pdfTheme: pdfTheme,
+        );
+        if (partialFile != null) partialFiles.add(partialFile);
+      }
+
+      return partialFiles;
+    } finally {
+      PdfBusyFlag.busy = wasBusy;
+    }
+  }
+
   static Future<Map<String, File>> generateReports(InspectionReport report) async {
     // Palanca 1: pausar auto-savers durante la generación pesada.
     PdfBusyFlag.busy = true;
@@ -1199,12 +1366,12 @@ class PdfService {
         final rise = parts.first.trim();
         if (rise.isEmpty) return "N/A";
         if (parts.length == 1 || parts[1].trim().isEmpty) {
-          return "${rise}/12";
+          return "$rise/12";
         }
         return normalizedValue;
       }
 
-      return "${normalizedValue}/12";
+      return "$normalizedValue/12";
     }
 
     static List<pw.Widget> _buildElevationsUnderlaymentDetails(InspectionReport report) {

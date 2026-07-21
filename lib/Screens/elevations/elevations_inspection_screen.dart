@@ -1,4 +1,4 @@
-import 'package:claimscope_clean/Services/pdf_service.dart';
+import 'package:claimscope_clean/services/pdf_service.dart';
 import 'package:claimscope_clean/inspection_report_model.dart';
 import 'package:claimscope_clean/screens/elevations/building_elevations_section.dart';
 import 'package:claimscope_clean/screens/elevations/global_elevations_hub.dart';
@@ -160,6 +160,7 @@ class _ElevationsInspectionScreenState extends State<ElevationsInspectionScreen>
       );
       loadingShown = true;
 
+      await PdfService.buildPartialPhotoPdfsForElevations(widget.report);
       final pdfs = await PdfService.generateReports(widget.report);
       if (!mounted) return;
 
