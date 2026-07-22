@@ -291,6 +291,80 @@ class CommercialRoofSectionScreen extends StatefulWidget {
         : _notesController.text.trim();
   }
 
+  void _splitCurrentRoofIntoFacetsIfNeeded() {
+    if (!(_isShingles || _isMetal || _isTile || _isSlate || _isOther) ||
+        !roof.hasMultipleFacets ||
+        roof.facetsGenerated ||
+        roof.facetCount <= 1) {
+      return;
+    }
+
+    final building = widget.report.commercialBuildings[widget.buildingIndex];
+    final total = roof.facetCount;
+    roof.facetsGenerated = true;
+    roof.facetGroupTotal = total;
+    roof.facetIndex = 1;
+    roof.hasMultipleFacets = false;
+    roof.facetCount = 1;
+    _facetCountController.text = '1';
+
+    final baseLabel = (roof.roofLabel ?? '').trim().isEmpty
+        ? 'Roof ${widget.roofIndex + 1}'
+        : roof.roofLabel!.trim();
+
+    roof.roofLabel = '$baseLabel - Facet 1';
+    _roofLabelController.text = roof.roofLabel!;
+
+    // Next facets require their own overview.
+    for (var i = 2; i <= total; i++) {
+      final r = CommercialRoofSectionData();
+      r.roofType = roof.roofType;
+      r.reportType = 'commercial';
+      r.roofSubType = roof.roofSubType;
+      r.roofSubTypeOtherSpecify = roof.roofSubTypeOtherSpecify;
+      r.pitch = roof.pitch;
+      r.hasMultipleFacets = false;
+      r.facetCount = 1;
+      r.metalStyle = roof.metalStyle;
+      r.metalHasFacets = roof.metalHasFacets;
+      r.metalGauge = roof.metalGauge;
+      r.metalGaugeOtherSpecify = roof.metalGaugeOtherSpecify;
+
+      // Shingles hub fields
+      r.hasMultipleLayers = roof.hasMultipleLayers;
+      r.numberOfLayers = roof.numberOfLayers;
+      r.starterRowInstalled = roof.starterRowInstalled;
+      r.starterEaveInstalled = roof.starterEaveInstalled;
+      r.starterRakeInstalled = roof.starterRakeInstalled;
+      r.starterEavePhoto = roof.starterEavePhoto;
+      r.starterRakePhoto = roof.starterRakePhoto;
+      r.hasDripEdge = roof.hasDripEdge;
+      r.dripEdgeType = roof.dripEdgeType;
+      r.dripEdgePhoto = roof.dripEdgePhoto;
+      r.iceAndWaterBarrierInstalled = roof.iceAndWaterBarrierInstalled;
+      r.iceAndWaterBarrierPhoto = roof.iceAndWaterBarrierPhoto;
+      r.hasRidge = roof.hasRidge;
+      r.hasRidgeVent = roof.hasRidgeVent;
+      r.ridgeVentType = roof.ridgeVentType;
+      r.ridgeVentPhoto = roof.ridgeVentPhoto;
+      r.hasValleyMetal = roof.hasValleyMetal;
+      r.valleyMetalType = roof.valleyMetalType;
+      r.hasVents = roof.hasVents;
+      r.hasHvacEquipment = roof.hasHvacEquipment;
+      r.hasMechanicalEquipment = roof.hasMechanicalEquipment;
+      r.battenChangeRequired = roof.battenChangeRequired;
+
+      r.facetsGenerated = true;
+      r.facetGroupTotal = total;
+      r.facetIndex = i;
+      r.facetCount = 1;
+      r.overviewPhoto = null;
+      r.roofLabel = '$baseLabel - Facet $i';
+
+      building.roofs.insert(widget.roofIndex + (i - 1), r);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final building = widget.report.commercialBuildings[widget.buildingIndex];
@@ -1075,6 +1149,20 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                         (!widget.report.inspectElevations || _submitRoofOnly);
                     if (willSubmitDirectly) {
                       setState(() => _isSubmitting = true);
+                      await _submitCommercialReport(
+                        submissionLockHeld: true,
+                        beforeGenerate: () async {
+                          await PdfService.buildPartialPhotoPdfForCommercialSection(
+                            report: widget.report,
+                            buildingIndex: widget.buildingIndex,
+                            roofIndex: widget.roofIndex,
+                            buildingName: buildingName,
+                            roofName: roofName,
+                          );
+                          _splitCurrentRoofIntoFacetsIfNeeded();
+                        },
+                      );
+                      return;
                     }
 
                     try {
@@ -1086,13 +1174,6 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                         roofName: roofName,
                       );
                     } catch (e) {
-                      if (willSubmitDirectly) {
-                        if (mounted) {
-                          setState(() => _isSubmitting = false);
-                        } else {
-                          _isSubmitting = false;
-                        }
-                      }
                       if (!mounted) return;
                       messenger.showSnackBar(
                         SnackBar(
@@ -1106,77 +1187,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                     if (!mounted) return;
 
                     // If this roof section has multiple facets, split into separate roof sections.
-                    if ((_isShingles || _isMetal || _isTile || _isSlate || _isOther) &&
-                        roof.hasMultipleFacets &&
-                        !roof.facetsGenerated &&
-                        roof.facetCount > 1) {
-                      final total = roof.facetCount;
-                      roof.facetsGenerated = true;
-                      roof.facetGroupTotal = total;
-                      roof.facetIndex = 1;
-                      roof.hasMultipleFacets = false;
-                      roof.facetCount = 1;
-                      _facetCountController.text = '1';
-
-                      final baseLabel = (roof.roofLabel ?? '').trim().isEmpty
-                          ? 'Roof ${widget.roofIndex + 1}'
-                          : roof.roofLabel!.trim();
-
-                      roof.roofLabel = '$baseLabel - Facet 1';
-                      _roofLabelController.text = roof.roofLabel!;
-
-                      // Next facets require their own overview.
-
-                      for (var i = 2; i <= total; i++) {
-                        final r = CommercialRoofSectionData();
-                        r.roofType = roof.roofType;
-                        r.reportType = 'commercial';
-                        r.roofSubType = roof.roofSubType;
-                        r.roofSubTypeOtherSpecify = roof.roofSubTypeOtherSpecify;
-                        r.pitch = roof.pitch;
-                        r.hasMultipleFacets = false;
-                        r.facetCount = 1;
-                        r.metalStyle = roof.metalStyle;
-                        r.metalHasFacets = roof.metalHasFacets;
-                        r.metalGauge = roof.metalGauge;
-                        r.metalGaugeOtherSpecify = roof.metalGaugeOtherSpecify;
-
-
-                        // Shingles hub fields
-                        r.hasMultipleLayers = roof.hasMultipleLayers;
-                        r.numberOfLayers = roof.numberOfLayers;
-                        r.starterRowInstalled = roof.starterRowInstalled;
-                        r.starterEaveInstalled = roof.starterEaveInstalled;
-                        r.starterRakeInstalled = roof.starterRakeInstalled;
-                        r.starterEavePhoto = roof.starterEavePhoto;
-                        r.starterRakePhoto = roof.starterRakePhoto;
-                        r.hasDripEdge = roof.hasDripEdge;
-                        r.dripEdgeType = roof.dripEdgeType;
-                        r.dripEdgePhoto = roof.dripEdgePhoto;
-                        r.iceAndWaterBarrierInstalled = roof.iceAndWaterBarrierInstalled;
-                        r.iceAndWaterBarrierPhoto = roof.iceAndWaterBarrierPhoto;
-                        r.hasRidge = roof.hasRidge;
-                        r.hasRidgeVent = roof.hasRidgeVent;
-                        r.ridgeVentType = roof.ridgeVentType;
-                        r.ridgeVentPhoto = roof.ridgeVentPhoto;
-                        r.hasValleyMetal = roof.hasValleyMetal;
-                        r.valleyMetalType = roof.valleyMetalType;
-                        r.hasVents = roof.hasVents;
-                        r.hasHvacEquipment = roof.hasHvacEquipment;
-                        r.hasMechanicalEquipment = roof.hasMechanicalEquipment;
-                        r.battenChangeRequired = roof.battenChangeRequired;
-
-                        r.facetsGenerated = true;
-                        r.facetGroupTotal = total;
-                        r.facetIndex = i;
-                        r.facetCount = 1;
-                        r.overviewPhoto = null;
-
-                        r.roofLabel = '$baseLabel - Facet $i';
-
-                        building.roofs.insert(widget.roofIndex + (i - 1), r);
-                      }
-                    }
+                    _splitCurrentRoofIntoFacetsIfNeeded();
 
 if (isFinalStep) {
   if (widget.report.inspectElevations && !_submitRoofOnly) {
@@ -1190,13 +1201,8 @@ if (isFinalStep) {
       ),
     );
 
-    return;   
+    return;
   }
-
-  await _submitCommercialReport(
-    submissionLockHeld: willSubmitDirectly,
-  );
-  return;
 }
 
                     final nextRoofIndex = widget.roofIndex + 1;
@@ -1268,6 +1274,7 @@ if (isFinalStep) {
   // === FUNCIÓN PARA ENVIAR REPORTE COMERCIAL ===
  Future<void> _submitCommercialReport({
   bool submissionLockHeld = false,
+  Future<void> Function()? beforeGenerate,
 }) async {
   if (_isSubmitting && !submissionLockHeld) return;
 
@@ -1296,7 +1303,10 @@ if (isFinalStep) {
     final pdfs = await runWithBlockingProgress<Map<String, File>>(
       context: context,
       message: 'Generating inspection reports...',
-      task: () => PdfService.generateReports(widget.report),
+      task: () async {
+        await beforeGenerate?.call();
+        return PdfService.generateReports(widget.report);
+      },
     );
 
     if (!mounted) return;
