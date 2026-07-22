@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:archive/archive.dart';
 import 'package:claimscope_clean/inspection_report_model.dart';
+import 'package:claimscope_clean/utils/commercial_photo_label_overrides.dart';
 import 'package:claimscope_clean/utils/photo_labels.dart';
 import 'package:flutter/foundation.dart' show compute;
 import 'package:image/image.dart' as img;
@@ -95,11 +96,23 @@ Archive buildLabeledPhotosArchive(List<PhotoItem> items) {
     late final String folder;
     late final String displayLabel;
     var isRoofPhoto = false;
+    int? explicitImageNumber;
 
     if (parsed != null) {
       folder =
           '${sanitizeZipPathPart(parsed.building)}/${sanitizeZipPathPart(parsed.roof)}';
-      displayLabel = parsed.label;
+
+      final imageMatch = RegExp(
+        r'^(.*?)\s*[-–—]\s*Image\s+(\d+)\s*$',
+        caseSensitive: false,
+      ).firstMatch(parsed.label);
+
+      if (imageMatch != null) {
+        displayLabel = imageMatch.group(1)!.trim();
+        explicitImageNumber = int.tryParse(imageMatch.group(2)!);
+      } else {
+        displayLabel = parsed.label;
+      }
       isRoofPhoto = true;
     } else if (parsedElev != null) {
       // ✨ CORRECCIÓN ELEVATIONS:
@@ -125,8 +138,18 @@ Archive buildLabeledPhotosArchive(List<PhotoItem> items) {
       removeGenericPhotoWord: isRoofPhoto,
     );
     final key = '$folder/$base';
-    final n = (counts[key] ?? 0) + 1;
-    counts[key] = n;
+    final int n;
+
+    if (explicitImageNumber != null) {
+      n = explicitImageNumber;
+      final previousMax = counts[key] ?? 0;
+      if (n > previousMax) {
+        counts[key] = n;
+      }
+    } else {
+      n = (counts[key] ?? 0) + 1;
+      counts[key] = n;
+    }
 
     final filename = '$folder/${base}_Image$n.jpg';
     final bytes = _readLandscapeZipPhotoBytes(item.file);
@@ -188,12 +211,15 @@ Future<File> generateLabeledPhotosZip(
   InspectionReport report,
 ) async {
   // Excluir imágenes de galería.
+  final commercialLabelOverrides =
+      buildCommercialPhotoLabelOverrides(report);
   final items = report.photoReportItems
       .where((item) => item.label.trim() != 'User Image')
       .map(
         (item) => <String, String>{
           'path': item.file.path,
-          'label': item.label,
+          'label': commercialLabelOverrides[item.file.absolute.path] ??
+              item.label,
         },
       )
       .toList(growable: false);
