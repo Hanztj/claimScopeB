@@ -2383,13 +2383,18 @@ class PdfService {
 
   int i = 1;
   for (final door in activeDoors) {
+    final storedDoorType = door.doorType?.toString() ?? '';
+    final doorType = storedDoorType == 'Exterior Door / Entry Door Type'
+        ? 'Exterior Door / Entry Door'
+        : storedDoorType;
+
     rows.add(_buildDataRow("Door $i", ""));
-    rows.add(_buildDataRow("Door / Type", _textOrNA(door.doorType)));
+    rows.add(_buildDataRow("Door / Type", _textOrNA(doorType)));
     if (door.entryQuantity != null && door.entryQuantity.trim().isNotEmpty) {
       rows.add(_buildDataRow("Count", door.entryQuantity.trim()));
     }
 
-    if (door.doorType == 'Sliding Patio Door') {
+    if (doorType == 'Sliding Patio Door') {
       rows.add(_buildDataRow("Material", _textOrNA(door.patioMaterial)));
       if (door.patioMaterial == 'Aluminum') {
         rows.add(_buildDataRow("Aluminum Finish", _textOrNA(door.patioAluminumFinish)));
@@ -2399,8 +2404,8 @@ class PdfService {
       rows.add(_buildDataRow("Scope of work", _textOrNA(door.patioScopeOfWork)));
     }
 
-    if (door.doorType == 'Exterior Door / Entry Door') {
-      rows.add(_buildDataRow("Entry/Exterior Door", _textOrNA(door.entryDoorType)));
+    if (doorType == 'Exterior Door / Entry Door') {
+      rows.add(_buildDataRow("Door Configuration", _textOrNA(door.entryDoorType)));
       rows.add(_buildDataRow("Material", _textOrNA(door.entryMaterial)));
       rows.add(_buildDataRow("Style", _textOrNA(door.entryStyle)));
       if (door.entryDoorType != 'Storm Door') {
@@ -2422,7 +2427,7 @@ class PdfService {
       }
     }
 
-    if (door.doorType == 'Garage Door') {
+    if (doorType == 'Garage Door') {
       rows.add(_buildDataRow("Style", _textOrNA(door.garageStyle)));
       rows.add(_buildDataRow("With Windows", door.garageWithWindows == true ? "Yes" : "No"));
       if (door.garageWithWindows == true && door.garageWindowsCount.trim().isNotEmpty) {
@@ -2436,7 +2441,7 @@ class PdfService {
       }
     }
 
-    if (door.doorType == 'Storefront door') {
+    if (doorType == 'Storefront door') {
       rows.add(_buildDataRow("Sliding door", door.storefrontSlidingDoor == true ? "Yes" : "No"));
       rows.add(_buildDataRow("Oversize", door.storefrontOversize == true ? "Yes" : "No"));
       if (door.storefrontOversize == true && door.storefrontOversizeInputSize.trim().isNotEmpty) {
@@ -2447,7 +2452,7 @@ class PdfService {
       rows.add(_buildDataRow("Scope of work", _textOrNA(door.storefrontScopeOfWork)));
     }
 
-    if (door.doorType == 'Roll-up Door') {
+    if (doorType == 'Roll-up Door') {
       rows.add(_buildDataRow("Material Door Gauge", _textOrNA(door.rollupGauge)));
       if (door.rollupGauge == 'Other' && door.rollupGaugeOtherSpecify.trim().isNotEmpty) {
         rows.add(_buildDataRow("Gauge Specify", door.rollupGaugeOtherSpecify.trim()));

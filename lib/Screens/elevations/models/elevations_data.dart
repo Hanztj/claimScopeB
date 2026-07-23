@@ -853,8 +853,13 @@ class DoorEntry {
     String s(String k) => j[k] as String? ?? '';
     bool b(String k) => j[k] as bool? ?? false;
 
+    final storedDoorType = s('doorType');
+    final normalizedDoorType = storedDoorType == 'Exterior Door / Entry Door Type'
+        ? 'Exterior Door / Entry Door'
+        : storedDoorType;
+
     return DoorEntry()
-      ..doorType = s('doorType')
+      ..doorType = normalizedDoorType
       ..photo = FileHelper.pathToFile(j['photo'])
       ..extraPhoto = FileHelper.pathToFile(j['extraPhoto'])
       ..extraPhotos = FileHelper.pathsToFiles(j['extraPhotos']).toList()

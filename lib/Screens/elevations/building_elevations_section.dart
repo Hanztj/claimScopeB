@@ -2392,7 +2392,7 @@ if (_showsSidingHeight()) ...[
               value: d.doorType,
               options: const [
                 'Sliding Patio Door',
-                'Exterior Door / Entry Door Type',
+                'Exterior Door / Entry Door',
                 'Garage Door',
                 'Storefront door',
                 'Roll-up Door',
@@ -2404,7 +2404,7 @@ if (_showsSidingHeight()) ...[
               }),
             ),
             if (d.doorType == 'Sliding Patio Door') ..._buildSlidingPatioDoorFields(d, c),
-            if (d.doorType == 'Exterior Door / Entry Door Type') ..._buildEntryDoorFields(d, c),
+            if (d.doorType == 'Exterior Door / Entry Door') ..._buildEntryDoorFields(d, c),
             if (d.doorType == 'Garage Door') ..._buildGarageDoorFields(d, c),
             if (d.doorType == 'Storefront door') ..._buildStorefrontDoorFields(d, c),
             if (d.doorType == 'Roll-up Door') ..._buildRollupDoorFields(d, c),
@@ -2508,7 +2508,7 @@ if (_showsSidingHeight()) ...[
     return [
       const SizedBox(height: 8),
       _dropdown(
-        label: 'Entry/Exterior Door Type',
+        label: 'Door Configuration',
         value: d.entryDoorType,
         options: const [
           'Single Exterior Door',
