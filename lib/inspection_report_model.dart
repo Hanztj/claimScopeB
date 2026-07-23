@@ -504,6 +504,7 @@ class CommercialFlashingData {
 class CommercialVentData {
   String type;
   String? size;
+  String? sizeOtherSpecify;
   String? throatDimension;
   String? throatDimensionOtherSpecify;
   String? shape;
@@ -516,6 +517,7 @@ class CommercialVentData {
   CommercialVentData({
     required this.type,
     this.size,
+    this.sizeOtherSpecify,
     this.throatDimension,
     this.throatDimensionOtherSpecify,
     this.shape,

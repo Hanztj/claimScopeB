@@ -272,8 +272,10 @@ class GuttersSoffitFasciaData {
   // 6. Wall/roof panel
   String panelType = '';                 // 'Ribbed' | 'Corrugated'
   String panelCorrugatedGauge = '';      // si panelType == 'Corrugated'
+  String panelCorrugatedGaugeOther = ''; // si panelCorrugatedGauge == 'Other'
   bool   panelCorrugatedGalvanized = false;
   String panelRibbedGauge = '';          // si panelType == 'Ribbed'
+  String panelRibbedGaugeOther = '';     // si panelRibbedGauge == 'Other'
   bool panelHasInsulation = false;
   String panelInsulation = '';
 
@@ -327,8 +329,10 @@ class GuttersSoffitFasciaData {
         'steelInsulatedSizeOther': steelInsulatedSizeOther,
         'panelType': panelType,
         'panelCorrugatedGauge': panelCorrugatedGauge,
+        'panelCorrugatedGaugeOther': panelCorrugatedGaugeOther,
         'panelCorrugatedGalvanized': panelCorrugatedGalvanized,
         'panelRibbedGauge': panelRibbedGauge,
+        'panelRibbedGaugeOther': panelRibbedGaugeOther,
         'panelHasInsulation': panelHasInsulation,
         'panelInsulation': panelInsulation,
         'steelSidingGauge': steelSidingGauge,
@@ -369,8 +373,10 @@ class GuttersSoffitFasciaData {
       ..steelInsulatedSizeOther = s('steelInsulatedSizeOther')
       ..panelType = s('panelType')
       ..panelCorrugatedGauge = s('panelCorrugatedGauge')
+      ..panelCorrugatedGaugeOther = s('panelCorrugatedGaugeOther')
       ..panelCorrugatedGalvanized = b('panelCorrugatedGalvanized')
       ..panelRibbedGauge = s('panelRibbedGauge')
+      ..panelRibbedGaugeOther = s('panelRibbedGaugeOther')
       ..panelHasInsulation = b('panelHasInsulation')
       ..panelInsulation = s('panelInsulation')
       ..steelSidingGauge = s('steelSidingGauge')

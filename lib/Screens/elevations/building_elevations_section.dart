@@ -34,6 +34,8 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
   // ─── Controllers de Siding (TextFields) ───────────────────────────────
   late final TextEditingController _steelSidingGauge;
   late final TextEditingController _sidingHeight;
+  late final TextEditingController _panelCorrugatedGaugeOther;
+  late final TextEditingController _panelRibbedGaugeOther;
   late final TextEditingController _panelInsulation;
   late final TextEditingController _howManySf;
   late final TextEditingController _stuccoSmallRepairSf;
@@ -78,6 +80,10 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     super.initState();
     _steelSidingGauge = TextEditingController(text: _s.steelSidingGauge);
     _sidingHeight = TextEditingController(text: _s.sidingHeight);
+    _panelCorrugatedGaugeOther =
+        TextEditingController(text: _s.panelCorrugatedGaugeOther);
+    _panelRibbedGaugeOther =
+        TextEditingController(text: _s.panelRibbedGaugeOther);
     _panelInsulation = TextEditingController(text: _s.panelInsulation);
     _howManySf = TextEditingController(text: _s.howManySf);
     _stuccoSmallRepairSf = TextEditingController(text: _s.stuccoSmallRepairSf);
@@ -120,8 +126,10 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
 
   _s.panelType = '';
   _s.panelCorrugatedGauge = '';
+  _s.panelCorrugatedGaugeOther = '';
   _s.panelCorrugatedGalvanized = false;
   _s.panelRibbedGauge = '';
+  _s.panelRibbedGaugeOther = '';
   _s.panelHasInsulation = false;
   _s.panelInsulation = '';
 
@@ -147,6 +155,8 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
 
   _steelSidingGauge.clear();
   _sidingHeight.clear();
+  _panelCorrugatedGaugeOther.clear();
+  _panelRibbedGaugeOther.clear();
   _panelInsulation.clear();
   _howManySf.clear();
   _stuccoSmallRepairSf.clear();
@@ -196,6 +206,8 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     if (oldWidget.elevation != widget.elevation) {
       _sidingPhotoReminderDismissed = false;
       _sidingPhotoReminderShowing = false;
+      _panelCorrugatedGaugeOther.text = _s.panelCorrugatedGaugeOther;
+      _panelRibbedGaugeOther.text = _s.panelRibbedGaugeOther;
       _underlaymentNotes.text = _u.additionalNotes;
       _substrateHowManySf.text = _sub.howManySf;
       _substrateNotes.text = _sub.additionalNotes;
@@ -264,6 +276,8 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     for (final c in [
       _steelSidingGauge,
       _sidingHeight,
+      _panelCorrugatedGaugeOther,
+      _panelRibbedGaugeOther,
       _panelInsulation,
       _howManySf,
       _stuccoSmallRepairSf,
@@ -475,13 +489,13 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
   List<Widget> _buildUnderlaymentInsulationFields() {
     if (_s.sidingMain.isEmpty) {
       return const [
-        Text('Select Siding Type first.'),
+        Text('Select Siding Material first.'),
       ];
     }
 
     if (!_isUnderlaymentApplicableSiding(_s.sidingMain)) {
       return const [
-        Text('Underlayment & Insulation does not apply to this Siding Type.'),
+        Text('Underlayment & Insulation does not apply to this Siding Material.'),
       ];
     }
 
@@ -1033,7 +1047,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
         childrenPadding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
         children: [
           _dropdown(
-            label: 'Siding Type',
+            label: 'Siding Material',
             value: _s.sidingMain,
             options: const [
               'Vinyl',
@@ -1143,7 +1157,7 @@ if (_showsSidingHeight()) ...[
       case 'Vinyl':
         return [
           _dropdown(
-            label: 'Vinyl Type',
+            label: 'Siding Type',
             value: _s.vinylType,
             options: const [
               'Seamless',
@@ -1163,7 +1177,7 @@ if (_showsSidingHeight()) ...[
       case 'Aluminum':
         return [
           _dropdown(
-            label: 'Aluminum Type',
+            label: 'Siding Type',
             value: _s.aluminumType,
             options: const [
               'Standard .019',
@@ -1179,7 +1193,7 @@ if (_showsSidingHeight()) ...[
       case 'Wood':
         return [
           _dropdown(
-            label: 'Wood Type',
+            label: 'Siding Type',
             value: _s.woodType,
             options: const [
               'Clapboard/Lap',
@@ -1243,7 +1257,7 @@ if (_showsSidingHeight()) ...[
       case 'Fiber-Cement':
         return [
           _dropdown(
-            label: 'Fiber Cement Type',
+            label: 'Siding Type',
             value: _s.fiberCementType,
             options: const [
               'Clapboard/Lap',
@@ -1274,7 +1288,7 @@ if (_showsSidingHeight()) ...[
       case 'Steel':
         return [
           _dropdown(
-            label: 'Steel Type',
+            label: 'Siding Type',
             value: _s.steelType,
             options: const [
               'Seamless',
@@ -1322,17 +1336,21 @@ if (_showsSidingHeight()) ...[
       case 'Wall/roof panel':
         return [
           _dropdown(
-            label: 'Panel Type',
+            label: 'Siding Type',
             value: _s.panelType,
             options: const ['Ribbed', 'Corrugated'],
             onChanged: (v) => setState(() {
               _s.panelType = v ?? '';
               if (_s.panelType != 'Corrugated') {
                 _s.panelCorrugatedGauge = '';
+                _s.panelCorrugatedGaugeOther = '';
+                _panelCorrugatedGaugeOther.clear();
                 _s.panelCorrugatedGalvanized = false;
               }
               if (_s.panelType != 'Ribbed') {
                 _s.panelRibbedGauge = '';
+                _s.panelRibbedGaugeOther = '';
+                _panelRibbedGaugeOther.clear();
               }
               _mark();
             }),
@@ -1342,12 +1360,27 @@ if (_showsSidingHeight()) ...[
             _dropdown(
               label: 'Gauge',
               value: _s.panelCorrugatedGauge,
-              options: const ['24', '26', '29'],
+              options: const ['24', '26', '29', 'Other'],
               onChanged: (v) => setState(() {
                 _s.panelCorrugatedGauge = v ?? '';
+                if (_s.panelCorrugatedGauge != 'Other') {
+                  _s.panelCorrugatedGaugeOther = '';
+                  _panelCorrugatedGaugeOther.clear();
+                }
                 _mark();
               }),
             ),
+            if (_s.panelCorrugatedGauge == 'Other') ...[
+              const SizedBox(height: 6),
+              _textField(
+                controller: _panelCorrugatedGaugeOther,
+                label: 'Gauge (Specify)',
+                onChanged: (v) {
+                  _s.panelCorrugatedGaugeOther = v;
+                  _mark();
+                },
+              ),
+            ],
             _checkbox('Galvanized?', _s.panelCorrugatedGalvanized, (v) {
               setState(() {
                 _s.panelCorrugatedGalvanized = v;
@@ -1366,12 +1399,28 @@ if (_showsSidingHeight()) ...[
                 '29 gauge up to 1"',
                 '24 gauge 1-1/8" to 1 1/2"',
                 '26 gauge 1-1/8" to 1 1/2"',
+                'Other',
               ],
               onChanged: (v) => setState(() {
                 _s.panelRibbedGauge = v ?? '';
+                if (_s.panelRibbedGauge != 'Other') {
+                  _s.panelRibbedGaugeOther = '';
+                  _panelRibbedGaugeOther.clear();
+                }
                 _mark();
               }),
             ),
+            if (_s.panelRibbedGauge == 'Other') ...[
+              const SizedBox(height: 6),
+              _textField(
+                controller: _panelRibbedGaugeOther,
+                label: 'Gauge (Specify)',
+                onChanged: (v) {
+                  _s.panelRibbedGaugeOther = v;
+                  _mark();
+                },
+              ),
+            ],
           ],
         ];
       case 'Stucco':
@@ -2343,7 +2392,7 @@ if (_showsSidingHeight()) ...[
               value: d.doorType,
               options: const [
                 'Sliding Patio Door',
-                'Exterior Door / Entry Door',
+                'Exterior Door / Entry Door Type',
                 'Garage Door',
                 'Storefront door',
                 'Roll-up Door',
@@ -2355,7 +2404,7 @@ if (_showsSidingHeight()) ...[
               }),
             ),
             if (d.doorType == 'Sliding Patio Door') ..._buildSlidingPatioDoorFields(d, c),
-            if (d.doorType == 'Exterior Door / Entry Door') ..._buildEntryDoorFields(d, c),
+            if (d.doorType == 'Exterior Door / Entry Door Type') ..._buildEntryDoorFields(d, c),
             if (d.doorType == 'Garage Door') ..._buildGarageDoorFields(d, c),
             if (d.doorType == 'Storefront door') ..._buildStorefrontDoorFields(d, c),
             if (d.doorType == 'Roll-up Door') ..._buildRollupDoorFields(d, c),
@@ -2459,7 +2508,7 @@ if (_showsSidingHeight()) ...[
     return [
       const SizedBox(height: 8),
       _dropdown(
-        label: 'Entry/Exterior Door',
+        label: 'Entry/Exterior Door Type',
         value: d.entryDoorType,
         options: const [
           'Single Exterior Door',
@@ -2495,7 +2544,7 @@ if (_showsSidingHeight()) ...[
       _dropdown(
         label: 'Style',
         value: d.entryStyle,
-        options: const ['High grade', 'Premium grade', 'Deluxe grade'],
+        options: const ['Standard Grade', 'High grade', 'Premium grade', 'Deluxe grade'],
         onChanged: (v) => setState(() {
           d.entryStyle = v ?? '';
           _mark();

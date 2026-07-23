@@ -1025,7 +1025,12 @@ class PdfService {
            return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-             _buildDataRow("  Building ${i + 1} Name", building.name ?? "N/A"),
+             _buildDataRow(
+               "  Building ${i + 1} Name",
+               building.name != null && building.name!.trim().isNotEmpty
+                   ? building.name!.trim()
+                   : "${building.displayName(i)} (default)",
+             ),
              _buildDataRow("  Building ${i + 1} Address", building.streetAddress ?? report.address),
              _buildDataRow("  Building ${i + 1} Roof Sections", building.roofs.length.toString()),
              pw.SizedBox(height: 5),
@@ -1726,7 +1731,8 @@ class PdfService {
             "${elevation.side.display} Elevation",
             style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
           ),
-          _buildDataRow("Siding Type", _textOrNA(siding)),
+          _buildDataRow("Siding Material", _textOrNA(siding)),
+          ..._buildElevationSidingDetailRows(elevation.siding),
           ..._buildElevationSidingScopeRows(elevation.siding),
           if (_isUnderlaymentApplicableSiding(siding) &&
               (underlayment.hasAnyData || hasPanelInsulationData))
@@ -1856,7 +1862,8 @@ class PdfService {
         rows.add(_buildDataRow("Scupper quantity", data.gutScupperQty.trim()));
       }
       rows.add(_buildDataRow("Scope of Work", _textOrNA(data.gutScope)));
-      if (data.gutLf.trim().isNotEmpty) {
+      rows.add(_buildDataRow("Quantity", _textOrNA(data.gutQuantity)));
+      if (data.gutQuantity == 'Partial' && data.gutLf.trim().isNotEmpty) {
         rows.add(_buildDataRow("How many LF", data.gutLf.trim()));
       }
       rows.add(_buildDataRow("Requires painting?", data.gutPaint == true ? "Yes" : "No"));
@@ -1914,6 +1921,69 @@ class PdfService {
       }
       rows.add(_buildDataRow("Requires painting?", data.sofPaint == true ? "Yes" : "No"));
       rows.add(pw.SizedBox(height: 5));
+
+      return rows;
+    }
+
+    static List<pw.Widget> _buildElevationSidingDetailRows(dynamic siding) {
+      final rows = <pw.Widget>[];
+      final material = (siding.sidingMain as String?) ?? '';
+      String sidingType = '';
+
+      switch (material) {
+        case 'Vinyl':
+          sidingType = siding.vinylType;
+          break;
+        case 'Aluminum':
+          sidingType = siding.aluminumType;
+          break;
+        case 'Wood':
+          sidingType = siding.woodType;
+          break;
+        case 'Fiber-Cement':
+          sidingType = siding.fiberCementType;
+          break;
+        case 'Steel':
+          sidingType = siding.steelType;
+          break;
+        case 'Wall/roof panel':
+          sidingType = siding.panelType;
+          break;
+      }
+
+      if (sidingType.trim().isNotEmpty) {
+        rows.add(_buildDataRow('Siding Type', sidingType.trim()));
+      }
+      if (siding.sidingHeight.trim().isNotEmpty) {
+        rows.add(_buildDataRow('Siding Height', siding.sidingHeight.trim()));
+      }
+      if (material == 'Steel' && siding.steelSidingGauge.trim().isNotEmpty) {
+        rows.add(_buildDataRow('Steel Siding Gauge', siding.steelSidingGauge.trim()));
+      }
+      if (material == 'Wall/roof panel') {
+        final gauge = siding.panelType == 'Corrugated'
+            ? siding.panelCorrugatedGauge
+            : siding.panelType == 'Ribbed'
+                ? siding.panelRibbedGauge
+                : '';
+        final gaugeOther = siding.panelType == 'Corrugated'
+            ? siding.panelCorrugatedGaugeOther
+            : siding.panelType == 'Ribbed'
+                ? siding.panelRibbedGaugeOther
+                : '';
+        if (gauge.trim().isNotEmpty) {
+          rows.add(_buildDataRow('Gauge', gauge.trim()));
+        }
+        if (gauge == 'Other' && gaugeOther.trim().isNotEmpty) {
+          rows.add(_buildDataRow('Gauge Specify', gaugeOther.trim()));
+        }
+        if (siding.panelType == 'Corrugated') {
+          rows.add(_buildDataRow(
+            'Galvanized',
+            siding.panelCorrugatedGalvanized == true ? 'Yes' : 'No',
+          ));
+        }
+      }
 
       return rows;
     }
@@ -2854,6 +2924,13 @@ class PdfService {
       ];
 
       _addOptionalDataRow(rows, '      Vent $index Size', vent.size);
+      if (vent.size == 'Other') {
+        _addOptionalDataRow(
+          rows,
+          '      Vent $index Specify size',
+          vent.sizeOtherSpecify,
+        );
+      }
       _addOptionalDataRow(rows, '      Vent $index Throat dimension', vent.throatDimension);
       _addOptionalDataRow(rows, '      Vent $index Specify throat dimension', vent.throatDimensionOtherSpecify);
       _addOptionalDataRow(rows, '      Vent $index Shape', vent.shape);

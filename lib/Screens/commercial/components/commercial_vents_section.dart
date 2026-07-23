@@ -134,6 +134,7 @@ class _CommercialVentsSectionState extends State<CommercialVentsSection> {
                         setState(() {
                           vent.type = val;
                           vent.size = null;
+                          vent.sizeOtherSpecify = null;
                           vent.throatDimension = null;
                           vent.throatDimensionOtherSpecify = null;
                           vent.shape = null;
@@ -153,7 +154,29 @@ class _CommercialVentsSectionState extends State<CommercialVentsSection> {
                           .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                           .toList(),
                       onChanged: (val) {
-                        setState(() => vent.size = val);
+                        setState(() {
+                          vent.size = val;
+                          if (val != 'Other') {
+                            vent.sizeOtherSpecify = null;
+                          }
+                        });
+                        widget.onChanged();
+                      },
+                    ),
+                  ],
+
+                  if (vent.type == 'Exhaust Vent/Cap Gooseneck' &&
+                      vent.size == 'Other') ...[
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      key: ObjectKey(vent),
+                      initialValue: vent.sizeOtherSpecify,
+                      decoration: const InputDecoration(
+                        labelText: 'Specify size',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (val) {
+                        vent.sizeOtherSpecify = val;
                         widget.onChanged();
                       },
                     ),
