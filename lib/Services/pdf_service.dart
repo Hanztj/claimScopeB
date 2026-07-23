@@ -181,7 +181,7 @@ class _PdfPhotoItemBytes {
 }
 
 class PdfService {
-  static const String photoCacheVersionFolder = 'photo_cache_v2';
+  static const String photoCacheVersionFolder = 'photo_cache_v3';
 
   /// Builds a stable cache namespace for one inspection report.
   ///

@@ -56,6 +56,41 @@ Map<String, String> buildCommercialPhotoLabelOverrides(
           ? 'Roof ${roofIndex + 1}'
           : roof.roofLabel!.trim();
 
+      // The overview may have been captured before the editable roof label was
+      // changed. Resolve its original structured Building/Roof group from the
+      // main overview photo, then temporarily relabel the main and additional
+      // overview photos with the roof's current display name.
+      final overviewPath = roof.overviewPhoto?.absolute.path;
+      if (overviewPath != null) {
+        ({String building, String roof, String label})? originalOverviewLabel;
+        for (final item in report.photoReportItems) {
+          if (item.file.absolute.path != overviewPath) continue;
+          originalOverviewLabel = tryParseCommercialPhotoLabel(item.label);
+          break;
+        }
+
+        if (originalOverviewLabel != null) {
+          for (final item in report.photoReportItems) {
+            final parsed = tryParseCommercialPhotoLabel(item.label);
+            if (parsed == null ||
+                parsed.building != originalOverviewLabel.building ||
+                parsed.roof != originalOverviewLabel.roof ||
+                (parsed.label != 'Roof Overview Photo' &&
+                    !parsed.label.startsWith(
+                      'Roof Overview Photo - Image ',
+                    ))) {
+              continue;
+            }
+
+            overrides[item.file.absolute.path] = buildCommercialPhotoLabel(
+              building: buildingName,
+              roof: roofName,
+              label: parsed.label,
+            );
+          }
+        }
+      }
+
       for (var i = 0; i < roof.shingleFlashings.length; i++) {
         final flashing = roof.shingleFlashings[i];
         addIndexedPhotoGroup(

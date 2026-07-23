@@ -42,6 +42,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
   late final CommercialRoofSectionData roof;
   bool _submitRoofOnly = false;
   bool _isSubmitting = false;
+  bool _isSavingSection = false;
 
   final _picker = ImagePicker();
 
@@ -760,7 +761,9 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                 }
 
                 return ElevatedButton(
-                  onPressed: _isSubmitting ? null : () async {
+                  onPressed: (_isSubmitting || _isSavingSection)
+                      ? null
+                      : () async {
                     final messenger = ScaffoldMessenger.of(context);
                     final navigator = Navigator.of(context);
                     _sync();
@@ -1165,13 +1168,21 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                       return;
                     }
 
+                    setState(() => _isSavingSection = true);
                     try {
-                      await PdfService.buildPartialPhotoPdfForCommercialSection(
-                        report: widget.report,
-                        buildingIndex: widget.buildingIndex,
-                        roofIndex: widget.roofIndex,
-                        buildingName: buildingName,
-                        roofName: roofName,
+                      await runWithBlockingProgress<void>(
+                        context: context,
+                        message: 'Saving roof section photos...',
+                        task: () async {
+                          await PdfService
+                              .buildPartialPhotoPdfForCommercialSection(
+                            report: widget.report,
+                            buildingIndex: widget.buildingIndex,
+                            roofIndex: widget.roofIndex,
+                            buildingName: buildingName,
+                            roofName: roofName,
+                          );
+                        },
                       );
                     } catch (e) {
                       if (!mounted) return;
@@ -1182,6 +1193,12 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                         ),
                       );
                       return;
+                    } finally {
+                      if (mounted) {
+                        setState(() => _isSavingSection = false);
+                      } else {
+                        _isSavingSection = false;
+                      }
                     }
 
                     if (!mounted) return;
@@ -1254,15 +1271,30 @@ if (isFinalStep) {
                             Text('Generating reports...'),
                           ],
                         )
-                      : Text(
-                          isFinalStep
-                              ? (widget.report.inspectElevations
-                                  ? (_submitRoofOnly
-                                      ? 'Submit Inspection'
-                                      : 'Save & Continue')
-                                  : 'Submit Inspection')
-                              : 'Save & Continue',
-                        ),
+                      : _isSavingSection
+                          ? const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                                SizedBox(width: 10),
+                                Text('Saving section...'),
+                              ],
+                            )
+                          : Text(
+                              isFinalStep
+                                  ? (widget.report.inspectElevations
+                                      ? (_submitRoofOnly
+                                          ? 'Submit Inspection'
+                                          : 'Save & Continue')
+                                      : 'Submit Inspection')
+                                  : 'Save & Continue',
+                            ),
                 );
               },
             ),

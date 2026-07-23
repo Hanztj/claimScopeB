@@ -20,7 +20,7 @@ class CommercialVentFieldConfig {
 // LEGACY — mantener intacto.
 // ============================================================
 const List<String> commercialVentTypes = [
-  'Pipe jack Boot',
+  'Pipe jack',
   'Vent Pipe High Wind Cap',
   'Furnace Vent',
   'T-top Vent',
