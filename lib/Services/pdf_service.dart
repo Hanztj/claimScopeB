@@ -10,8 +10,10 @@ import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
+import 'package:pdf_combiner/pdf_combiner.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:pdf_combiner/models/merge_input.dart';
 
 /// Downscale/recompress a photo for PDF embedding to reduce heap pressure.
 /// Runs in an isolate via `compute()`. If the source is already small enough,
@@ -64,9 +66,9 @@ class PdfBusyFlag {
 /// Logical unit used by the incremental Photo PDF cache.
 ///
 /// Defines stable section identifiers and cache state for the incremental
-/// Photo PDF pipeline. Existing PDF generation remains unchanged until the
-/// later incremental patches.
+/// Photo PDF pipeline and final ordered merge.
 enum PhotoSectionType {
+  residentialRoof,
   commercialRoof,
   elevation,
   globalElevation,
@@ -96,6 +98,13 @@ class PhotoSection {
     required this.id,
     required this.type,
   });
+
+  factory PhotoSection.residentialRoof() {
+    return const PhotoSection._(
+      id: 'residential_roof',
+      type: PhotoSectionType.residentialRoof,
+    );
+  }
 
   factory PhotoSection.commercialRoof({
     required int buildingIndex,
@@ -402,9 +411,8 @@ class PdfService {
 
   /// Generates or reuses the cached Photo PDF for one commercial roof section.
   ///
-  /// This is the Patch 3 entry point used by Commercial `Save & Continue`.
-  /// It writes only the current section's partial PDF and hash. The existing
-  /// final Photo PDF remains monolithic until the later merge patch.
+  /// Used by Commercial `Save & Continue` and by the final merge safety net.
+  /// It writes only the requested roof section's partial PDF and hash.
   static Future<File> buildPartialPhotoPdfForCommercialSection({
     required InspectionReport report,
     required int buildingIndex,
@@ -543,7 +551,7 @@ class PdfService {
     }
   }
 
-  static Future<File?> _buildPartialPhotoPdfForElevationSection({
+  static Future<File?> _buildPartialPhotoPdfSection({
     required String reportCacheKey,
     required PhotoSection section,
     required List<PhotoItem> photoItems,
@@ -618,8 +626,7 @@ class PdfService {
   /// Generates or reuses all cached Elevations Photo PDF sections.
   ///
   /// Global photos and every building elevation are independent cache units.
-  /// This Patch 4 entry point runs before the existing monolithic final report;
-  /// no merge or final Photo PDF behavior changes yet.
+  /// Used by Elevations submit and by the final merge safety net.
   static Future<List<File>> buildPartialPhotoPdfsForElevations(
     InspectionReport report,
   ) async {
@@ -640,7 +647,7 @@ class PdfService {
       );
       final partialFiles = <File>[];
 
-      final globalFile = await _buildPartialPhotoPdfForElevationSection(
+      final globalFile = await _buildPartialPhotoPdfSection(
         reportCacheKey: reportCacheKey,
         section: PhotoSection.globalElevation(),
         photoItems: _elevationPhotoItems(
@@ -653,7 +660,7 @@ class PdfService {
       if (globalFile != null) partialFiles.add(globalFile);
 
       for (final elevation in report.elevations.elevations) {
-        final partialFile = await _buildPartialPhotoPdfForElevationSection(
+        final partialFile = await _buildPartialPhotoPdfSection(
           reportCacheKey: reportCacheKey,
           section: PhotoSection.elevation(sideKey: elevation.side.key),
           photoItems: _elevationPhotoItems(
@@ -669,6 +676,250 @@ class PdfService {
       return partialFiles;
     } finally {
       PdfBusyFlag.busy = wasBusy;
+    }
+  }
+
+  static List<PhotoItem> _residentialRoofPhotoItems(
+    InspectionReport report,
+  ) {
+    return report.photoReportItems
+        .where((item) => tryParseElevationsPhotoLabel(item.label) == null)
+        .toList(growable: false);
+  }
+
+  /// Generates or reuses the cached Residential roof Photo PDF section.
+  ///
+  /// Elevations photos are intentionally excluded because they are cached and
+  /// merged as independent sections.
+  static Future<File?> buildPartialPhotoPdfForResidentialRoof(
+    InspectionReport report,
+  ) async {
+    final wasBusy = PdfBusyFlag.busy;
+    PdfBusyFlag.busy = true;
+
+    try {
+      final reportCacheKey = buildPhotoCacheReportKey(report);
+      final section = PhotoSection.residentialRoof();
+      final photoItems = _residentialRoofPhotoItems(report);
+
+      if (photoItems.isEmpty) {
+        await _removeCachedPhotoSection(
+          reportCacheKey: reportCacheKey,
+          section: section,
+        );
+        return null;
+      }
+
+      final fontDataRegular =
+          await rootBundle.load('assets/fonts/Roboto-Regular.ttf');
+      final fontDataBold =
+          await rootBundle.load('assets/fonts/Roboto-Bold.ttf');
+      final pdfTheme = pw.ThemeData.withFont(
+        base: pw.Font.ttf(fontDataRegular),
+        bold: pw.Font.ttf(fontDataBold),
+      );
+
+      return _buildPartialPhotoPdfSection(
+        reportCacheKey: reportCacheKey,
+        section: section,
+        photoItems: photoItems,
+        isCommercial: false,
+        pdfTheme: pdfTheme,
+      );
+    } finally {
+      PdfBusyFlag.busy = wasBusy;
+    }
+  }
+
+  static Future<void> _validatePartialPhotoPdf(
+    File file, {
+    required String sectionName,
+  }) async {
+    if (!await file.exists()) {
+      throw StateError('Missing Photo PDF section: $sectionName.');
+    }
+    if (await file.length() <= 0) {
+      throw StateError('Empty Photo PDF section: $sectionName.');
+    }
+  }
+
+  /// Safety net for the final Photo PDF.
+  ///
+  /// Every current section is re-evaluated before merge. Missing or dirty
+  /// partials are regenerated, while valid cached partials are reused.
+  static Future<List<File>> _buildOrderedPartialPhotoPdfsForMerge(
+    InspectionReport report,
+  ) async {
+    final partialFiles = <File>[];
+    final reportCacheKey = buildPhotoCacheReportKey(report);
+    final isCommercial =
+        report.isCommercial == true || report.commercialBuildings.isNotEmpty;
+
+    if (isCommercial) {
+      for (var buildingIndex = 0;
+          buildingIndex < report.commercialBuildings.length;
+          buildingIndex++) {
+        final building = report.commercialBuildings[buildingIndex];
+        final buildingName = building.displayName(buildingIndex);
+
+        for (var roofIndex = 0;
+            roofIndex < building.roofs.length;
+            roofIndex++) {
+          final roof = building.roofs[roofIndex];
+          final roofName = (roof.roofLabel ?? '').trim().isEmpty
+              ? 'Roof ${roofIndex + 1}'
+              : roof.roofLabel!.trim();
+          final section = PhotoSection.commercialRoof(
+            buildingIndex: buildingIndex,
+            roofIndex: roofIndex,
+          );
+          final photoItems = _commercialSectionPhotoItems(
+            report: report,
+            buildingIndex: buildingIndex,
+            roofIndex: roofIndex,
+            buildingName: buildingName,
+            roofName: roofName,
+          );
+
+          if (photoItems.isEmpty) {
+            await _removeCachedPhotoSection(
+              reportCacheKey: reportCacheKey,
+              section: section,
+            );
+            continue;
+          }
+
+          final partialFile =
+              await buildPartialPhotoPdfForCommercialSection(
+            report: report,
+            buildingIndex: buildingIndex,
+            roofIndex: roofIndex,
+            buildingName: buildingName,
+            roofName: roofName,
+          );
+          await _validatePartialPhotoPdf(
+            partialFile,
+            sectionName: '$buildingName - $roofName',
+          );
+          partialFiles.add(partialFile);
+        }
+      }
+    } else {
+      final residentialFile =
+          await buildPartialPhotoPdfForResidentialRoof(report);
+      if (residentialFile != null) {
+        await _validatePartialPhotoPdf(
+          residentialFile,
+          sectionName: 'Residential Roof',
+        );
+        partialFiles.add(residentialFile);
+      }
+    }
+
+    final elevationFiles = await buildPartialPhotoPdfsForElevations(report);
+    for (final elevationFile in elevationFiles) {
+      await _validatePartialPhotoPdf(
+        elevationFile,
+        sectionName: elevationFile.uri.pathSegments.last,
+      );
+      partialFiles.add(elevationFile);
+    }
+
+    if (partialFiles.isEmpty) {
+      throw StateError(
+        'No inspection photos are available to generate the Photo PDF.',
+      );
+    }
+
+    return partialFiles;
+  }
+
+  static Future<void> _replaceFileSafely({
+    required File preparedFile,
+    required File destinationFile,
+  }) async {
+    final backupFile = File('${destinationFile.path}.previous');
+    if (await backupFile.exists()) {
+      if (!await destinationFile.exists()) {
+        await backupFile.rename(destinationFile.path);
+      } else {
+        await backupFile.delete();
+      }
+    }
+
+    var previousMoved = false;
+    try {
+      if (await destinationFile.exists()) {
+        await destinationFile.rename(backupFile.path);
+        previousMoved = true;
+      }
+
+      await preparedFile.rename(destinationFile.path);
+
+      if (previousMoved && await backupFile.exists()) {
+        await backupFile.delete();
+      }
+    } catch (_) {
+      if (await destinationFile.exists()) {
+        await destinationFile.delete();
+      }
+      if (previousMoved && await backupFile.exists()) {
+        await backupFile.rename(destinationFile.path);
+      }
+      rethrow;
+    }
+  }
+
+  static Future<void> _mergePartialPhotoPdfs({
+    required List<File> partialFiles,
+    required File outputFile,
+  }) async {
+    if (partialFiles.isEmpty) {
+      throw StateError('Cannot merge an empty Photo PDF section list.');
+    }
+
+    for (final partialFile in partialFiles) {
+      await _validatePartialPhotoPdf(
+        partialFile,
+        sectionName: partialFile.uri.pathSegments.last,
+      );
+    }
+
+    final tempFile = File('${outputFile.path}.merge.tmp.pdf');
+    if (await tempFile.exists()) {
+      await tempFile.delete();
+    }
+
+    try {
+      if (partialFiles.length == 1) {
+        await partialFiles.single.copy(tempFile.path);
+      } else {
+        final mergedPath = await PdfCombiner.mergeMultiplePDFs(
+          inputs: partialFiles
+              .map((file) => MergeInput.path(file.absolute.path))
+              .toList(growable: false),
+          outputPath: tempFile.absolute.path,
+        );
+
+        final pluginOutput = File(mergedPath);
+        if (pluginOutput.absolute.path != tempFile.absolute.path &&
+            await pluginOutput.exists()) {
+          await pluginOutput.copy(tempFile.path);
+        }
+      }
+
+      if (!await tempFile.exists() || await tempFile.length() <= 0) {
+        throw StateError('The merged Photo PDF was not created correctly.');
+      }
+
+      await _replaceFileSafely(
+        preparedFile: tempFile,
+        destinationFile: outputFile,
+      );
+    } finally {
+      if (await tempFile.exists()) {
+        await tempFile.delete();
+      }
     }
   }
 
@@ -692,7 +943,6 @@ class PdfService {
 
     // Palanca 2: pdfTech nullable para liberarlo antes del loop de fotos.
     pw.Document? pdfTech = pw.Document();
-    final pdfPhotos = pw.Document();
       // Determinar si es comercial
   final isCommercial = report.isCommercial == true || report.commercialBuildings.isNotEmpty;
 
@@ -804,49 +1054,7 @@ class PdfService {
     // Palanca 2 (commercial): guardar y liberar pdfTech antes de encolar fotos.
     await techFile.writeAsBytes(await pdfTech.save());
     pdfTech = null;
-                          // --- PDF DE FOTOS COMERCIAL ---
-    // Usar la lista unificada report.photoReportItems. Para Flashing, Vent,
-    // HVAC y Mechanical, el PDF aplica captions temporales basados en el orden
-    // actual del modelo; los labels almacenados que utiliza el ZIP no cambian.
-    // _buildPhotoFrame decodifica el label estructurado (Bldg=|Roof=|Label=)
-    // para mostrar un caption legible.
-    final commercialPhotoLabelOverrides =
-        _commercialPhotoPdfLabelOverrides(report);
-    for (var i = 0; i < report.photoReportItems.length; i += 2) {
-      // Palanca 3: preset agresivo (800px/q65) en commercial.
-      final firstItem = _commercialPhotoItemForPdf(
-        report.photoReportItems[i],
-        commercialPhotoLabelOverrides,
-      );
-      final firstPhoto = await _loadPdfPhotoItemBytes(
-        firstItem,
-        isCommercial: true,
-      );
-      final secondPhoto = i + 1 < report.photoReportItems.length
-          ? await _loadPdfPhotoItemBytes(
-              _commercialPhotoItemForPdf(
-                report.photoReportItems[i + 1],
-                commercialPhotoLabelOverrides,
-              ),
-              isCommercial: true,
-            )
-          : null;
-
-      pdfPhotos.addPage(
-        pw.Page(
-          theme: pdfTheme,
-          build: (context) => pw.Column(
-            children: [
-              _buildPhotoFrame(firstPhoto),
-              if (secondPhoto != null) ...[
-                pw.SizedBox(height: 20),
-                _buildPhotoFrame(secondPhoto),
-              ],
-            ],
-          ),
-        ),
-      );
-    }
+    // Photo PDF sections are generated and merged after the technical PDF.
 
             
   } 
@@ -902,31 +1110,17 @@ class PdfService {
     await techFile.writeAsBytes(await pdfTech.save());
     pdfTech = null;
                       
-             // --- PDF DE FOTOS: 2 POR PÁGINA ---
-     for (var i = 0; i < report.photoReportItems.length; i += 2) {
-      final firstPhoto = await _loadPdfPhotoItemBytes(report.photoReportItems[i]);
-      final secondPhoto = i + 1 < report.photoReportItems.length
-          ? await _loadPdfPhotoItemBytes(report.photoReportItems[i + 1])
-          : null;
+    // Photo PDF sections are generated and merged after the technical PDF.
+    }
 
-      pdfPhotos.addPage(
-        pw.Page(
-          theme: pdfTheme,
-          build: (context) => pw.Column(
-            children: [
-              _buildPhotoFrame(firstPhoto),
-              if (secondPhoto != null) ...[ 
-                  pw.SizedBox(height: 20),
-                _buildPhotoFrame(secondPhoto),
-              ],
-            ],
-          ),
-        ),
-      );
-    }}
+    final partialPhotoPdfs =
+        await _buildOrderedPartialPhotoPdfsForMerge(report);
+    await _mergePartialPhotoPdfs(
+      partialFiles: partialPhotoPdfs,
+      outputFile: photoFile,
+    );
+
     // Palanca 2: pdfTech ya fue guardado y liberado en cada rama.
-    await photoFile.writeAsBytes(await pdfPhotos.save());
-
    return {'tech': techFile, 'photos': photoFile};
     } finally {
       // Palanca 1: reactivar auto-savers pase lo que pase.
@@ -935,6 +1129,80 @@ class PdfService {
     }
 
      
+    // Retained only for Patch 6 comparison/cleanup. The final Photo PDF now
+    // comes exclusively from cached section PDFs and the merge pipeline.
+    // ignore: unused_element
+    static Future<pw.Document> _buildMonolithicPhotoPdfLegacy({
+      required InspectionReport report,
+      required pw.ThemeData pdfTheme,
+      required bool isCommercial,
+    }) async {
+      final pdfPhotos = pw.Document();
+
+      if (isCommercial) {
+        final commercialPhotoLabelOverrides =
+            _commercialPhotoPdfLabelOverrides(report);
+        for (var i = 0; i < report.photoReportItems.length; i += 2) {
+          final firstPhoto = await _loadPdfPhotoItemBytes(
+            _commercialPhotoItemForPdf(
+              report.photoReportItems[i],
+              commercialPhotoLabelOverrides,
+            ),
+            isCommercial: true,
+          );
+          final secondPhoto = i + 1 < report.photoReportItems.length
+              ? await _loadPdfPhotoItemBytes(
+                  _commercialPhotoItemForPdf(
+                    report.photoReportItems[i + 1],
+                    commercialPhotoLabelOverrides,
+                  ),
+                  isCommercial: true,
+                )
+              : null;
+
+          pdfPhotos.addPage(
+            pw.Page(
+              theme: pdfTheme,
+              build: (context) => pw.Column(
+                children: [
+                  _buildPhotoFrame(firstPhoto),
+                  if (secondPhoto != null) ...[
+                    pw.SizedBox(height: 20),
+                    _buildPhotoFrame(secondPhoto),
+                  ],
+                ],
+              ),
+            ),
+          );
+        }
+      } else {
+        for (var i = 0; i < report.photoReportItems.length; i += 2) {
+          final firstPhoto =
+              await _loadPdfPhotoItemBytes(report.photoReportItems[i]);
+          final secondPhoto = i + 1 < report.photoReportItems.length
+              ? await _loadPdfPhotoItemBytes(report.photoReportItems[i + 1])
+              : null;
+
+          pdfPhotos.addPage(
+            pw.Page(
+              theme: pdfTheme,
+              build: (context) => pw.Column(
+                children: [
+                  _buildPhotoFrame(firstPhoto),
+                  if (secondPhoto != null) ...[
+                    pw.SizedBox(height: 20),
+                    _buildPhotoFrame(secondPhoto),
+                  ],
+                ],
+              ),
+            ),
+          );
+        }
+      }
+
+      return pdfPhotos;
+    }
+
     static List<pw.Widget> _buildResidentialRoofDetails(InspectionReport report) {
       return [
         _buildSectionTitle("ROOF SYSTEM DETAILS"),

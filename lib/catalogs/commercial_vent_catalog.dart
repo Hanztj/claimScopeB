@@ -39,7 +39,7 @@ const Map<String, CommercialVentFieldConfig> commercialVentConfigByType = {
     sizeOptions: ['5"', '6"', '8"'],
   ),
   'Exhaust Vent/Cap Gooseneck': CommercialVentFieldConfig(
-    sizeOptions: ['8"', '12"'],
+    sizeOptions: ['8"', '12"', 'Other'],
   ),
   'Gravity relief/intake Ventilator': CommercialVentFieldConfig(
     throatDimensionOptions: ['12"', '14"', '16"', '18"', '20"', '24"', '26"', 'Other'],
