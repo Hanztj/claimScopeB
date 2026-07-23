@@ -96,6 +96,7 @@ Archive buildLabeledPhotosArchive(List<PhotoItem> items) {
     late final String folder;
     late final String displayLabel;
     var isRoofPhoto = false;
+    var isCommercialAdditionalImage = false;
     int? explicitImageNumber;
 
     if (parsed != null) {
@@ -113,6 +114,8 @@ Archive buildLabeledPhotosArchive(List<PhotoItem> items) {
       } else {
         displayLabel = parsed.label;
       }
+      isCommercialAdditionalImage =
+          displayLabel.trim().toLowerCase() == 'additional image';
       isRoofPhoto = true;
     } else if (parsedElev != null) {
       // ✨ CORRECCIÓN ELEVATIONS:
@@ -133,10 +136,12 @@ Archive buildLabeledPhotosArchive(List<PhotoItem> items) {
       isRoofPhoto = true;
     }
 
-    final base = _sanitizePhotoBaseName(
-      displayLabel,
-      removeGenericPhotoWord: isRoofPhoto,
-    );
+    final base = isCommercialAdditionalImage
+        ? '${_sanitizePhotoBaseName(parsed!.roof)}_Add'
+        : _sanitizePhotoBaseName(
+            displayLabel,
+            removeGenericPhotoWord: isRoofPhoto,
+          );
     final key = '$folder/$base';
     final int n;
 
@@ -212,7 +217,7 @@ Future<File> generateLabeledPhotosZip(
 ) async {
   // Excluir imágenes de galería.
   final commercialLabelOverrides =
-      buildCommercialPhotoLabelOverrides(report);
+      buildCommercialZipPhotoLabelOverrides(report);
   final items = report.photoReportItems
       .where((item) => item.label.trim() != 'User Image')
       .map(
