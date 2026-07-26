@@ -1168,11 +1168,26 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                       return;
                     }
 
+                    final sectionPhotoCount =
+                        PdfService.commercialSectionPhotoCount(
+                      report: widget.report,
+                      buildingIndex: widget.buildingIndex,
+                      roofIndex: widget.roofIndex,
+                      buildingName: buildingName,
+                      roofName: roofName,
+                    );
+                    final largeSectionMessage = sectionPhotoCount >
+                            PdfService.largeCommercialPhotoSectionThreshold
+                        ? 'Large photo sections may require additional processing time. '
+                            'Keep ClaimScope open until saving is complete.'
+                        : null;
+
                     setState(() => _isSavingSection = true);
                     try {
                       await runWithBlockingProgress<void>(
                         context: context,
                         message: 'Saving roof section photos...',
+                        secondaryMessage: largeSectionMessage,
                         task: () async {
                           await PdfService
                               .buildPartialPhotoPdfForCommercialSection(
@@ -1332,9 +1347,15 @@ if (isFinalStep) {
     widget.report.isCommercial = true;
     roof.reportType = 'commercial';
 
+    final largeSectionMessage =
+        PdfService.hasLargeCommercialPhotoSection(widget.report)
+            ? 'Large photo sections may require additional processing time. '
+                'Keep ClaimScope open until report generation is complete.'
+            : null;
     final pdfs = await runWithBlockingProgress<Map<String, File>>(
       context: context,
       message: 'Generating inspection reports...',
+      secondaryMessage: largeSectionMessage,
       task: () async {
         await beforeGenerate?.call();
         return PdfService.generateReports(widget.report);

@@ -182,6 +182,8 @@ class _PdfPhotoItemBytes {
 
 class PdfService {
   static const String photoCacheVersionFolder = 'photo_cache_v3';
+  static const int commercialPhotoChunkSize = 24;
+  static const int largeCommercialPhotoSectionThreshold = 40;
 
   /// Builds a stable cache namespace for one inspection report.
   ///
@@ -409,6 +411,119 @@ class PdfService {
     return sectionItems;
   }
 
+  static int commercialSectionPhotoCount({
+    required InspectionReport report,
+    required int buildingIndex,
+    required int roofIndex,
+    required String buildingName,
+    required String roofName,
+  }) {
+    return _commercialSectionPhotoItems(
+      report: report,
+      buildingIndex: buildingIndex,
+      roofIndex: roofIndex,
+      buildingName: buildingName,
+      roofName: roofName,
+    ).length;
+  }
+
+  static bool hasLargeCommercialPhotoSection(
+    InspectionReport report, {
+    int threshold = largeCommercialPhotoSectionThreshold,
+  }) {
+    for (var buildingIndex = 0;
+        buildingIndex < report.commercialBuildings.length;
+        buildingIndex++) {
+      final building = report.commercialBuildings[buildingIndex];
+      final buildingName = building.displayName(buildingIndex);
+
+      for (var roofIndex = 0;
+          roofIndex < building.roofs.length;
+          roofIndex++) {
+        final roof = building.roofs[roofIndex];
+        final roofName = (roof.roofLabel ?? '').trim().isEmpty
+            ? 'Roof ${roofIndex + 1}'
+            : roof.roofLabel!.trim();
+        final count = commercialSectionPhotoCount(
+          report: report,
+          buildingIndex: buildingIndex,
+          roofIndex: roofIndex,
+          buildingName: buildingName,
+          roofName: roofName,
+        );
+        if (count > threshold) return true;
+      }
+    }
+    return false;
+  }
+
+  static Future<void> _deleteCommercialChunkFiles(File sectionFile) async {
+    final sectionFilename = sectionFile.uri.pathSegments.last;
+    final chunkPrefix = '$sectionFilename.chunk_';
+
+    if (!await sectionFile.parent.exists()) return;
+    await for (final entity in sectionFile.parent.list()) {
+      if (entity is! File) continue;
+      final filename = entity.uri.pathSegments.last;
+      if (filename.startsWith(chunkPrefix)) {
+        await entity.delete();
+      }
+    }
+  }
+
+  static Future<File> _buildCommercialPhotoChunk({
+    required List<PhotoItem> photoItems,
+    required int startIndex,
+    required int endIndex,
+    required int chunkNumber,
+    required pw.ThemeData pdfTheme,
+    required File sectionFile,
+  }) async {
+    final chunkPdf = pw.Document();
+
+    for (var i = startIndex; i < endIndex; i += 2) {
+      final firstPhoto = await _loadPdfPhotoItemBytes(
+        photoItems[i],
+        isCommercial: true,
+      );
+      final secondPhoto = i + 1 < endIndex
+          ? await _loadPdfPhotoItemBytes(
+              photoItems[i + 1],
+              isCommercial: true,
+            )
+          : null;
+
+      chunkPdf.addPage(
+        pw.Page(
+          theme: pdfTheme,
+          build: (context) => pw.Column(
+            children: [
+              _buildPhotoFrame(firstPhoto),
+              if (secondPhoto != null) ...[
+                pw.SizedBox(height: 20),
+                _buildPhotoFrame(secondPhoto),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
+
+    final chunkSuffix = chunkNumber.toString().padLeft(3, '0');
+    final chunkFile = File('${sectionFile.path}.chunk_$chunkSuffix.pdf');
+    final tempFile = File('${chunkFile.path}.tmp');
+    if (await tempFile.exists()) await tempFile.delete();
+    if (await chunkFile.exists()) await chunkFile.delete();
+
+    await tempFile.writeAsBytes(await chunkPdf.save(), flush: true);
+    await tempFile.rename(chunkFile.path);
+    await _validatePartialPhotoPdf(
+      chunkFile,
+      sectionName: chunkFile.uri.pathSegments.last,
+    );
+    return chunkFile;
+  }
+
   /// Generates or reuses the cached Photo PDF for one commercial roof section.
   ///
   /// Used by Commercial `Save & Continue` and by the final merge safety net.
@@ -460,46 +575,42 @@ class PdfService {
         base: pw.Font.ttf(fontDataRegular),
         bold: pw.Font.ttf(fontDataBold),
       );
-      final partialPdf = pw.Document();
+      final chunkFiles = <File>[];
+      await _deleteCommercialChunkFiles(partialFile);
 
-      for (var i = 0; i < photoItems.length; i += 2) {
-        final firstPhoto = await _loadPdfPhotoItemBytes(
-          photoItems[i],
-          isCommercial: true,
-        );
-        final secondPhoto = i + 1 < photoItems.length
-            ? await _loadPdfPhotoItemBytes(
-                photoItems[i + 1],
-                isCommercial: true,
-              )
-            : null;
-
-        partialPdf.addPage(
-          pw.Page(
-            theme: pdfTheme,
-            build: (context) => pw.Column(
-              children: [
-                _buildPhotoFrame(firstPhoto),
-                if (secondPhoto != null) ...[
-                  pw.SizedBox(height: 20),
-                  _buildPhotoFrame(secondPhoto),
-                ],
-              ],
+      try {
+        var chunkNumber = 1;
+        for (var startIndex = 0;
+            startIndex < photoItems.length;
+            startIndex += commercialPhotoChunkSize) {
+          final endIndex =
+              (startIndex + commercialPhotoChunkSize < photoItems.length)
+                  ? startIndex + commercialPhotoChunkSize
+                  : photoItems.length;
+          chunkFiles.add(
+            await _buildCommercialPhotoChunk(
+              photoItems: photoItems,
+              startIndex: startIndex,
+              endIndex: endIndex,
+              chunkNumber: chunkNumber,
+              pdfTheme: pdfTheme,
+              sectionFile: partialFile,
             ),
-          ),
+          );
+          chunkNumber++;
+
+          // Yield between chunks so objects from the completed pw.Document
+          // can become collectible before the next group is constructed.
+          await Future<void>.delayed(Duration.zero);
+        }
+
+        await _mergePartialPhotoPdfs(
+          partialFiles: chunkFiles,
+          outputFile: partialFile,
         );
+      } finally {
+        await _deleteCommercialChunkFiles(partialFile);
       }
-
-      final tempFile = File('${hashState.partialPdfPath}.tmp');
-      if (await tempFile.exists()) {
-        await tempFile.delete();
-      }
-      await tempFile.writeAsBytes(await partialPdf.save(), flush: true);
-
-      if (await partialFile.exists()) {
-        await partialFile.delete();
-      }
-      await tempFile.rename(partialFile.path);
 
       await writeSectionHash(
         reportCacheKey: reportCacheKey,

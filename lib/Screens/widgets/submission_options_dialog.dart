@@ -20,7 +20,17 @@ Future<T> _runWithBlockingProgress<T>(
           children: [
             const CircularProgressIndicator(),
             const SizedBox(width: 16),
-            Expanded(child: Text(message)),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.88),
+                ),
+              ),
+            ),
           ],
         ),
       ),
