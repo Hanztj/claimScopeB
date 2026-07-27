@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:claimscope_clean/inspection_report_model.dart';
 import 'package:claimscope_clean/utils/commercial_photo_label_overrides.dart';
 import 'package:claimscope_clean/utils/photo_labels.dart';
+import 'package:claimscope_clean/utils/persistent_photo_storage.dart';
 import 'package:crypto/crypto.dart' show sha256;
 import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/services.dart' show rootBundle;
@@ -557,6 +558,7 @@ class PdfService {
           'No commercial photos were found for $buildingName - $roofName.',
         );
       }
+      await validatePhotoItems(photoItems);
 
       final hashState = await evaluateSectionHash(
         reportCacheKey: reportCacheKey,
@@ -676,6 +678,7 @@ class PdfService {
       );
       return null;
     }
+    await validatePhotoItems(photoItems);
 
     final hashState = await evaluateSectionHash(
       reportCacheKey: reportCacheKey,
@@ -1035,6 +1038,8 @@ class PdfService {
   }
 
   static Future<Map<String, File>> generateReports(InspectionReport report) async {
+    await validateInspectionPhotoFiles(report);
+
     // Palanca 1: pausar auto-savers durante la generación pesada.
     PdfBusyFlag.busy = true;
     try {

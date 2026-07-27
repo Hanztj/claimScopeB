@@ -17,6 +17,7 @@ import 'package:claimscope_clean/services/inspection_submission_service.dart';
 import 'package:claimscope_clean/services/pdf_service.dart';
 import 'package:claimscope_clean/services/stripe_service.dart';
 import 'package:claimscope_clean/utils/gallery_photo_helper.dart';
+import 'package:claimscope_clean/utils/persistent_photo_storage.dart';
 import 'package:claimscope_clean/utils/required_photo_validation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -777,7 +778,11 @@ String? noAction;
   if (pickedFile == null) return;
   if (!mounted) return;
 
-  final img = File(pickedFile.path);
+  final img = await persistInspectionPhoto(
+    report: widget.report,
+    sourcePath: pickedFile.path,
+  );
+  if (!mounted) return;
   File? previousFile;
 
   if (isGlobal) {

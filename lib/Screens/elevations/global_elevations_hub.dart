@@ -4,6 +4,7 @@ import 'package:claimscope_clean/inspection_report_model.dart';
 import 'package:claimscope_clean/screens/elevations/models/elevations_data.dart';
 import 'package:claimscope_clean/screens/elevations/widgets/section_status_dot.dart';
 import 'package:claimscope_clean/utils/photo_labels.dart';
+import 'package:claimscope_clean/utils/persistent_photo_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -89,10 +90,15 @@ class _GlobalElevationsHubState extends State<GlobalElevationsHub> {
       preferredCameraDevice: CameraDevice.rear,
     );
     if (picked == null) return;
+    final file = await persistInspectionPhoto(
+      report: widget.report,
+      sourcePath: picked.path,
+    );
+    if (!mounted) return;
     final n = _nextPhotoIndex(category);
     // Paso 4.5b: label parseable para PDF Photos y ZIP etiquetado.
     widget.report.addPhoto(
-      File(picked.path),
+      file,
       buildElevationsPhotoLabel(
         elev: 'Global',
         category: category,

@@ -5,6 +5,7 @@ import 'package:claimscope_clean/Services/email_service.dart';
 import 'package:claimscope_clean/inspection_report_model.dart';
 import 'package:claimscope_clean/utils/hf_pricing_helper.dart';
 import 'package:claimscope_clean/utils/labeled_photos_zip.dart';
+import 'package:claimscope_clean/utils/persistent_photo_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -226,6 +227,7 @@ class InspectionSubmissionService {
     }
 
     try {
+      await validateInspectionPhotoFiles(report);
       await _runWithBlockingProgress<void>(
         context,
         'Sending email...',
@@ -378,6 +380,19 @@ class InspectionSubmissionService {
     required File photoPdf,
     required bool rushOrder,
   }) async {
+    try {
+      await validateInspectionPhotoFiles(report);
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final shouldStore = await _askStoreReportInCloud(
       context: context,
       plan: plan,

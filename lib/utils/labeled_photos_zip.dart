@@ -4,6 +4,7 @@ import 'package:archive/archive.dart';
 import 'package:claimscope_clean/inspection_report_model.dart';
 import 'package:claimscope_clean/utils/commercial_photo_label_overrides.dart';
 import 'package:claimscope_clean/utils/photo_labels.dart';
+import 'package:claimscope_clean/utils/persistent_photo_storage.dart';
 import 'package:flutter/foundation.dart' show compute;
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
@@ -215,6 +216,8 @@ String _generateLabeledPhotosZipInBackground(Map<String, dynamic> payload) {
 Future<File> generateLabeledPhotosZip(
   InspectionReport report,
 ) async {
+  await validateInspectionPhotoFiles(report);
+
   // Excluir imágenes de galería.
   final commercialLabelOverrides =
       buildCommercialZipPhotoLabelOverrides(report);

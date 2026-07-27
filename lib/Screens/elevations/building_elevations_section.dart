@@ -4,6 +4,7 @@ import 'package:claimscope_clean/inspection_report_model.dart';
 import 'package:claimscope_clean/screens/elevations/models/elevations_data.dart';
 import 'package:claimscope_clean/screens/elevations/widgets/section_status_dot.dart';
 import 'package:claimscope_clean/utils/photo_labels.dart'; // Paso 4.5b
+import 'package:claimscope_clean/utils/persistent_photo_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -357,7 +358,7 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
   /// Captura una foto desde la cámara y la registra en
   /// `report.photoReportItems` con label estructurado de Elevations:
   ///   `Elev=<side>|Cat=Siding|Label=Photo <N>`
-  /// Sin thumbnail, sin estado local, sin persistencia adicional.
+  /// Sin thumbnail ni estado local adicional.
   Future<void> _addSidingPhoto() async {
    final picked = await _picker.pickImage(
       source: ImageSource.camera,
@@ -366,10 +367,15 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
       preferredCameraDevice: CameraDevice.rear,
     );
     if (picked == null) return;
+    final file = await persistInspectionPhoto(
+      report: widget.report,
+      sourcePath: picked.path,
+    );
+    if (!mounted) return;
     final n = _nextElevationPhotoIndex('Siding');
     // Paso 4.5b: label parseable para PDF Photos y ZIP etiquetado.
     widget.report.addPhoto(
-      File(picked.path),
+      file,
       buildElevationsPhotoLabel(
         elev: widget.elevation.side.display,
         category: 'Siding',
@@ -936,7 +942,11 @@ class _BuildingElevationsSectionState extends State<BuildingElevationsSection> {
     );
     if (picked == null) return;
 
-    final file = File(picked.path);
+    final file = await persistInspectionPhoto(
+      report: widget.report,
+      sourcePath: picked.path,
+    );
+    if (!mounted) return;
     final previousFile = extra ? null : _eifs.photo;
     final label = extra
         ? buildElevationsPhotoLabel(
@@ -1779,7 +1789,11 @@ if (_showsSidingHeight()) ...[
     );
     if (picked == null) return;
 
-    final file = File(picked.path);
+    final file = await persistInspectionPhoto(
+      report: widget.report,
+      sourcePath: picked.path,
+    );
+    if (!mounted) return;
     final previousFile = extra ? null : t.photo;
     final label = extra
         ? buildElevationsPhotoLabel(
@@ -2277,7 +2291,11 @@ if (_showsSidingHeight()) ...[
     );
     if (picked == null) return;
 
-    final file = File(picked.path);
+    final file = await persistInspectionPhoto(
+      report: widget.report,
+      sourcePath: picked.path,
+    );
+    if (!mounted) return;
     final previousFile = extra ? null : w.photo;
     final label = extra
         ? buildElevationsPhotoLabel(
@@ -3009,7 +3027,11 @@ if (_showsSidingHeight()) ...[
     );
     if (picked == null) return;
 
-    final file = File(picked.path);
+    final file = await persistInspectionPhoto(
+      report: widget.report,
+      sourcePath: picked.path,
+    );
+    if (!mounted) return;
     final previousFile = extra ? null : d.photo;
     final label = extra
         ? buildElevationsPhotoLabel(
@@ -3214,7 +3236,11 @@ if (_showsSidingHeight()) ...[
     );
     if (picked == null) return;
 
-    final file = File(picked.path);
+    final file = await persistInspectionPhoto(
+      report: widget.report,
+      sourcePath: picked.path,
+    );
+    if (!mounted) return;
     final previousFile = extra ? null : a.photo;
     final label = extra
         ? buildElevationsPhotoLabel(

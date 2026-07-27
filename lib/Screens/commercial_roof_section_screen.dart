@@ -16,6 +16,7 @@ import 'package:claimscope_clean/services/inspection_submission_service.dart';
 import 'package:claimscope_clean/services/pdf_service.dart';
 import 'package:claimscope_clean/utils/gallery_photo_helper.dart';
 import 'package:claimscope_clean/utils/photo_labels.dart';
+import 'package:claimscope_clean/utils/persistent_photo_storage.dart';
 import 'package:claimscope_clean/utils/required_photo_validation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -171,7 +172,11 @@ class CommercialRoofSectionScreen extends StatefulWidget {
 
     if (picked == null) return;
 
-    final file = File(picked.path);
+    final file = await persistInspectionPhoto(
+      report: widget.report,
+      sourcePath: picked.path,
+    );
+    if (!mounted) return;
     final resolvedPhotoLabel = _prepareCommercialPhotoLabel(
       buildingName: buildingName,
       roofName: roofName,
