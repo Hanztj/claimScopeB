@@ -26,8 +26,11 @@ class CommercialFlatHubForm extends StatelessWidget {
     required String photoLabel,
     required void Function(File file) onSaved,
     File? previousFile,
+    List<File>? owner,
+    String? singletonGroupLabel,
   }) takeCommercialPhoto;
   final void Function(Iterable<File?> files) removePhotos;
+  final void Function(String baseLabel) clearSingletonPhotoGroup;
 
   const CommercialFlatHubForm({
     super.key,
@@ -42,6 +45,7 @@ class CommercialFlatHubForm extends StatelessWidget {
     required this.sync,
     required this.takeCommercialPhoto,
     required this.removePhotos,
+    required this.clearSingletonPhotoGroup,
   });
 
       bool get _supportsFlatAccessories =>
@@ -74,6 +78,7 @@ class CommercialFlatHubForm extends StatelessWidget {
                 roof.insulationKnown = true;
                 roof.noCoreSampleApproach = null;
               } else {
+                clearSingletonPhotoGroup('Core Sample');
                 roof.coreSamplePhoto = null;
                 roof.insulationKnown = null;
               }
@@ -118,6 +123,7 @@ class CommercialFlatHubForm extends StatelessWidget {
               roofName: roofName,
               photoLabel: 'Core Sample - Image 1',
               previousFile: roof.coreSamplePhoto,
+              singletonGroupLabel: 'Core Sample',
               onSaved: (f) => roof.coreSamplePhoto = f,
             ),
             child: const Text('Take core sample photo'),
@@ -127,6 +133,7 @@ class CommercialFlatHubForm extends StatelessWidget {
               buildingName: buildingName,
               roofName: roofName,
               photoLabel: 'Core Sample - Image 2',
+              owner: roof.coreSampleExtraPhotos,
               onSaved: (_) {},
             ),
             child: const Text('Add additional core sample photo'),

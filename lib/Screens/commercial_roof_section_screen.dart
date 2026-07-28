@@ -12,6 +12,7 @@ import 'package:claimscope_clean/screens/commercial/hubs/commercial_tile_hub.dar
 import 'package:claimscope_clean/screens/commercial_building_details_screen.dart';
 import 'package:claimscope_clean/screens/elevations/elevations_inspection_screen.dart';
 import 'package:claimscope_clean/utils/blocking_progress_dialog.dart';
+import 'package:claimscope_clean/utils/commercial_photo_cleanup.dart';
 import 'package:claimscope_clean/services/inspection_submission_service.dart';
 import 'package:claimscope_clean/services/pdf_service.dart';
 import 'package:claimscope_clean/utils/gallery_photo_helper.dart';
@@ -115,14 +116,20 @@ class CommercialRoofSectionScreen extends StatefulWidget {
       '^${RegExp.escape(baseLabel)} - Image ([0-9]+)\$',
     );
     final matchingIndexes = <int>[];
+    final acceptedGroups = commercialRoofPhotoGroups(
+      report: widget.report,
+      buildingIndex: widget.buildingIndex,
+      roofIndex: widget.roofIndex,
+    );
 
     for (var i = 0; i < widget.report.photoReportItems.length; i++) {
       final parsed = tryParseCommercialPhotoLabel(
         widget.report.photoReportItems[i].label,
       );
       if (parsed == null ||
-          parsed.building != buildingName ||
-          parsed.roof != roofName) {
+          !acceptedGroups.contains(
+            (building: parsed.building, roof: parsed.roof),
+          )) {
         continue;
       }
 
@@ -162,6 +169,8 @@ class CommercialRoofSectionScreen extends StatefulWidget {
     required String photoLabel,
     required void Function(File file) onSaved,
     File? previousFile,
+    List<File>? owner,
+    String? singletonGroupLabel,
   }) async {
     final picked = await _picker.pickImage(
       source: ImageSource.camera,
@@ -177,6 +186,12 @@ class CommercialRoofSectionScreen extends StatefulWidget {
       sourcePath: picked.path,
     );
     if (!mounted) return;
+    if (singletonGroupLabel != null &&
+        previousFile == null &&
+        _hasCommercialSingletonMainPhotoItem(singletonGroupLabel)) {
+      _clearCommercialSingletonPhotoGroup(singletonGroupLabel);
+    }
+
     final resolvedPhotoLabel = _prepareCommercialPhotoLabel(
       buildingName: buildingName,
       roofName: roofName,
@@ -195,6 +210,11 @@ class CommercialRoofSectionScreen extends StatefulWidget {
         previousFile: previousFile,
         deduplicateLabel: previousFile != null,
       );
+      if (owner != null &&
+          !owner.any((existing) =>
+              existing.absolute.path == file.absolute.path)) {
+        owner.add(file);
+      }
       onSaved(file);
     });
 
@@ -210,6 +230,122 @@ class CommercialRoofSectionScreen extends StatefulWidget {
 
   void _removeCommercialPhotos(Iterable<File?> files) {
     widget.report.removePhotosByFiles(files);
+  }
+
+  File? _commercialSingletonMainPhoto(String baseLabel) {
+    switch (baseLabel) {
+      case 'Starter Row Eave':
+        return roof.starterEavePhoto;
+      case 'Starter Row Rake':
+        return roof.starterRakePhoto;
+      case 'Drip Edge':
+        return roof.dripEdgePhoto;
+      case 'Ice & Water Barrier':
+        return roof.iceAndWaterBarrierPhoto;
+      case 'Ridge Vent':
+        return roof.ridgeVentPhoto;
+      case 'Valley Metal':
+        return roof.valleyMetalPhoto;
+      case 'Core Sample':
+        return roof.coreSamplePhoto;
+    }
+    return null;
+  }
+
+  List<File> _commercialSingletonExtraPhotos(String baseLabel) {
+    switch (baseLabel) {
+      case 'Starter Row Eave':
+        return roof.starterEaveExtraPhotos;
+      case 'Starter Row Rake':
+        return roof.starterRakeExtraPhotos;
+      case 'Drip Edge':
+        return roof.dripEdgeExtraPhotos;
+      case 'Ice & Water Barrier':
+        return roof.iceAndWaterBarrierExtraPhotos;
+      case 'Ridge Vent':
+        return roof.ridgeVentExtraPhotos;
+      case 'Valley Metal':
+        return roof.valleyMetalExtraPhotos;
+      case 'Core Sample':
+        return roof.coreSampleExtraPhotos;
+    }
+    throw ArgumentError.value(baseLabel, 'baseLabel');
+  }
+
+  bool _hasCommercialSingletonMainPhotoItem(String baseLabel) {
+    final groups = commercialRoofPhotoGroups(
+      report: widget.report,
+      buildingIndex: widget.buildingIndex,
+      roofIndex: widget.roofIndex,
+    );
+    final expectedLabel = '${baseLabel.trim()} - Image 1';
+
+    for (final item in widget.report.photoReportItems) {
+      final parsed = tryParseCommercialPhotoLabel(item.label);
+      if (parsed == null || parsed.label.trim() != expectedLabel) continue;
+      if (groups.contains((building: parsed.building, roof: parsed.roof))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void _clearCommercialSingletonPhotoGroup(String baseLabel) {
+    final extras = _commercialSingletonExtraPhotos(baseLabel);
+    widget.report.removePhotosByFiles([
+      _commercialSingletonMainPhoto(baseLabel),
+      ...extras,
+    ]);
+    removeCommercialSingletonPhotoItems(
+      report: widget.report,
+      buildingIndex: widget.buildingIndex,
+      roofIndex: widget.roofIndex,
+      baseLabel: baseLabel,
+    );
+    extras.clear();
+  }
+
+  void _clearAllCommercialTypeSpecificPhotos() {
+    for (final baseLabel in const [
+      'Starter Row Eave',
+      'Starter Row Rake',
+      'Drip Edge',
+      'Ice & Water Barrier',
+      'Ridge Vent',
+      'Valley Metal',
+      'Core Sample',
+    ]) {
+      _clearCommercialSingletonPhotoGroup(baseLabel);
+    }
+
+    final ownedDynamicPhotos = <File?>[];
+    for (final flashing in roof.shingleFlashings) {
+      ownedDynamicPhotos.add(flashing.photo);
+      ownedDynamicPhotos.addAll(flashing.extraPhotos);
+    }
+    for (final flashing in roof.tpoFlashings) {
+      ownedDynamicPhotos.add(flashing.photo);
+      ownedDynamicPhotos.addAll(flashing.extraPhotos);
+    }
+    for (final vent in roof.shingleVents) {
+      ownedDynamicPhotos.add(vent.photo);
+      ownedDynamicPhotos.addAll(vent.extraPhotos);
+    }
+    for (final vent in roof.tpoVents) {
+      ownedDynamicPhotos.add(vent.photo);
+      ownedDynamicPhotos.addAll(vent.extraPhotos);
+    }
+    for (final unit in roof.hvacUnits) {
+      ownedDynamicPhotos.add(unit.photo);
+      ownedDynamicPhotos.add(unit.nameplatePhoto);
+      ownedDynamicPhotos.addAll(unit.extraPhotos);
+    }
+    for (final unit in roof.mechanicalUnits) {
+      ownedDynamicPhotos.add(unit.photo);
+      ownedDynamicPhotos.add(unit.nameplatePhoto);
+      ownedDynamicPhotos.addAll(unit.extraPhotos);
+    }
+    widget.report.removePhotosByFiles(ownedDynamicPhotos);
   }
 
   Future<void> _pickCommercialGalleryPhotos({
@@ -344,17 +480,26 @@ class CommercialRoofSectionScreen extends StatefulWidget {
       r.starterRakeInstalled = roof.starterRakeInstalled;
       r.starterEavePhoto = roof.starterEavePhoto;
       r.starterRakePhoto = roof.starterRakePhoto;
+      r.starterEaveExtraPhotos.addAll(roof.starterEaveExtraPhotos);
+      r.starterRakeExtraPhotos.addAll(roof.starterRakeExtraPhotos);
       r.hasDripEdge = roof.hasDripEdge;
       r.dripEdgeType = roof.dripEdgeType;
       r.dripEdgePhoto = roof.dripEdgePhoto;
+      r.dripEdgeExtraPhotos.addAll(roof.dripEdgeExtraPhotos);
       r.iceAndWaterBarrierInstalled = roof.iceAndWaterBarrierInstalled;
       r.iceAndWaterBarrierPhoto = roof.iceAndWaterBarrierPhoto;
+      r.iceAndWaterBarrierExtraPhotos.addAll(
+        roof.iceAndWaterBarrierExtraPhotos,
+      );
       r.hasRidge = roof.hasRidge;
       r.hasRidgeVent = roof.hasRidgeVent;
       r.ridgeVentType = roof.ridgeVentType;
       r.ridgeVentPhoto = roof.ridgeVentPhoto;
+      r.ridgeVentExtraPhotos.addAll(roof.ridgeVentExtraPhotos);
       r.hasValleyMetal = roof.hasValleyMetal;
       r.valleyMetalType = roof.valleyMetalType;
+      r.valleyMetalPhoto = roof.valleyMetalPhoto;
+      r.valleyMetalExtraPhotos.addAll(roof.valleyMetalExtraPhotos);
       r.hasVents = roof.hasVents;
       r.hasHvacEquipment = roof.hasHvacEquipment;
       r.hasMechanicalEquipment = roof.hasMechanicalEquipment;
@@ -440,6 +585,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                 .toList(),
             onChanged: (val) {
               setState(() {
+                _clearAllCommercialTypeSpecificPhotos();
                 roof.roofType = val;
                 roof.roofSubType = null;
                 roof.roofSubTypeOtherSpecify = null;
@@ -471,8 +617,10 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                 roof.valleyMetalType = null;
                 roof.valleyMetalPhoto = null;
                 roof.shingleFlashings.clear();
+                roof.tpoFlashings.clear();
                 roof.hasVents = false;
                 roof.shingleVents.clear();
+                roof.tpoVents.clear();
                 roof.hasHvacEquipment = false;
                 roof.hasMechanicalEquipment = false;
                 roof.hvacUnits.clear();
@@ -591,6 +739,8 @@ class CommercialRoofSectionScreen extends StatefulWidget {
               sync: _sync,
               takeCommercialPhoto: _takeCommercialPhoto,
               removePhotos: _removeCommercialPhotos,
+              clearSingletonPhotoGroup:
+                  _clearCommercialSingletonPhotoGroup,
             ),
           if (_isTile)
             CommercialTileHubForm(
@@ -604,6 +754,8 @@ class CommercialRoofSectionScreen extends StatefulWidget {
               sync: _sync,
               takeCommercialPhoto: _takeCommercialPhoto,
               removePhotos: _removeCommercialPhotos,
+              clearSingletonPhotoGroup:
+                  _clearCommercialSingletonPhotoGroup,
             ),
           if (_isSlate)
             CommercialSlateHubForm(
@@ -617,6 +769,8 @@ class CommercialRoofSectionScreen extends StatefulWidget {
               sync: _sync,
               takeCommercialPhoto: _takeCommercialPhoto,
               removePhotos: _removeCommercialPhotos,
+              clearSingletonPhotoGroup:
+                  _clearCommercialSingletonPhotoGroup,
             ),
           if (_isOther)
             CommercialOtherHubForm(
@@ -631,6 +785,8 @@ class CommercialRoofSectionScreen extends StatefulWidget {
               sync: _sync,
               takeCommercialPhoto: _takeCommercialPhoto,
               removePhotos: _removeCommercialPhotos,
+              clearSingletonPhotoGroup:
+                  _clearCommercialSingletonPhotoGroup,
             ),
           
           
@@ -647,6 +803,8 @@ class CommercialRoofSectionScreen extends StatefulWidget {
               sync: _sync,
               takeCommercialPhoto: _takeCommercialPhoto,
               removePhotos: _removeCommercialPhotos,
+              clearSingletonPhotoGroup:
+                  _clearCommercialSingletonPhotoGroup,
             ),
             
           const SizedBox(height: 12),
@@ -1181,7 +1339,7 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                       buildingName: buildingName,
                       roofName: roofName,
                     );
-                    final largeSectionMessage = sectionPhotoCount >
+                    final largeSectionMessage = sectionPhotoCount >=
                             PdfService.largeCommercialPhotoSectionThreshold
                         ? 'Large photo sections may require additional processing time. '
                             'Keep ClaimScope open until saving is complete.'
@@ -1353,8 +1511,8 @@ if (isFinalStep) {
     roof.reportType = 'commercial';
 
     final largeSectionMessage =
-        PdfService.hasLargeCommercialPhotoSection(widget.report)
-            ? 'Large photo sections may require additional processing time. '
+        PdfService.hasLargeCommercialInspection(widget.report)
+            ? 'Large commercial inspections may require additional processing time. '
                 'Keep ClaimScope open until report generation is complete.'
             : null;
     final pdfs = await runWithBlockingProgress<Map<String, File>>(

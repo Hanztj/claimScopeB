@@ -26,8 +26,11 @@ class CommercialShinglesHubForm extends StatelessWidget {
     required String photoLabel,
     required void Function(File file) onSaved,
     File? previousFile,
+    List<File>? owner,
+    String? singletonGroupLabel,
   }) takeCommercialPhoto;
   final void Function(Iterable<File?> files) removePhotos;
+  final void Function(String baseLabel) clearSingletonPhotoGroup;
 
   const CommercialShinglesHubForm({
     super.key,
@@ -40,8 +43,9 @@ class CommercialShinglesHubForm extends StatelessWidget {
     required this.deckPartialSqftController,
     required this.setState,
     required this.sync,
-   required this.takeCommercialPhoto,
+    required this.takeCommercialPhoto,
     required this.removePhotos,
+    required this.clearSingletonPhotoGroup,
   });
 
   static const List<String> _valleyMetalTypes = [
@@ -152,6 +156,8 @@ class CommercialShinglesHubForm extends StatelessWidget {
             setState(() {
               roof.starterRowInstalled = val ?? false;
               if (!roof.starterRowInstalled) {
+                clearSingletonPhotoGroup('Starter Row Eave');
+                clearSingletonPhotoGroup('Starter Row Rake');
                 roof.starterEaveInstalled = false;
                 roof.starterRakeInstalled = false;
                 roof.starterEavePhoto = null;
@@ -168,6 +174,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
               setState(() {
                 roof.starterEaveInstalled = val ?? false;
                 if (!roof.starterEaveInstalled) {
+                  clearSingletonPhotoGroup('Starter Row Eave');
                   roof.starterEavePhoto = null;
                 }
               });
@@ -180,6 +187,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
                 roofName: roofName,
                 photoLabel: 'Starter Row Eave - Image 1',
                 previousFile: roof.starterEavePhoto,
+                singletonGroupLabel: 'Starter Row Eave',
                 onSaved: (f) => roof.starterEavePhoto = f,
               ),
               child: const Text('Take Starter Row Eave Photo'),
@@ -189,6 +197,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
                 buildingName: buildingName,
                 roofName: roofName,
                 photoLabel: 'Starter Row Eave - Image 2',
+                owner: roof.starterEaveExtraPhotos,
                 onSaved: (_) {},
               ),
               child: const Text('Add extra Starter row at Eave photo'),
@@ -206,6 +215,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
               setState(() {
                 roof.starterRakeInstalled = val ?? false;
                 if (!roof.starterRakeInstalled) {
+                  clearSingletonPhotoGroup('Starter Row Rake');
                   roof.starterRakePhoto = null;
                 }
               });
@@ -218,6 +228,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
                 roofName: roofName,
                 photoLabel: 'Starter Row Rake - Image 1',
                 previousFile: roof.starterRakePhoto,
+                singletonGroupLabel: 'Starter Row Rake',
                 onSaved: (f) => roof.starterRakePhoto = f,
               ),
               child: const Text('Take Starter Row Rake Photo'),
@@ -227,6 +238,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
                 buildingName: buildingName,
                 roofName: roofName,
                 photoLabel: 'Starter Row Rake - Image 2',
+                owner: roof.starterRakeExtraPhotos,
                 onSaved: (_) {},
               ),
               child: const Text('Add extra Starter row at Rake photo'),
@@ -246,6 +258,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
             setState(() {
               roof.hasDripEdge = val ?? false;
               if (!roof.hasDripEdge) {
+                clearSingletonPhotoGroup('Drip Edge');
                 roof.dripEdgeType = null;
                 roof.dripEdgePhoto = null;
               }
@@ -278,6 +291,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
               roofName: roofName,
               photoLabel: 'Drip Edge - Image 1',
               previousFile: roof.dripEdgePhoto,
+              singletonGroupLabel: 'Drip Edge',
               onSaved: (f) => roof.dripEdgePhoto = f,
             ),
             child: const Text('Take Drip Edge Photo'),
@@ -287,6 +301,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
               buildingName: buildingName,
               roofName: roofName,
               photoLabel: 'Drip Edge - Image 2',
+              owner: roof.dripEdgeExtraPhotos,
               onSaved: (_) {},
             ),
             child: const Text('Add extra Drip Edge photo'),
@@ -305,6 +320,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
             setState(() {
               roof.iceAndWaterBarrierInstalled = val ?? false;
               if (!roof.iceAndWaterBarrierInstalled) {
+                clearSingletonPhotoGroup('Ice & Water Barrier');
                 roof.iceAndWaterBarrierPhoto = null;
               }
             });
@@ -317,6 +333,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
               roofName: roofName,
               photoLabel: 'Ice & Water Barrier - Image 1',
               previousFile: roof.iceAndWaterBarrierPhoto,
+              singletonGroupLabel: 'Ice & Water Barrier',
               onSaved: (f) => roof.iceAndWaterBarrierPhoto = f,
             ),
             child: const Text('Take Ice & Water Barrier Photo'),
@@ -326,6 +343,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
               buildingName: buildingName,
               roofName: roofName,
               photoLabel: 'Ice & Water Barrier - Image 2',
+              owner: roof.iceAndWaterBarrierExtraPhotos,
               onSaved: (_) {},
             ),
             child: const Text('Add extra Ice & Water Barrier photo'),
@@ -344,6 +362,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
             setState(() {
               roof.hasRidge = val ?? false;
               if (!roof.hasRidge) {
+                clearSingletonPhotoGroup('Ridge Vent');
                 roof.hasRidgeVent = false;
                 roof.ridgeVentType = null;
                 roof.ridgeVentPhoto = null;
@@ -359,6 +378,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
               setState(() {
                 roof.hasRidgeVent = val ?? false;
                 if (!roof.hasRidgeVent) {
+                  clearSingletonPhotoGroup('Ridge Vent');
                   roof.ridgeVentType = null;
                   roof.ridgeVentPhoto = null;
                 }
@@ -391,6 +411,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
               roofName: roofName,
               photoLabel: 'Ridge Vent - Image 1',
               previousFile: roof.ridgeVentPhoto,
+              singletonGroupLabel: 'Ridge Vent',
               onSaved: (f) => roof.ridgeVentPhoto = f,
             ),
             child: const Text('Take Ridge Vent Photo'),
@@ -400,6 +421,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
               buildingName: buildingName,
               roofName: roofName,
               photoLabel: 'Ridge Vent - Image 2',
+              owner: roof.ridgeVentExtraPhotos,
               onSaved: (_) {},
             ),
             child: const Text('Add extra Ridge Vent photo'),
@@ -418,6 +440,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
             setState(() {
               roof.hasValleyMetal = val ?? false;
               if (!roof.hasValleyMetal) {
+                clearSingletonPhotoGroup('Valley Metal');
                 roof.valleyMetalType = null;
                 roof.valleyMetalPhoto = null;
               }
@@ -448,6 +471,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
               roofName: roofName,
               photoLabel: 'Valley Metal - Image 1',
               previousFile: roof.valleyMetalPhoto,
+              singletonGroupLabel: 'Valley Metal',
               onSaved: (f) => roof.valleyMetalPhoto = f,
             ),
             child: const Text('Take Valley Metal Photo'),
@@ -457,6 +481,7 @@ class CommercialShinglesHubForm extends StatelessWidget {
               buildingName: buildingName,
               roofName: roofName,
               photoLabel: 'Valley Metal - Image 2',
+              owner: roof.valleyMetalExtraPhotos,
               onSaved: (_) {},
             ),
             child: const Text('Add extra Valley Metal photo'),

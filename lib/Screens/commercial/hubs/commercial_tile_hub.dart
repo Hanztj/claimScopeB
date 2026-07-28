@@ -25,8 +25,11 @@ class CommercialTileHubForm extends StatelessWidget {
     required String photoLabel,
     required void Function(File file) onSaved,
     File? previousFile,
+    List<File>? owner,
+    String? singletonGroupLabel,
   }) takeCommercialPhoto;
   final void Function(Iterable<File?> files) removePhotos;
+  final void Function(String baseLabel) clearSingletonPhotoGroup;
 
   const CommercialTileHubForm({
     super.key,
@@ -38,8 +41,9 @@ class CommercialTileHubForm extends StatelessWidget {
     required this.deckPartialSqftController,
     required this.setState,
     required this.sync,
-   required this.takeCommercialPhoto,
+    required this.takeCommercialPhoto,
     required this.removePhotos,
+    required this.clearSingletonPhotoGroup,
   });
 
   static const List<String> _valleyMetalTypes = [
@@ -132,6 +136,7 @@ class CommercialTileHubForm extends StatelessWidget {
             setState(() {
               roof.hasDripEdge = val ?? false;
               if (!roof.hasDripEdge) {
+                clearSingletonPhotoGroup('Drip Edge');
                 roof.dripEdgeType = null;
                 roof.dripEdgePhoto = null;
               }
@@ -164,6 +169,7 @@ class CommercialTileHubForm extends StatelessWidget {
               roofName: roofName,
               photoLabel: 'Drip Edge - Image 1',
               previousFile: roof.dripEdgePhoto,
+              singletonGroupLabel: 'Drip Edge',
               onSaved: (f) => roof.dripEdgePhoto = f,
             ),
             child: const Text('Take Drip Edge Photo'),
@@ -173,6 +179,7 @@ class CommercialTileHubForm extends StatelessWidget {
               buildingName: buildingName,
               roofName: roofName,
               photoLabel: 'Drip Edge - Image 2',
+              owner: roof.dripEdgeExtraPhotos,
               onSaved: (_) {},
             ),
             child: const Text('Add extra Drip Edge photo'),
@@ -191,6 +198,7 @@ class CommercialTileHubForm extends StatelessWidget {
             setState(() {
               roof.iceAndWaterBarrierInstalled = val ?? false;
               if (!roof.iceAndWaterBarrierInstalled) {
+                clearSingletonPhotoGroup('Ice & Water Barrier');
                 roof.iceAndWaterBarrierPhoto = null;
               }
             });
@@ -203,6 +211,7 @@ class CommercialTileHubForm extends StatelessWidget {
               roofName: roofName,
               photoLabel: 'Ice & Water Barrier - Image 1',
               previousFile: roof.iceAndWaterBarrierPhoto,
+              singletonGroupLabel: 'Ice & Water Barrier',
               onSaved: (f) => roof.iceAndWaterBarrierPhoto = f,
             ),
             child: const Text('Take Ice & Water Barrier Photo'),
@@ -212,6 +221,7 @@ class CommercialTileHubForm extends StatelessWidget {
               buildingName: buildingName,
               roofName: roofName,
               photoLabel: 'Ice & Water Barrier - Image 2',
+              owner: roof.iceAndWaterBarrierExtraPhotos,
               onSaved: (_) {},
             ),
             child: const Text('Add extra Ice & Water Barrier photo'),
@@ -230,6 +240,7 @@ class CommercialTileHubForm extends StatelessWidget {
             setState(() {
               roof.hasValleyMetal = val ?? false;
               if (!roof.hasValleyMetal) {
+                clearSingletonPhotoGroup('Valley Metal');
                 roof.valleyMetalType = null;
                 roof.valleyMetalPhoto = null;
               }
@@ -260,6 +271,7 @@ class CommercialTileHubForm extends StatelessWidget {
               roofName: roofName,
               photoLabel: 'Valley Metal - Image 1',
               previousFile: roof.valleyMetalPhoto,
+              singletonGroupLabel: 'Valley Metal',
               onSaved: (f) => roof.valleyMetalPhoto = f,
             ),
             child: const Text('Take Valley Metal Photo'),
@@ -269,6 +281,7 @@ class CommercialTileHubForm extends StatelessWidget {
               buildingName: buildingName,
               roofName: roofName,
               photoLabel: 'Valley Metal - Image 2',
+              owner: roof.valleyMetalExtraPhotos,
               onSaved: (_) {},
             ),
             child: const Text('Add extra Valley Metal photo'),

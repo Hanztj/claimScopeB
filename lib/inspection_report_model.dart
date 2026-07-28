@@ -255,22 +255,28 @@ class CommercialRoofSectionData {
   bool starterRakeInstalled = false;
   File? starterEavePhoto;
   File? starterRakePhoto;
+  List<File> starterEaveExtraPhotos = [];
+  List<File> starterRakeExtraPhotos = [];
 
   bool hasDripEdge = false;
   String? dripEdgeType;
   File? dripEdgePhoto;
+  List<File> dripEdgeExtraPhotos = [];
 
   bool iceAndWaterBarrierInstalled = false;
   File? iceAndWaterBarrierPhoto;
+  List<File> iceAndWaterBarrierExtraPhotos = [];
 
   bool hasRidge = false;
   bool hasRidgeVent = false;
   String? ridgeVentType;
   File? ridgeVentPhoto;
+  List<File> ridgeVentExtraPhotos = [];
 
   bool hasValleyMetal = false;
   String? valleyMetalType;
   File? valleyMetalPhoto;
+  List<File> valleyMetalExtraPhotos = [];
 
   List<FlashingData> shingleFlashings = [];
   bool hasVents = false;
@@ -297,6 +303,7 @@ class CommercialRoofSectionData {
   // Flat systems
   bool coreSamplePerformed = false;
   File? coreSamplePhoto;
+  List<File> coreSampleExtraPhotos = [];
 
   bool? insulationKnown;
 

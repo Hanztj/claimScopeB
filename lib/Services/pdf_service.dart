@@ -184,7 +184,8 @@ class _PdfPhotoItemBytes {
 class PdfService {
   static const String photoCacheVersionFolder = 'photo_cache_v3';
   static const int commercialPhotoChunkSize = 24;
-  static const int largeCommercialPhotoSectionThreshold = 40;
+  static const int largeCommercialPhotoSectionThreshold = 65;
+  static const int largeCommercialInspectionPhotoThreshold = 100;
 
   /// Builds a stable cache namespace for one inspection report.
   ///
@@ -452,10 +453,44 @@ class PdfService {
           buildingName: buildingName,
           roofName: roofName,
         );
-        if (count > threshold) return true;
+        if (count >= threshold) return true;
       }
     }
     return false;
+  }
+
+
+  static int commercialInspectionPhotoCount(InspectionReport report) {
+    var total = 0;
+    for (var buildingIndex = 0;
+        buildingIndex < report.commercialBuildings.length;
+        buildingIndex++) {
+      final building = report.commercialBuildings[buildingIndex];
+      final buildingName = building.displayName(buildingIndex);
+
+      for (var roofIndex = 0;
+          roofIndex < building.roofs.length;
+          roofIndex++) {
+        final roof = building.roofs[roofIndex];
+        final roofName = (roof.roofLabel ?? '').trim().isEmpty
+            ? 'Roof ${roofIndex + 1}'
+            : roof.roofLabel!.trim();
+        total += commercialSectionPhotoCount(
+          report: report,
+          buildingIndex: buildingIndex,
+          roofIndex: roofIndex,
+          buildingName: buildingName,
+          roofName: roofName,
+        );
+      }
+    }
+    return total;
+  }
+
+  static bool hasLargeCommercialInspection(InspectionReport report) {
+    return hasLargeCommercialPhotoSection(report) ||
+        commercialInspectionPhotoCount(report) >=
+            largeCommercialInspectionPhotoThreshold;
   }
 
   static Future<void> _deleteCommercialChunkFiles(File sectionFile) async {

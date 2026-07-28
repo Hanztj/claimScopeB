@@ -155,8 +155,8 @@ class _ElevationsInspectionScreenState extends State<ElevationsInspectionScreen>
 
     try {
       final largeSectionMessage = widget.isCommercial &&
-              PdfService.hasLargeCommercialPhotoSection(widget.report)
-          ? 'Large photo sections may require additional processing time. '
+              PdfService.hasLargeCommercialInspection(widget.report)
+          ? 'Large commercial inspections may require additional processing time. '
               'Keep ClaimScope open until report generation is complete.'
           : null;
       final pdfs = await runWithBlockingProgress<Map<String, File>>(

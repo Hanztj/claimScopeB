@@ -1,5 +1,6 @@
 import 'package:claimscope_clean/inspection_report_model.dart';
 import 'package:claimscope_clean/screens/commercial_roof_section_screen.dart';
+import 'package:claimscope_clean/utils/commercial_photo_cleanup.dart';
 import 'package:flutter/material.dart';
 
 class CommercialBuildingDetailScreen extends StatefulWidget {
@@ -74,6 +75,11 @@ class _CommercialBuildingDetailScreenState extends State<CommercialBuildingDetai
   }
 
   void _deleteRoofSection(int roofIndex) {
+    removeCommercialRoofSectionPhotos(
+      report: widget.report,
+      buildingIndex: widget.buildingIndex,
+      roofIndex: roofIndex,
+    );
     setState(() {
       if (building.roofs.length <= 1) {
         building.roofs = [CommercialRoofSectionData()..roofLabel = 'Main Roof'];
@@ -155,6 +161,15 @@ class _CommercialBuildingDetailScreenState extends State<CommercialBuildingDetai
                   if (building.roofs.isEmpty) {
                     building.roofs.add(CommercialRoofSectionData()..roofLabel = 'Main Roof');
                   } else if (building.roofs.length > 1) {
+                    for (var roofIndex = building.roofs.length - 1;
+                        roofIndex >= 1;
+                        roofIndex--) {
+                      removeCommercialRoofSectionPhotos(
+                        report: widget.report,
+                        buildingIndex: widget.buildingIndex,
+                        roofIndex: roofIndex,
+                      );
+                    }
                     building.roofs = [building.roofs.first];
                   }
                 } else {

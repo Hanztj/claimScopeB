@@ -1,5 +1,6 @@
 import 'package:claimscope_clean/inspection_report_model.dart';
 import 'package:claimscope_clean/screens/commercial_building_details_screen.dart';
+import 'package:claimscope_clean/utils/commercial_photo_cleanup.dart';
 import 'package:flutter/material.dart';
 
 class CommercialBuildingsScreen extends StatefulWidget {
@@ -98,6 +99,10 @@ class _CommercialBuildingsScreenState extends State<CommercialBuildingsScreen> {
                                 if (confirmed != true) return;
                                 if (!mounted) return;
 
+                                removeCommercialBuildingPhotos(
+                                  report: widget.report,
+                                  buildingIndex: idx,
+                                );
                                 setState(() {
                                   widget.report.commercialBuildings.removeAt(idx);
                                 });
