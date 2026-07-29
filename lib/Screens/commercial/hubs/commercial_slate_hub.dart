@@ -99,6 +99,7 @@ class CommercialSlateHubForm extends StatelessWidget {
     flashing.finish = null;
     flashing.grade = null;
     flashing.otherSpecify = null;
+    flashing.count = null;
   }
 
   @override
@@ -502,6 +503,23 @@ DropdownButtonFormField<bool>(
                       ),
                     );
                   }),
+                  if (commercialFlashingTypeUsesCount(flashing.type)) ...[
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      key: ValueKey('commercial-flashing-count-$idx-${flashing.type}'),
+                      initialValue: flashing.count,
+                      decoration: const InputDecoration(
+                        labelText: 'Count',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.number,
+                      onChanged: (val) {
+                        final count = val.trim();
+                        flashing.count = count.isEmpty ? null : count;
+                        sync();
+                      },
+                    ),
+                  ],
 
                     ElevatedButton(
                     onPressed: () => takeCommercialPhoto(

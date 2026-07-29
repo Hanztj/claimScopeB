@@ -99,6 +99,9 @@ const Map<String, CommercialFlashingFieldConfig> metalFlashingConfigByType = {
   'Step flashing': CommercialFlashingFieldConfig(
     materialOptions: ['Metal', 'Copper'],
   ),
+  'Flashing kick-out divert': CommercialFlashingFieldConfig(
+    showCount: true,
+  ),
   'L flashing': CommercialFlashingFieldConfig(
     materialOptions: ['Galvanized', 'Color finish'],
   ),
@@ -127,10 +130,15 @@ const Map<String, CommercialFlashingFieldConfig> metalFlashingConfigByType = {
   ),
   'Roof window step flashing kit': CommercialFlashingFieldConfig(
     options: ['Standard', 'Large'],
+    showCount: true,
   ),
   'Skylight flashing kit (dome)': CommercialFlashingFieldConfig(
     options: ['Average', 'Large'],
     gradeOptions: ['Standard', 'High grade'],
+    showCount: true,
+  ),
+  'Skylight step flashing kit': CommercialFlashingFieldConfig(
+    showCount: true,
   ),
   'Other': CommercialFlashingFieldConfig(
     showOtherSpecify: true,

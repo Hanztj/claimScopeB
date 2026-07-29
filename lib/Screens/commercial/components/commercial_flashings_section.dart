@@ -233,11 +233,17 @@ class _CommercialFlashingsSectionState extends State<CommercialFlashingsSection>
 
                   if (typeConfig.showCount) ...[
                     const SizedBox(height: 12),
-                    TextField(
-                      decoration: const InputDecoration(labelText: 'How many', border: OutlineInputBorder()),
+                    TextFormField(
+                      key: ValueKey('commercial-flashing-count-$index-${flashing.type}'),
+                      initialValue: flashing.count,
+                      decoration: const InputDecoration(
+                        labelText: 'Count',
+                        border: OutlineInputBorder(),
+                      ),
                       keyboardType: TextInputType.number,
                       onChanged: (val) {
-                        flashing.count = val;
+                        final count = val.trim();
+                        flashing.count = count.isEmpty ? null : count;
                         widget.onChanged();
                       },
                     ),

@@ -47,6 +47,17 @@ const List<String> flashingTypesShingles = [
   'Other',
 ];
 
+const Set<String> commercialFlashingTypesWithCount = {
+  'Flashing kick-out divert',
+  'Roof window step flashing kit',
+  'Skylight flashing kit (dome)',
+  'Skylight step flashing kit',
+};
+
+bool commercialFlashingTypeUsesCount(String? type) {
+  return type != null && commercialFlashingTypesWithCount.contains(type);
+}
+
 const List<String> flashingTypesMetal = [
   'Step flashing',
   'Flashing kick-out divert',
