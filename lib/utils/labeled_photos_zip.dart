@@ -174,16 +174,6 @@ List<int> encodeZipBytes(Archive archive) {
   return zipBytes;
 }
 
-Future<File> writeZipToFile({
-  required List<int> zipBytes,
-  required Directory outputDir,
-  required String filename,
-}) async {
-  final safeName = sanitizeZipPathPart(filename);
-  final out = File('${outputDir.path}/$safeName');
-  await out.writeAsBytes(zipBytes, flush: true);
-  return out;
-}
 String sanitizeFilename(String input) {
   var s = input.trim();
 

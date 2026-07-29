@@ -210,6 +210,7 @@ if (!inspectRoof) {
   final List<String> lossTypes = [
     'Wind',
     'Hail',
+    'Wind/Hail',
     'Windstorm',
     'Hurricane',
     'Fire',
