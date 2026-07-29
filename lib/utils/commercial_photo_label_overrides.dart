@@ -74,13 +74,15 @@ Map<String, String> buildCommercialPhotoLabelOverrides(
             final parsed = tryParseCommercialPhotoLabel(item.label);
             if (parsed == null ||
                 parsed.building != originalOverviewLabel.building ||
-                parsed.roof != originalOverviewLabel.roof ||
-                (parsed.label != 'Roof Overview Photo' &&
-                    !parsed.label.startsWith(
-                      'Roof Overview Photo - Image ',
-                    ))) {
+                parsed.roof != originalOverviewLabel.roof) {
               continue;
             }
+
+            final isOverviewPhoto = parsed.label == 'Roof Overview Photo' ||
+                parsed.label.startsWith('Roof Overview Photo - Image ');
+            final isAdditionalImage =
+                parsed.label.trim().toLowerCase() == 'additional image';
+            if (!isOverviewPhoto && !isAdditionalImage) continue;
 
             overrides[item.file.absolute.path] = buildCommercialPhotoLabel(
               building: buildingName,
@@ -168,59 +170,12 @@ Map<String, String> buildCommercialPhotoLabelOverrides(
   return overrides;
 }
 
-/// Extends the shared Commercial overrides with ZIP-only ownership for the
-/// generic roof-section "Additional Image" photos.
+/// ZIP export entry point for the shared current Commercial photo labels.
 ///
-/// These photos are not stored on [CommercialRoofSectionData], so ownership is
-/// resolved from the section's original overview label. This keeps renamed
-/// sections inside their current Building/Roof folder without changing the
-/// labels used by the Photo PDF.
+/// The shared overrides already resolve renamed/renumbered Buildings and Roof
+/// Sections for overview, component, and generic "Additional Image" photos.
 Map<String, String> buildCommercialZipPhotoLabelOverrides(
   InspectionReport report,
 ) {
-  final overrides = buildCommercialPhotoLabelOverrides(report);
-
-  for (var buildingIndex = 0;
-      buildingIndex < report.commercialBuildings.length;
-      buildingIndex++) {
-    final building = report.commercialBuildings[buildingIndex];
-    final buildingName = building.displayName(buildingIndex);
-
-    for (var roofIndex = 0;
-        roofIndex < building.roofs.length;
-        roofIndex++) {
-      final roof = building.roofs[roofIndex];
-      final roofName = (roof.roofLabel ?? '').trim().isEmpty
-          ? 'Roof ${roofIndex + 1}'
-          : roof.roofLabel!.trim();
-      final overviewPath = roof.overviewPhoto?.absolute.path;
-      if (overviewPath == null) continue;
-
-      ({String building, String roof, String label})? originalOverviewLabel;
-      for (final item in report.photoReportItems) {
-        if (item.file.absolute.path != overviewPath) continue;
-        originalOverviewLabel = tryParseCommercialPhotoLabel(item.label);
-        break;
-      }
-      if (originalOverviewLabel == null) continue;
-
-      for (final item in report.photoReportItems) {
-        final parsed = tryParseCommercialPhotoLabel(item.label);
-        if (parsed == null ||
-            parsed.building != originalOverviewLabel.building ||
-            parsed.roof != originalOverviewLabel.roof ||
-            parsed.label.trim().toLowerCase() != 'additional image') {
-          continue;
-        }
-
-        overrides[item.file.absolute.path] = buildCommercialPhotoLabel(
-          building: buildingName,
-          roof: roofName,
-          label: 'Additional Image',
-        );
-      }
-    }
-  }
-
-  return overrides;
+  return buildCommercialPhotoLabelOverrides(report);
 }

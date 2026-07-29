@@ -182,7 +182,7 @@ class _PdfPhotoItemBytes {
 }
 
 class PdfService {
-  static const String photoCacheVersionFolder = 'photo_cache_v3';
+  static const String photoCacheVersionFolder = 'photo_cache_v4';
   static const int commercialPhotoChunkSize = 24;
   static const int largeCommercialPhotoSectionThreshold = 65;
   static const int largeCommercialInspectionPhotoThreshold = 100;

@@ -1,4 +1,3 @@
-import 'dart:io';
 
 import 'package:claimscope_clean/inspection_report_model.dart';
 import 'package:claimscope_clean/screens/elevations/models/elevations_data.dart';
