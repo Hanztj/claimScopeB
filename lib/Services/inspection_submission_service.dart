@@ -226,17 +226,21 @@ class InspectionSubmissionService {
       toEmails.add(extraEmail.trim());
     }
 
-    try {
-      await validateInspectionPhotoFiles(report);
-      await _runWithBlockingProgress<void>(
-        context,
-        'Sending email...',
-        () => EmailService.sendEmailWithReports(
-          toEmails: toEmails,
-          techPdf: techPdf,
-          photoPdf: photoPdf,
-        ),
-      );
+   try {
+  await validateInspectionPhotoFiles(report);
+
+  // Evita usar el BuildContext si el widget fue destruido durante la espera
+  if (!context.mounted) return;
+
+  await _runWithBlockingProgress<void>(
+    context,
+    'Sending email...',
+    () => EmailService.sendEmailWithReports(
+      toEmails: toEmails,
+      techPdf: techPdf,
+      photoPdf: photoPdf,
+    ),
+  );
 
       if (!context.mounted) return;
       messenger.showSnackBar(
@@ -393,10 +397,13 @@ class InspectionSubmissionService {
       return;
     }
 
-    final shouldStore = await _askStoreReportInCloud(
-      context: context,
-      plan: plan,
-    );
+// Asegura que el widget siga montado antes de usar el BuildContext
+if (!context.mounted) return;
+
+final shouldStore = await _askStoreReportInCloud(
+  context: context,
+  plan: plan,
+);
     if (!context.mounted) return;
 
     if (shouldStore) {

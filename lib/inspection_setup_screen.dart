@@ -5,6 +5,7 @@ import 'package:claimscope_clean/screens/elevations/elevations_inspection_screen
 import 'package:claimscope_clean/screens/my_reports_screen.dart';
 import 'package:claimscope_clean/services/auth_plan_service.dart';
 import 'package:claimscope_clean/services/stripe_service.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -264,6 +265,151 @@ if (!inspectRoof) {
     }
   }
 
+  Future<void> _showDeleteAccountDialog() async {
+    final passwordController = TextEditingController();
+    final rootNavigator = Navigator.of(context, rootNavigator: true);
+
+    await showDialog<void>(
+      context: context,
+      useRootNavigator: true,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        var obscurePassword = true;
+        var isDeleting = false;
+        String? passwordError;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            Future<void> deleteAccount() async {
+              final password = passwordController.text;
+              if (password.isEmpty) {
+                setDialogState(() {
+                  passwordError = 'Enter your password to confirm.';
+                });
+                return;
+              }
+
+              setDialogState(() {
+                isDeleting = true;
+                passwordError = null;
+              });
+
+              try {
+                await deleteCurrentUserAccount(password: password);
+
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
+                }
+
+                await FirebaseAuth.instance.signOut();
+
+                if (!mounted) return;
+                rootNavigator.popUntil((route) => route.isFirst);
+              } on FirebaseAuthException catch (e) {
+                if (!dialogContext.mounted) return;
+                setDialogState(() {
+                  isDeleting = false;
+                  if (e.code == 'wrong-password' ||
+                      e.code == 'invalid-credential') {
+                    passwordError = 'Incorrect password.';
+                  } else if (e.code == 'too-many-requests') {
+                    passwordError =
+                        'Too many attempts. Please try again later.';
+                  } else {
+                    passwordError =
+                        'Authentication failed. Please try again.';
+                  }
+                });
+              } on FirebaseFunctionsException {
+                if (!dialogContext.mounted) return;
+                setDialogState(() {
+                  isDeleting = false;
+                  passwordError =
+                      'Account deletion failed. Please try again.';
+                });
+              } catch (_) {
+                if (!dialogContext.mounted) return;
+                setDialogState(() {
+                  isDeleting = false;
+                  passwordError =
+                      'Account deletion failed. Please try again.';
+                });
+              }
+            }
+
+            return AlertDialog(
+              title: const Text('Delete account?'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'This will permanently delete your account, stored inspections, and saved payment information, and cancel any active subscription. This action cannot be undone.',
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: passwordController,
+                    enabled: !isDeleting,
+                    obscureText: obscurePassword,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      hintText: 'Enter your password to confirm.',
+                      errorText: passwordError,
+                      suffixIcon: IconButton(
+                        onPressed: isDeleting
+                            ? null
+                            : () {
+                                setDialogState(() {
+                                  obscurePassword = !obscurePassword;
+                                });
+                              },
+                        icon: Icon(
+                          obscurePassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                      ),
+                    ),
+                    onSubmitted: isDeleting ? null : (_) => deleteAccount(),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isDeleting
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: isDeleting ? null : deleteAccount,
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  child: isDeleting
+                      ? const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            SizedBox(width: 8),
+                            Text('Deleting account...'),
+                          ],
+                        )
+                      : const Text('Delete Account'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    passwordController.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final isBasic = widget.plan == 'basic';
@@ -309,6 +455,11 @@ if (!inspectRoof) {
                 },
               );
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_forever_outlined),
+            tooltip: 'Delete Account',
+            onPressed: _showDeleteAccountDialog,
           ),
           IconButton(
             icon: const Icon(Icons.logout),

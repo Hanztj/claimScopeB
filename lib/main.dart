@@ -211,7 +211,7 @@ class _EmailVerificationPendingScreenState
   Widget build(BuildContext context) {
     return MaterialApp(scaffoldMessengerKey: scaffoldMessengerKey, // ⭐️ AÑADE ESTO
       debugShowCheckedModeBanner: false,
-      title: 'Insurance Inspection',
+      title: 'ClaimScope',
       theme: appTheme, 
       home: const AuthGate(),
      

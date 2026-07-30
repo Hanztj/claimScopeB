@@ -79,6 +79,32 @@ function applyPlanDiscount(total, plan) {
   return total;
 }
 
+function isMissingStripeResource(error) {
+  return error?.code === "resource_missing";
+}
+
+async function deleteStripeAccountData(stripeClient, customClaims) {
+  const customerId = customClaims?.stripeCustomerId;
+  const subscriptionId = customClaims?.subscriptionId;
+
+  if (typeof customerId === "string" && customerId.length > 0) {
+    try {
+      await stripeClient.customers.del(customerId);
+    } catch (error) {
+      if (!isMissingStripeResource(error)) throw error;
+    }
+    return;
+  }
+
+  if (typeof subscriptionId === "string" && subscriptionId.length > 0) {
+    try {
+      await stripeClient.subscriptions.cancel(subscriptionId);
+    } catch (error) {
+      if (!isMissingStripeResource(error)) throw error;
+    }
+  }
+}
+
 function calculateResidentialBasePrice(report) {
   let total = 70;
   if (report?.hasShed) total += 10;
@@ -250,7 +276,29 @@ attachments: [
                     const subscription = event.data.object;
                     const userId = subscription.metadata?.userId;
                     if (userId) {
-                        await admin.auth().setCustomUserClaims(userId, { plan: "basic", subscriptionId: null });
+                        try {
+                            const userRecord = await admin.auth().getUser(userId);
+                            const updatedClaims = {
+                                ...(userRecord.customClaims || {}),
+                                plan: "free",
+                                subscriptionId: null,
+                            };
+
+                            const customerId = typeof subscription.customer === "string"
+                                ? subscription.customer
+                                : subscription.customer?.id;
+                            if (!updatedClaims.stripeCustomerId && customerId) {
+                                updatedClaims.stripeCustomerId = customerId;
+                            }
+
+                            await admin.auth().setCustomUserClaims(userId, updatedClaims);
+                        } catch (error) {
+                            if (error?.code === "auth/user-not-found") {
+                                console.log(`Subscription deleted after Firebase user removal: ${userId}`);
+                            } else {
+                                throw error;
+                            }
+                        }
                     }
                     break;
                 }
@@ -262,7 +310,72 @@ attachments: [
     }
 );
 
-// 5. CREATE CHECKOUT SESSION (V2)
+// 5. DELETE ACCOUNT (V2)
+exports.deleteAccount = onCall(
+    {
+        secrets: [stripeSecretKey],
+        memory: "512MiB",
+        timeoutSeconds: 120,
+    },
+    async (request) => {
+        if (!request.auth) {
+            throw new HttpsError("unauthenticated", "You must be signed in.");
+        }
+
+        const userId = request.auth.uid;
+        const authTime = Number(request.auth.token.auth_time || 0);
+        const currentTime = Math.floor(Date.now() / 1000);
+        if (authTime <= 0 || currentTime - authTime > 5 * 60) {
+            throw new HttpsError(
+                "failed-precondition",
+                "Please confirm your password again before deleting the account."
+            );
+        }
+
+        const db = admin.firestore();
+        const bucket = admin.storage().bucket();
+        const stripeClient = Stripe(stripeSecretKey.value());
+
+        let userRecord;
+        try {
+            userRecord = await admin.auth().getUser(userId);
+        } catch (error) {
+            if (error?.code === "auth/user-not-found") {
+                throw new HttpsError("unauthenticated", "The user account no longer exists.");
+            }
+            console.error(`Could not load Firebase user ${userId}:`, error);
+            throw new HttpsError("internal", "Account deletion could not be completed.");
+        }
+
+        try {
+            await deleteStripeAccountData(stripeClient, userRecord.customClaims || {});
+
+            await Promise.all([
+                bucket.deleteFiles({ prefix: `user_reports/${userId}/` }),
+                bucket.deleteFiles({ prefix: `temp_reports/${userId}/` }),
+            ]);
+
+            await db.recursiveDelete(db.collection("users").doc(userId));
+
+            try {
+                await admin.auth().deleteUser(userId);
+            } catch (error) {
+                if (error?.code !== "auth/user-not-found") throw error;
+            }
+
+            console.log(`Account and stored user data deleted: ${userId}`);
+            return { success: true };
+        } catch (error) {
+            console.error(`Account deletion failed for ${userId}:`, error);
+            throw new HttpsError(
+                "internal",
+                "Account deletion could not be completed. Please try again."
+            );
+        }
+    }
+);
+
+// 6. CREATE CHECKOUT SESSION (V2)
 exports.createCheckoutSession = onCall(
     { secrets: [stripeSecretKey] },
     async (request) => {
@@ -415,7 +528,7 @@ exports.createHfEstimatesCheckoutSession = onCall(
 );
 
 // ==========================================
-// 6. SEND INSPECTION EMAIL (V2 - Consolidada)
+// 7. SEND INSPECTION EMAIL (V2 - Consolidada)
 // ==========================================
 exports.sendInspectionEmail = onCall(
     { 
