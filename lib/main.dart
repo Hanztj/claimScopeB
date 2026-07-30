@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:claimscope_clean/inspection_setup_screen.dart';
 import 'package:claimscope_clean/screens/subscription_gate_screen.dart';
 import 'package:claimscope_clean/theme.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'package:flutter/material.dart';
 
 void main() async {
@@ -13,7 +15,11 @@ void main() async {
   imageCache.maximumSize = 80;
   imageCache.maximumSizeBytes = 40 * 1024 * 1024;
   
-  await Firebase.initializeApp();
+await Firebase.initializeApp(
+  options: defaultTargetPlatform == TargetPlatform.iOS
+      ? DefaultFirebaseOptions.ios
+      : null, // Android lee automáticamente su google-services.json nativo
+);
   debugPrint("Firebase inicializado correctamente");
   runApp(const MyApp());
 }
