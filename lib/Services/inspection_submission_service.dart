@@ -219,28 +219,19 @@ class InspectionSubmissionService {
       return;
     }
 
-    final toEmails = <String>[user.email!];
-    if (plan == 'premium' &&
-        extraEmail != null &&
-        extraEmail.trim().isNotEmpty) {
-      toEmails.add(extraEmail.trim());
-    }
+    try {
+      await validateInspectionPhotoFiles(report);
+      if (!context.mounted) return;
 
-   try {
-  await validateInspectionPhotoFiles(report);
-
-  // Evita usar el BuildContext si el widget fue destruido durante la espera
-  if (!context.mounted) return;
-
-  await _runWithBlockingProgress<void>(
-    context,
-    'Sending email...',
-    () => EmailService.sendEmailWithReports(
-      toEmails: toEmails,
-      techPdf: techPdf,
-      photoPdf: photoPdf,
-    ),
-  );
+      await _runWithBlockingProgress<void>(
+        context,
+        'Sending email...',
+        () => EmailService.sendEmailWithReports(
+          extraEmail: plan == 'premium' ? extraEmail : null,
+          techPdf: techPdf,
+          photoPdf: photoPdf,
+        ),
+      );
 
       if (!context.mounted) return;
       messenger.showSnackBar(
@@ -397,13 +388,11 @@ class InspectionSubmissionService {
       return;
     }
 
-// Asegura que el widget siga montado antes de usar el BuildContext
-if (!context.mounted) return;
-
-final shouldStore = await _askStoreReportInCloud(
-  context: context,
-  plan: plan,
-);
+    if (!context.mounted) return;
+    final shouldStore = await _askStoreReportInCloud(
+      context: context,
+      plan: plan,
+    );
     if (!context.mounted) return;
 
     if (shouldStore) {
@@ -469,33 +458,15 @@ final shouldStore = await _askStoreReportInCloud(
       final callable = FirebaseFunctions.instance
           .httpsCallable('createHfEstimatesCheckoutSession');
 
-      final roofSectionsCount = report.commercialBuildings.fold<int>(
-        0,
-        (totalSections, building) => totalSections + building.roofs.length,
-      );
-      final additionalBuildingsCount =
-          report.commercialBuildings.length > 1
-              ? report.commercialBuildings.length - 1
-              : 0;
-
       final result = await callable.call({
         'techPdfUrl': techUrl,
         'photoPdfUrl': photoUrl,
         'rushOrder': rushOrder,
-        'isCommercial': isCommercial,
-        'roofSectionsCount': roofSectionsCount,
-        'additionalBuildingsCount': additionalBuildingsCount,
-        'hasShed': report.hasShed,
-        'hasDetachedStructure': report.hasDetachedStructure,
-        'plan': plan,
-        'userEmail': user.email,
         'clientName': report.clientName,
         'claimNumber': report.claimNumber,
         'address': '${report.address}, ${report.city}, ${report.state} ${report.zip}',
         'dateInspected': report.dateInspected,
         'report': report.toHfPricingPayload(),
-        'successUrl': 'claimscope://success',
-        'cancelUrl': 'claimscope://cancel',
       });
 
       final sessionUrl = result.data['url'] as String?;

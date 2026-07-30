@@ -28,12 +28,71 @@ const pricePremiumYearly = defineString("STRIPE_PRICE_PREMIUM_YEARLY", {
     default: "price_1TuV4cIV8TkU9SxHvtciIczy"
 });
 
-// Resuelve el plan ('basic' | 'premium') a partir de cualquiera de los 4 price IDs.
+const CHECKOUT_SUCCESS_URL = "claimscope://success";
+const CHECKOUT_CANCEL_URL = "claimscope://cancel";
+const STRIPE_WEBHOOK_EVENTS_COLLECTION = "stripeWebhookEvents";
+const STRIPE_WEBHOOK_LOCK_TIMEOUT_MS = 10 * 60 * 1000;
+
+function normalizeSubscriptionPlan(value) {
+  const plan = String(value || "").trim().toLowerCase();
+  return plan === "basic" || plan === "premium" ? plan : null;
+}
+
+function normalizeBillingPeriod(value) {
+  const billingPeriod = String(value || "").trim().toLowerCase();
+  return billingPeriod === "monthly" || billingPeriod === "yearly"
+    ? billingPeriod
+    : null;
+}
+
+function resolveSubscriptionPriceId(plan, billingPeriod) {
+  if (plan === "basic") {
+    return billingPeriod === "yearly"
+      ? priceBasicYearly.value()
+      : priceBasicMonthly.value();
+  }
+
+  return billingPeriod === "yearly"
+    ? pricePremiumYearly.value()
+    : pricePremiumMonthly.value();
+}
+
+function resolveSubscriptionSelectionFromPriceId(priceId) {
+  if (priceId === priceBasicMonthly.value()) {
+    return { plan: "basic", billingPeriod: "monthly" };
+  }
+  if (priceId === priceBasicYearly.value()) {
+    return { plan: "basic", billingPeriod: "yearly" };
+  }
+  if (priceId === pricePremiumMonthly.value()) {
+    return { plan: "premium", billingPeriod: "monthly" };
+  }
+  if (priceId === pricePremiumYearly.value()) {
+    return { plan: "premium", billingPeriod: "yearly" };
+  }
+  return null;
+}
+
+// Resuelve el plan ('basic' | 'premium') únicamente para Price IDs autorizados.
 function resolvePlanFromPriceId(priceId) {
-    if (priceId === pricePremiumMonthly.value() || priceId === pricePremiumYearly.value()) {
-        return "premium";
-    }
+  if (priceId === pricePremiumMonthly.value() || priceId === pricePremiumYearly.value()) {
+    return "premium";
+  }
+  if (priceId === priceBasicMonthly.value() || priceId === priceBasicYearly.value()) {
     return "basic";
+  }
+  return null;
+}
+
+function requirePaidPlanFromAuth(auth) {
+  const plan = normalizeSubscriptionPlan(auth?.token?.plan);
+  if (!plan) {
+    throw new HttpsError(
+      "permission-denied",
+      "An active Basic or Premium plan is required."
+    );
+  }
+  return plan;
 }
 
 // Newer configuration for nodemailer using Gmail
@@ -127,187 +186,475 @@ function calculateCommercialBasePrice(report) {
   return total;
 }
 
-// 4. WEBHOOK STRIPE (V2)
-exports.stripeWebhook = onRequest(
-    { secrets: [stripeSecretKey, webhookSecret, emailPass] },
-    async (req, res) => {
-        if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
-        const sig = req.headers["stripe-signature"];
-        let event;
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
 
-        try {
-            const stripeClient = Stripe(stripeSecretKey.value());
-            event = stripeClient.webhooks.constructEvent(req.rawBody, sig, webhookSecret.value());
-        } catch (err) {
-            console.error("Webhook signature failed:", err.message);
-            return res.status(400).send(`Webhook Error: ${err.message}`);
-        }
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
 
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: "soporte.claimscope@gmail.com",
-                pass: emailPass.value(), // Usa el secreto de forma segura
-            },
-        });
+function resolveLegacyExtraEmail(auth, requestedEmails) {
+  if (!Array.isArray(requestedEmails)) return null;
 
-        try {
-            switch (event.type) {
-                case "checkout.session.completed":
-                case "invoice.paid": {
-                    const session = event.data.object;
+  const accountEmail = normalizeEmail(auth?.token?.email);
+  const uniqueEmails = [...new Set(
+    requestedEmails
+      .map(normalizeEmail)
+      .filter((email) => email.length > 0)
+  )];
+  const additionalEmails = uniqueEmails.filter((email) => email !== accountEmail);
 
-                        // HF Estimates one-time payment
-  if (session?.metadata?.kind === "hf_estimate_email") {
-    const techPdfUrl = session.metadata.techPdfUrl;
-    const photoPdfUrl = session.metadata.photoPdfUrl;
-    const userEmail = session.metadata.userEmail;
+  if (additionalEmails.length > 1) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Only one additional email address is allowed."
+    );
+  }
+  return additionalEmails[0] || null;
+}
 
-    if (session.metadata.basePriceCharged === "true" &&
-        session.metadata.userId &&
-        session.metadata.reportKey) {
-      await admin
-        .firestore()
-        .collection("users")
-        .doc(session.metadata.userId)
-        .collection("hfEstimateBasePayments")
-        .doc(session.metadata.reportKey)
-        .set({
-          paidAt: admin.firestore.FieldValue.serverTimestamp(),
-          sessionId: session.id,
-          claimNumber: session.metadata.claimNumber || "",
-          address: session.metadata.address || "",
-          dateInspected: session.metadata.dateInspected || "",
-        }, { merge: true });
+function resolveInspectionEmailRecipients(auth, requestedExtraEmail) {
+  const plan = requirePaidPlanFromAuth(auth);
+  const accountEmail = normalizeEmail(auth?.token?.email);
+
+  if (!accountEmail || !isValidEmail(accountEmail)) {
+    throw new HttpsError(
+      "failed-precondition",
+      "The authenticated account does not have a valid email address."
+    );
+  }
+
+  const extraEmail = normalizeEmail(requestedExtraEmail);
+  if (!extraEmail) return [accountEmail];
+
+  if (!isValidEmail(extraEmail)) {
+    throw new HttpsError("invalid-argument", "The additional email address is invalid.");
+  }
+
+  if (plan !== "premium") {
+    throw new HttpsError(
+      "permission-denied",
+      "Sending reports to an additional email requires Premium."
+    );
+  }
+
+  return extraEmail === accountEmail
+    ? [accountEmail]
+    : [accountEmail, extraEmail];
+}
+
+function decodeUrlComponent(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch (_) {
+    throw new HttpsError("invalid-argument", "Invalid Firebase Storage URL.");
+  }
+}
+
+function validateUserPdfDownloadUrl(rawUrl, userId, mode, expectedFilename) {
+  let parsed;
+  try {
+    parsed = new URL(String(rawUrl || ""));
+  } catch (_) {
+    throw new HttpsError("invalid-argument", "Invalid Firebase Storage URL.");
+  }
+
+  if (parsed.protocol !== "https:" || parsed.hostname !== "firebasestorage.googleapis.com") {
+    throw new HttpsError(
+      "permission-denied",
+      "Report files must be stored in ClaimScope Firebase Storage."
+    );
+  }
+
+  const segments = parsed.pathname.split("/").filter(Boolean);
+  if (
+    segments.length < 5 ||
+    segments[0] !== "v0" ||
+    segments[1] !== "b" ||
+    segments[3] !== "o"
+  ) {
+    throw new HttpsError("invalid-argument", "Invalid Firebase Storage download URL.");
+  }
+
+  const bucketName = decodeUrlComponent(segments[2]);
+  const expectedBucketName = admin.storage().bucket().name;
+  if (bucketName !== expectedBucketName) {
+    throw new HttpsError(
+      "permission-denied",
+      "The report file belongs to a different Firebase Storage bucket."
+    );
+  }
+
+  const objectPath = decodeUrlComponent(segments.slice(4).join("/"));
+  const userPrefix = `temp_reports/${userId}/`;
+  if (!objectPath.startsWith(userPrefix)) {
+    throw new HttpsError(
+      "permission-denied",
+      "The report file does not belong to the authenticated user."
+    );
+  }
+
+  const relativeSegments = objectPath.slice(userPrefix.length).split("/");
+  const hasNumericTimestamp = (value) => /^\d+$/.test(value || "");
+
+  if (mode === "email") {
+    if (
+      relativeSegments.length !== 2 ||
+      !hasNumericTimestamp(relativeSegments[0]) ||
+      relativeSegments[1] !== expectedFilename
+    ) {
+      throw new HttpsError("permission-denied", "Unexpected report file location.");
+    }
+  } else if (mode === "hf") {
+    if (
+      relativeSegments.length !== 3 ||
+      relativeSegments[0] !== "hf_orders" ||
+      !hasNumericTimestamp(relativeSegments[1]) ||
+      relativeSegments[2] !== expectedFilename
+    ) {
+      throw new HttpsError("permission-denied", "Unexpected HF order file location.");
+    }
+  } else {
+    throw new HttpsError("internal", "Unsupported report validation mode.");
+  }
+
+  return objectPath;
+}
+
+function validateUserPdfPair(techPdfUrl, photoPdfUrl, userId, mode) {
+  const techPath = validateUserPdfDownloadUrl(
+    techPdfUrl,
+    userId,
+    mode,
+    "tech.pdf"
+  );
+  const photoPath = validateUserPdfDownloadUrl(
+    photoPdfUrl,
+    userId,
+    mode,
+    "photos.pdf"
+  );
+
+  const techDirectory = techPath.slice(0, techPath.lastIndexOf("/"));
+  const photoDirectory = photoPath.slice(0, photoPath.lastIndexOf("/"));
+  if (techDirectory !== photoDirectory) {
+    throw new HttpsError(
+      "permission-denied",
+      "The technical and photo reports must belong to the same upload."
+    );
+  }
+
+  return { techPath, photoPath };
+}
+
+async function claimStripeWebhookEvent(event) {
+  const db = admin.firestore();
+  const ref = db.collection(STRIPE_WEBHOOK_EVENTS_COLLECTION).doc(event.id);
+  const now = admin.firestore.Timestamp.now();
+  const staleBefore = now.toMillis() - STRIPE_WEBHOOK_LOCK_TIMEOUT_MS;
+
+  const state = await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    const data = snapshot.exists ? snapshot.data() : {};
+
+    if (data?.status === "processed") return "processed";
+
+    const updatedAtMillis = data?.updatedAt?.toMillis?.() || 0;
+    if (data?.status === "processing" && updatedAtMillis > staleBefore) {
+      return "processing";
     }
 
-    const toEmail = 'contact@hfestimates.com'; // Email fijo para recibir notificaciones de pedidos
+    transaction.set(
+      ref,
+      {
+        eventType: event.type,
+        status: "processing",
+        attempts: Number(data?.attempts || 0) + 1,
+        createdAt: data?.createdAt || now,
+        updatedAt: now,
+      },
+      { merge: true }
+    );
+    return "claimed";
+  });
 
-    const clientName = session.metadata.clientName || "N/A";
-    const claimNumber = session.metadata.claimNumber || "N/A";
-    const address = session.metadata.address || "N/A";
-    const dateInspected = session.metadata.dateInspected || "N/A";
-    const plan = session.metadata.plan || "N/A";
-    const rushOrder = session.metadata.rushOrder === "true" ? "Yes" : "No";
-    const isCommercial = session.metadata.isCommercial === "true" ? "Yes" : "No";
-    const hasShed = session.metadata.hasShed === "true" ? "Yes" : "No";
-    const hasDetachedStructure = session.metadata.hasDetachedStructure === "true" ? "Yes" : "No";
+  return { ref, state };
+}
 
-    const isRush = session.metadata.rushOrder === "true";
-    const deliveryText = isRush
+async function markStripeWebhookProcessed(ref) {
+  await ref.set(
+    {
+      status: "processed",
+      processedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      lastError: admin.firestore.FieldValue.delete(),
+    },
+    { merge: true }
+  );
+}
+
+async function markStripeWebhookFailed(ref, error) {
+  await ref.set(
+    {
+      status: "failed",
+      lastError: String(error?.message || error || "Unknown webhook error").slice(0, 1000),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
+}
+
+async function setSubscriptionClaims(userId, subscription) {
+  const priceId = subscription.items.data[0]?.price?.id;
+  const plan = resolvePlanFromPriceId(priceId);
+  if (!plan) {
+    throw new Error(`Unauthorized Stripe Price ID received: ${priceId || "missing"}`);
+  }
+
+  try {
+    const userRecord = await admin.auth().getUser(userId);
+    const customerId = typeof subscription.customer === "string"
+      ? subscription.customer
+      : subscription.customer?.id;
+
+    await admin.auth().setCustomUserClaims(userId, {
+      ...(userRecord.customClaims || {}),
+      plan,
+      stripeCustomerId: customerId || null,
+      subscriptionId: subscription.id,
+    });
+    console.log(`Plan assigned: ${plan} to ${userId}`);
+  } catch (error) {
+    if (error?.code === "auth/user-not-found") {
+      console.log(`Subscription event received after Firebase user removal: ${userId}`);
+      return;
+    }
+    throw error;
+  }
+}
+
+async function refreshSubscriptionClaims(stripeClient, subscriptionId) {
+  const subscription = await stripeClient.subscriptions.retrieve(subscriptionId, {
+    expand: ["items.data.price"],
+  });
+  const userId = subscription.metadata?.userId;
+  if (!userId) {
+    throw new Error(`Stripe subscription ${subscription.id} is missing metadata.userId`);
+  }
+  await setSubscriptionClaims(userId, subscription);
+}
+
+async function markSubscriptionDeleted(subscription) {
+  const userId = subscription.metadata?.userId;
+  if (!userId) return;
+
+  try {
+    const userRecord = await admin.auth().getUser(userId);
+    const updatedClaims = {
+      ...(userRecord.customClaims || {}),
+      plan: "free",
+      subscriptionId: null,
+    };
+
+    const customerId = typeof subscription.customer === "string"
+      ? subscription.customer
+      : subscription.customer?.id;
+    if (!updatedClaims.stripeCustomerId && customerId) {
+      updatedClaims.stripeCustomerId = customerId;
+    }
+
+    await admin.auth().setCustomUserClaims(userId, updatedClaims);
+  } catch (error) {
+    if (error?.code === "auth/user-not-found") {
+      console.log(`Subscription deleted after Firebase user removal: ${userId}`);
+      return;
+    }
+    throw error;
+  }
+}
+
+async function processHfCheckoutSession(session, transporter) {
+  const metadata = session.metadata || {};
+  const userId = metadata.userId;
+  if (!userId) {
+    throw new Error(`HF Checkout Session ${session.id} is missing metadata.userId`);
+  }
+
+  validateUserPdfPair(metadata.techPdfUrl, metadata.photoPdfUrl, userId, "hf");
+
+  if (metadata.basePriceCharged === "true" && metadata.reportKey) {
+    await admin
+      .firestore()
+      .collection("users")
+      .doc(userId)
+      .collection("hfEstimateBasePayments")
+      .doc(metadata.reportKey)
+      .set(
+        {
+          paidAt: admin.firestore.FieldValue.serverTimestamp(),
+          sessionId: session.id,
+          claimNumber: metadata.claimNumber || "",
+          address: metadata.address || "",
+          dateInspected: metadata.dateInspected || "",
+        },
+        { merge: true }
+      );
+  }
+
+  const isRush = metadata.rushOrder === "true";
+  const deliveryText = isRush
     ? "will be delivered within next 6 hours."
     : "estimated delivery time 1-2 business days.";
 
-    const body = [
-      `We've received your Order and it's now being processed, ${deliveryText}`,
-      "",
-      "Order details:",
-      `Client: ${clientName}`,
-      `Claim #: ${claimNumber}`,
-      `Address: ${address}`,
-      `Date inspected: ${dateInspected}`,
-      `Plan: ${plan}`,
-      `Rush: ${rushOrder}`,
-      `Commercial: ${isCommercial}`,
-      `Shed: ${hasShed}`,
-      `Detached structure: ${hasDetachedStructure}`,
-      "",
-      `Tech PDF: ${techPdfUrl}`,
-      `Photo PDF: ${photoPdfUrl}`,
-    ].join("\n");
+  const body = [
+    `We've received your Order and it's now being processed, ${deliveryText}`,
+    "",
+    "Order details:",
+    `Client: ${metadata.clientName || "N/A"}`,
+    `Claim #: ${metadata.claimNumber || "N/A"}`,
+    `Address: ${metadata.address || "N/A"}`,
+    `Date inspected: ${metadata.dateInspected || "N/A"}`,
+    `Plan: ${metadata.plan || "N/A"}`,
+    `Rush: ${isRush ? "Yes" : "No"}`,
+    `Commercial: ${metadata.isCommercial === "true" ? "Yes" : "No"}`,
+    `Shed: ${metadata.hasShed === "true" ? "Yes" : "No"}`,
+    `Detached structure: ${metadata.hasDetachedStructure === "true" ? "Yes" : "No"}`,
+    "",
+    `Tech PDF: ${metadata.techPdfUrl}`,
+    `Photo PDF: ${metadata.photoPdfUrl}`,
+  ].join("\n");
 
-const mailOptions = {
-  from: '"ClaimScope Support" <soporte.claimscope@gmail.com>',
-  to: toEmail,
-  cc: userEmail || undefined, // Enviar copia al cliente
-  subject: "New HF Estimates Order - Roof Inspection Report",
-  text: body,
-attachments: [
-  {
-    filename: sanitizeAttachmentFilename(
-      session.metadata.techFilename,
-      "Inspection Tech Report.pdf"
-    ),
-    path: techPdfUrl,
-  },
-  {
-    filename: sanitizeAttachmentFilename(
-      session.metadata.photoFilename,
-      "Inspection Photo Report.pdf"
-    ),
-    path: photoPdfUrl,
-  },
-],
-};
-      
+  const userEmail = normalizeEmail(metadata.userEmail);
+  const mailOptions = {
+    from: '"ClaimScope Support" <soporte.claimscope@gmail.com>',
+    to: "contact@hfestimates.com",
+    cc: isValidEmail(userEmail) ? userEmail : undefined,
+    subject: "New HF Estimates Order - Roof Inspection Report",
+    text: body,
+    attachments: [
+      {
+        filename: sanitizeAttachmentFilename(
+          metadata.techFilename,
+          "Inspection Tech Report.pdf"
+        ),
+        path: metadata.techPdfUrl,
+      },
+      {
+        filename: sanitizeAttachmentFilename(
+          metadata.photoFilename,
+          "Inspection Photo Report.pdf"
+        ),
+        path: metadata.photoPdfUrl,
+      },
+    ],
+  };
+
+  const info = await transporter.sendMail(mailOptions);
+  console.log("HF order email sent:", info.response);
+}
+
+function stripeResourceId(value) {
+  if (typeof value === "string") return value;
+  return value?.id || null;
+}
+
+function subscriptionIdFromInvoice(invoice) {
+  return stripeResourceId(invoice?.subscription) ||
+    stripeResourceId(invoice?.parent?.subscription_details?.subscription);
+}
+
+async function processStripeWebhookEvent(event, stripeClient, transporter) {
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object;
+    if (session?.metadata?.kind === "hf_estimate_email") {
+      await processHfCheckoutSession(session, transporter);
+      return;
+    }
+
+    const subscriptionId = stripeResourceId(session.subscription);
+    if (subscriptionId) {
+      await refreshSubscriptionClaims(stripeClient, subscriptionId);
+    }
+    return;
+  }
+
+  if (event.type === "invoice.paid") {
+    const invoice = event.data.object;
+    const subscriptionId = subscriptionIdFromInvoice(invoice);
+    if (subscriptionId) {
+      await refreshSubscriptionClaims(stripeClient, subscriptionId);
+    }
+    return;
+  }
+
+  if (event.type === "customer.subscription.deleted") {
+    await markSubscriptionDeleted(event.data.object);
+  }
+}
+
+// 4. WEBHOOK STRIPE (V2)
+exports.stripeWebhook = onRequest(
+  { secrets: [stripeSecretKey, webhookSecret, emailPass] },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      return res.status(405).send("Method Not Allowed");
+    }
+
+    const sig = req.headers["stripe-signature"];
+    let event;
+
     try {
-      const info = await transporter.sendMail(mailOptions);
-      console.log("HF order email sent:", info.response);
-      break;
+      const stripeClient = Stripe(stripeSecretKey.value());
+      event = stripeClient.webhooks.constructEvent(
+        req.rawBody,
+        sig,
+        webhookSecret.value()
+      );
     } catch (error) {
-      console.error("HF email error:", error);
-      throw error;
+      console.error("Webhook signature failed:", error.message);
+      return res.status(400).send(`Webhook Error: ${error.message}`);
     }
-  }                      
 
-                     // Solo para suscripciones, no para pagos one-time
-                    const subscriptionId = session.subscription;
-                    if (!subscriptionId) break;
-
-                    const stripeClient = Stripe(stripeSecretKey.value());
-                    const subscription = await stripeClient.subscriptions.retrieve(subscriptionId, { expand: ["items.data.price"] });
-
-                    const priceId = subscription.items.data[0]?.price?.id;
-                    const userId = subscription.metadata?.userId;
-
-                    if (userId) {
-                        const plan = resolvePlanFromPriceId(priceId);
-                        await admin.auth().setCustomUserClaims(userId, {
-                            plan,
-                            stripeCustomerId: subscription.customer,
-                            subscriptionId: subscription.id,
-                        });
-                        console.log(`Plan asignado: ${plan} a ${userId}`);
-                    }
-                    break;
-                }
-                case "customer.subscription.deleted": {
-                    const subscription = event.data.object;
-                    const userId = subscription.metadata?.userId;
-                    if (userId) {
-                        try {
-                            const userRecord = await admin.auth().getUser(userId);
-                            const updatedClaims = {
-                                ...(userRecord.customClaims || {}),
-                                plan: "free",
-                                subscriptionId: null,
-                            };
-
-                            const customerId = typeof subscription.customer === "string"
-                                ? subscription.customer
-                                : subscription.customer?.id;
-                            if (!updatedClaims.stripeCustomerId && customerId) {
-                                updatedClaims.stripeCustomerId = customerId;
-                            }
-
-                            await admin.auth().setCustomUserClaims(userId, updatedClaims);
-                        } catch (error) {
-                            if (error?.code === "auth/user-not-found") {
-                                console.log(`Subscription deleted after Firebase user removal: ${userId}`);
-                            } else {
-                                throw error;
-                            }
-                        }
-                    }
-                    break;
-                }
-            }
-        } catch (err) {
-            console.error("Error procesando evento:", err);
-        }
-        res.json({ received: true });
+    let claim;
+    try {
+      claim = await claimStripeWebhookEvent(event);
+    } catch (error) {
+      console.error(`Could not claim Stripe event ${event.id}:`, error);
+      return res.status(500).json({ received: false });
     }
+
+    if (claim.state === "processed") {
+      return res.json({ received: true, duplicate: true });
+    }
+    if (claim.state === "processing") {
+      return res.status(409).json({ received: false, processing: true });
+    }
+
+    const stripeClient = Stripe(stripeSecretKey.value());
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: "soporte.claimscope@gmail.com",
+        pass: emailPass.value(),
+      },
+    });
+
+    try {
+      await processStripeWebhookEvent(event, stripeClient, transporter);
+      await markStripeWebhookProcessed(claim.ref);
+      return res.json({ received: true });
+    } catch (error) {
+      console.error(`Error processing Stripe event ${event.id}:`, error);
+      try {
+        await markStripeWebhookFailed(claim.ref, error);
+      } catch (markError) {
+        console.error(`Could not mark Stripe event ${event.id} as failed:`, markError);
+      }
+      return res.status(500).json({ received: false });
+    }
+  }
 );
 
 // 5. DELETE ACCOUNT (V2)
@@ -377,31 +724,56 @@ exports.deleteAccount = onCall(
 
 // 6. CREATE CHECKOUT SESSION (V2)
 exports.createCheckoutSession = onCall(
-    { secrets: [stripeSecretKey] },
-    async (request) => {
-        if (!request.auth) throw new HttpsError("unauthenticated", "Debes estar autenticado");
-
-        const { priceId, successUrl, cancelUrl } = request.data;
-        const stripeClient = Stripe(stripeSecretKey.value());
-
-        const resolvedPlan = resolvePlanFromPriceId(priceId);
-        const subscriptionData = { metadata: { userId: request.auth.uid } };
-        if (resolvedPlan === "premium") {
-            subscriptionData.trial_period_days = 14;
-        }
-
-        const session = await stripeClient.checkout.sessions.create({
-            mode: "subscription",
-            payment_method_collection: "always",
-            customer_email: request.auth.token.email || null,
-            line_items: [{ price: priceId, quantity: 1 }],
-            success_url: successUrl || "claimscope://success",
-            cancel_url: cancelUrl || "claimscope://cancel",
-            subscription_data: subscriptionData,
-        });
-
-        return { url: session.url };
+  { secrets: [stripeSecretKey] },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Debes estar autenticado");
     }
+
+    let plan = normalizeSubscriptionPlan(request.data?.plan);
+    let billingPeriod = normalizeBillingPeriod(request.data?.billingPeriod);
+
+    if (!plan || !billingPeriod) {
+      const legacySelection = resolveSubscriptionSelectionFromPriceId(
+        request.data?.priceId
+      );
+      plan = legacySelection?.plan || null;
+      billingPeriod = legacySelection?.billingPeriod || null;
+    }
+
+    if (!plan || !billingPeriod) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Plan and billing period must be valid."
+      );
+    }
+
+    const priceId = resolveSubscriptionPriceId(plan, billingPeriod);
+    const stripeClient = Stripe(stripeSecretKey.value());
+    const subscriptionData = {
+      metadata: {
+        userId: request.auth.uid,
+        plan,
+        billingPeriod,
+      },
+    };
+
+    if (plan === "premium") {
+      subscriptionData.trial_period_days = 14;
+    }
+
+    const session = await stripeClient.checkout.sessions.create({
+      mode: "subscription",
+      payment_method_collection: "always",
+      customer_email: request.auth.token.email || null,
+      line_items: [{ price: priceId, quantity: 1 }],
+      success_url: CHECKOUT_SUCCESS_URL,
+      cancel_url: CHECKOUT_CANCEL_URL,
+      subscription_data: subscriptionData,
+    });
+
+    return { url: session.url };
+  }
 );
 
 exports.createHfEstimatesCheckoutSession = onCall(
@@ -415,25 +787,24 @@ exports.createHfEstimatesCheckoutSession = onCall(
       techPdfUrl,
       photoPdfUrl,
       rushOrder,
-      isCommercial,
-      plan,
       clientName,
       claimNumber,
       address,
       dateInspected,
-      userEmail,
-      successUrl,
-      cancelUrl,
-    } = request.data;
-
-    const report = request.data.report || {};
+    } = request.data || {};
+    const report = request.data?.report || {};
 
     if (!techPdfUrl || !photoPdfUrl) {
       throw new HttpsError("invalid-argument", "Faltan URLs de PDFs.");
     }
 
-    const stripeClient = Stripe(stripeSecretKey.value());
     const userId = request.auth.uid;
+    const plan = requirePaidPlanFromAuth(request.auth);
+    const isCommercial = report?.isCommercial === true;
+    const isRushOrder = rushOrder === true;
+    validateUserPdfPair(techPdfUrl, photoPdfUrl, userId, "hf");
+
+    const stripeClient = Stripe(stripeSecretKey.value());
     const reportKey = buildHfReportKey(userId, claimNumber, address, dateInspected);
     const basePaymentRef = admin
       .firestore()
@@ -470,21 +841,26 @@ exports.createHfEstimatesCheckoutSession = onCall(
     }
 
     if (chargeableElevations) total += elevationsAddon;
-    if (rushOrder) total += isCommercial ? commercialRushFee : residentialRushFee;
+    if (isRushOrder) {
+      total += isCommercial ? commercialRushFee : residentialRushFee;
+    }
 
     total = applyPlanDiscount(total, plan);
 
     if (total <= 0) {
-      throw new HttpsError("failed-precondition", "No payable HF Estimates items were detected.");
+      throw new HttpsError(
+        "failed-precondition",
+        "No payable HF Estimates items were detected."
+      );
     }
 
     const amountCents = Math.round(total * 100);
+    const authenticatedEmail = normalizeEmail(request.auth.token.email);
 
     const session = await stripeClient.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
-      customer_email: userEmail || request.auth.token.email || null,
-
+      customer_email: isValidEmail(authenticatedEmail) ? authenticatedEmail : null,
       line_items: [
         {
           price_data: {
@@ -497,10 +873,8 @@ exports.createHfEstimatesCheckoutSession = onCall(
           quantity: 1,
         },
       ],
-
-      success_url: successUrl || "claimscope://success",
-      cancel_url: cancelUrl || "claimscope://cancel",
-
+      success_url: CHECKOUT_SUCCESS_URL,
+      cancel_url: CHECKOUT_CANCEL_URL,
       metadata: {
         kind: "hf_estimate_email",
         userId,
@@ -510,16 +884,16 @@ exports.createHfEstimatesCheckoutSession = onCall(
         chargeableElevations: chargeableElevations ? "true" : "false",
         techPdfUrl,
         photoPdfUrl,
-        userEmail: userEmail || request.auth.token.email || "",
-        plan: plan || "",
-        rushOrder: rushOrder ? "true" : "false",
+        userEmail: isValidEmail(authenticatedEmail) ? authenticatedEmail : "",
+        plan,
+        rushOrder: isRushOrder ? "true" : "false",
         hasShed: report?.hasShed ? "true" : "false",
         hasDetachedStructure: report?.hasDetachedStructure ? "true" : "false",
         isCommercial: isCommercial ? "true" : "false",
-        clientName: clientName || "",
-        claimNumber: claimNumber || "",
-        address: address || "",
-        dateInspected: dateInspected || "",
+        clientName: String(clientName || "").slice(0, 500),
+        claimNumber: String(claimNumber || "").slice(0, 500),
+        address: String(address || "").slice(0, 500),
+        dateInspected: String(dateInspected || "").slice(0, 500),
       },
     });
 
@@ -531,73 +905,95 @@ exports.createHfEstimatesCheckoutSession = onCall(
 // 7. SEND INSPECTION EMAIL (V2 - Consolidada)
 // ==========================================
 exports.sendInspectionEmail = onCall(
-    { 
-        secrets: [emailPass],
-        memory: "1GiB",          
-        timeoutSeconds: 120      
-    }, 
-    async (request) => {
-        if (!request.auth) {
-            throw new HttpsError("unauthenticated", "Debe iniciar sesión.");
-        }
+  {
+    secrets: [emailPass],
+    memory: "1GiB",
+    timeoutSeconds: 120,
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Debe iniciar sesión.");
+    }
 
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: "soporte.claimscope@gmail.com",
-                pass: emailPass.value(),
-            },
-        });
+    const {
+      extraEmail,
+      toEmails,
+      techPdfUrl,
+      photoPdfUrl,
+      techFilename,
+      photoFilename,
+    } = request.data || {};
 
-        const { toEmails, techPdfUrl, photoPdfUrl, techFilename, photoFilename } = request.data;
-        if (!techPdfUrl || !photoPdfUrl) {
-            throw new HttpsError("invalid-argument", "Missing PDF URLs.");
-        }
+    if (!techPdfUrl || !photoPdfUrl) {
+      throw new HttpsError("invalid-argument", "Missing PDF URLs.");
+    }
 
-        const cleanToEmails = Array.isArray(toEmails)
-            ? toEmails.map((e) => String(e || "").trim()).filter((e) => e.length > 0)
-            : [];
+    const requestedExtraEmail = extraEmail || resolveLegacyExtraEmail(
+      request.auth,
+      toEmails
+    );
+    const cleanToEmails = resolveInspectionEmailRecipients(
+      request.auth,
+      requestedExtraEmail
+    );
+    validateUserPdfPair(
+      techPdfUrl,
+      photoPdfUrl,
+      request.auth.uid,
+      "email"
+    );
 
-        if (cleanToEmails.length === 0) {
-            console.error("sendInspectionEmail: no recipients", { toEmails });
-            throw new HttpsError("invalid-argument", "No recipients provided.");
-        }
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: "soporte.claimscope@gmail.com",
+        pass: emailPass.value(),
+      },
+    });
 
-        console.log(`Sending report links to: ${cleanToEmails.join(", ")}`);
+    console.log(`Sending report links to: ${cleanToEmails.join(", ")}`);
 
-        // 💡 CONSTRUIMOS UN CUERPO DE CORREO ELEGANTE CON LOS ENLACES DE DESCARGA
-        const emailText = [
-            "Hello,",
-            "",
-            "Your requested inspection reports are ready. Due to the high-resolution images included, please use the links below to view and download your files securely:",
-            "",
-            `1. Technical Report (${techFilename || 'Technical_Report.pdf'}):`,
-            techPdfUrl,
-            "",
-            `2. Photo Report (${photoFilename || 'Photo_Report.pdf'}):`,
-            photoPdfUrl,
-            "",
-            "Thank you for using ClaimScope.",
-            "Support Team"
-        ].join("\n");
+    const safeTechFilename = sanitizeAttachmentFilename(
+      techFilename,
+      "Technical_Report.pdf"
+    );
+    const safePhotoFilename = sanitizeAttachmentFilename(
+      photoFilename,
+      "Photo_Report.pdf"
+    );
+    const emailText = [
+      "Hello,",
+      "",
+      "Your requested inspection reports are ready. Due to the high-resolution images included, please use the links below to view and download your files securely:",
+      "",
+      `1. Technical Report (${safeTechFilename}):`,
+      techPdfUrl,
+      "",
+      `2. Photo Report (${safePhotoFilename}):`,
+      photoPdfUrl,
+      "",
+      "Thank you for using ClaimScope.",
+      "Support Team",
+    ].join("\n");
 
-        const mailOptions = { 
-            from: '"ClaimScope Support" <soporte.claimscope@gmail.com>',
-            to: cleanToEmails.join(","),
-            subject: "Your Roof Inspection Report Links 🚀",
-            text: emailText
-            // 💡 ELIMINAMOS EL ARREGLO DE ATTACHMENTS TOTALMENTE
-        };
+    const mailOptions = {
+      from: '"ClaimScope Support" <soporte.claimscope@gmail.com>',
+      to: cleanToEmails.join(","),
+      subject: "Your Roof Inspection Report Links",
+      text: emailText,
+    };
 
-        try {
-            const info = await transporter.sendMail(mailOptions);
-            console.log("Email with links sent successfully: " + info.response);
-            return { success: true };
-        } catch (error) {
-            console.error("Detailed Email Error:", error);
-            throw new HttpsError("internal", "Could not send email.");
-        }
-});
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      console.log("Email with links sent successfully: " + info.response);
+      return { success: true };
+    } catch (error) {
+      console.error("Detailed Email Error:", error);
+      throw new HttpsError("internal", "Could not send email.");
+    }
+  }
+);
+
 exports.purgeExpiredInspectionReports = onSchedule(
   {
     schedule: "every day 02:00",
