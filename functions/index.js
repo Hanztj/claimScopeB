@@ -2,13 +2,24 @@
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
 const { defineSecret, defineString } = require("firebase-functions/params");
-const admin = require("firebase-admin");
+const { initializeApp } = require("firebase-admin/app");
+const {
+  getFirestore,
+  Timestamp,
+  FieldValue,
+} = require("firebase-admin/firestore");
+const { getAuth } = require("firebase-admin/auth");
+const { getStorage } = require("firebase-admin/storage");
 const Stripe = require("stripe");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 
 // 2. INICIALIZACIÓN (Solo una vez)
-admin.initializeApp();
+initializeApp();
+
+const firestoreDb = getFirestore();
+const firebaseAuth = getAuth();
+const firebaseStorage = getStorage();
 
 // 3. CONFIGURACIÓN Y SECRETOS
 const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
@@ -279,7 +290,7 @@ function validateUserPdfDownloadUrl(rawUrl, userId, mode, expectedFilename) {
   }
 
   const bucketName = decodeUrlComponent(segments[2]);
-  const expectedBucketName = admin.storage().bucket().name;
+  const expectedBucketName = firebaseStorage.bucket().name;
   if (bucketName !== expectedBucketName) {
     throw new HttpsError(
       "permission-denied",
@@ -350,16 +361,19 @@ function validateUserPdfPair(techPdfUrl, photoPdfUrl, userId, mode) {
 }
 
 async function claimStripeWebhookEvent(event) {
-  const db = admin.firestore();
-  const ref = db.collection(STRIPE_WEBHOOK_EVENTS_COLLECTION).doc(event.id);
-  const now = admin.firestore.Timestamp.now();
+  const ref = firestoreDb
+    .collection(STRIPE_WEBHOOK_EVENTS_COLLECTION)
+    .doc(event.id);
+  const now = Timestamp.now();
   const staleBefore = now.toMillis() - STRIPE_WEBHOOK_LOCK_TIMEOUT_MS;
 
-  const state = await db.runTransaction(async (transaction) => {
+  const state = await firestoreDb.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(ref);
     const data = snapshot.exists ? snapshot.data() : {};
 
-    if (data?.status === "processed") return "processed";
+    if (data?.status === "processed" || data?.status === "ignored") {
+      return data.status;
+    }
 
     const updatedAtMillis = data?.updatedAt?.toMillis?.() || 0;
     if (data?.status === "processing" && updatedAtMillis > staleBefore) {
@@ -370,7 +384,9 @@ async function claimStripeWebhookEvent(event) {
       ref,
       {
         eventType: event.type,
+        objectType: event.data?.object?.object || null,
         status: "processing",
+        processingStage: "received",
         attempts: Number(data?.attempts || 0) + 1,
         createdAt: data?.createdAt || now,
         updatedAt: now,
@@ -383,13 +399,47 @@ async function claimStripeWebhookEvent(event) {
   return { ref, state };
 }
 
-async function markStripeWebhookProcessed(ref) {
+function webhookResultFields(result) {
+  const details = result?.details || {};
+  const fields = {
+    result: result?.result || null,
+    processingStage: result?.processingStage || null,
+    checkoutSessionId: details.checkoutSessionId || null,
+    invoicePaymentId: details.invoicePaymentId || null,
+    invoiceId: details.invoiceId || null,
+    subscriptionId: details.subscriptionId || null,
+    userId: details.userId || null,
+    priceId: details.priceId || null,
+    resolvedPlan: details.plan || null,
+    billingPeriod: details.billingPeriod || null,
+  };
+
+  return fields;
+}
+
+async function markStripeWebhookProcessed(ref, result) {
   await ref.set(
     {
+      ...webhookResultFields(result),
       status: "processed",
-      processedAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      lastError: admin.firestore.FieldValue.delete(),
+      processingStage: "completed",
+      processedAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      lastError: FieldValue.delete(),
+    },
+    { merge: true }
+  );
+}
+
+async function markStripeWebhookIgnored(ref, result) {
+  await ref.set(
+    {
+      ...webhookResultFields(result),
+      status: "ignored",
+      processingStage: "ignored",
+      processedAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      lastError: FieldValue.delete(),
     },
     { merge: true }
   );
@@ -399,8 +449,9 @@ async function markStripeWebhookFailed(ref, error) {
   await ref.set(
     {
       status: "failed",
+      processingStage: "failed",
       lastError: String(error?.message || error || "Unknown webhook error").slice(0, 1000),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     },
     { merge: true }
   );
@@ -408,28 +459,58 @@ async function markStripeWebhookFailed(ref, error) {
 
 async function setSubscriptionClaims(userId, subscription) {
   const priceId = subscription.items.data[0]?.price?.id;
-  const plan = resolvePlanFromPriceId(priceId);
-  if (!plan) {
+  const selection = resolveSubscriptionSelectionFromPriceId(priceId);
+  if (!selection) {
     throw new Error(`Unauthorized Stripe Price ID received: ${priceId || "missing"}`);
   }
 
-  try {
-    const userRecord = await admin.auth().getUser(userId);
-    const customerId = typeof subscription.customer === "string"
-      ? subscription.customer
-      : subscription.customer?.id;
+  const { plan, billingPeriod } = selection;
+  const customerId = typeof subscription.customer === "string"
+    ? subscription.customer
+    : subscription.customer?.id;
 
-    await admin.auth().setCustomUserClaims(userId, {
+  try {
+    const userRecord = await firebaseAuth.getUser(userId);
+
+    await firebaseAuth.setCustomUserClaims(userId, {
       ...(userRecord.customClaims || {}),
       plan,
+      billingPeriod,
       stripeCustomerId: customerId || null,
       subscriptionId: subscription.id,
     });
-    console.log(`Plan assigned: ${plan} to ${userId}`);
+
+    console.log(
+      `Plan assigned: ${plan} (${billingPeriod}) to ${userId}`
+    );
+
+    return {
+      handled: true,
+      result: "subscription_claims_updated",
+      processingStage: "claims_updated",
+      details: {
+        userId,
+        subscriptionId: subscription.id,
+        priceId,
+        plan,
+        billingPeriod,
+      },
+    };
   } catch (error) {
     if (error?.code === "auth/user-not-found") {
       console.log(`Subscription event received after Firebase user removal: ${userId}`);
-      return;
+      return {
+        handled: true,
+        result: "firebase_user_missing",
+        processingStage: "user_missing",
+        details: {
+          userId,
+          subscriptionId: subscription.id,
+          priceId,
+          plan,
+          billingPeriod,
+        },
+      };
     }
     throw error;
   }
@@ -443,33 +524,54 @@ async function refreshSubscriptionClaims(stripeClient, subscriptionId) {
   if (!userId) {
     throw new Error(`Stripe subscription ${subscription.id} is missing metadata.userId`);
   }
-  await setSubscriptionClaims(userId, subscription);
+  return setSubscriptionClaims(userId, subscription);
 }
 
 async function markSubscriptionDeleted(subscription) {
   const userId = subscription.metadata?.userId;
-  if (!userId) return;
+  if (!userId) {
+    throw new Error(`Stripe subscription ${subscription.id} is missing metadata.userId`);
+  }
+
+  const customerId = typeof subscription.customer === "string"
+    ? subscription.customer
+    : subscription.customer?.id;
 
   try {
-    const userRecord = await admin.auth().getUser(userId);
+    const userRecord = await firebaseAuth.getUser(userId);
     const updatedClaims = {
       ...(userRecord.customClaims || {}),
       plan: "free",
+      billingPeriod: null,
       subscriptionId: null,
     };
 
-    const customerId = typeof subscription.customer === "string"
-      ? subscription.customer
-      : subscription.customer?.id;
     if (!updatedClaims.stripeCustomerId && customerId) {
       updatedClaims.stripeCustomerId = customerId;
     }
 
-    await admin.auth().setCustomUserClaims(userId, updatedClaims);
+    await firebaseAuth.setCustomUserClaims(userId, updatedClaims);
+    return {
+      handled: true,
+      result: "subscription_marked_deleted",
+      processingStage: "claims_updated",
+      details: {
+        userId,
+        subscriptionId: subscription.id,
+      },
+    };
   } catch (error) {
     if (error?.code === "auth/user-not-found") {
       console.log(`Subscription deleted after Firebase user removal: ${userId}`);
-      return;
+      return {
+        handled: true,
+        result: "firebase_user_missing",
+        processingStage: "user_missing",
+        details: {
+          userId,
+          subscriptionId: subscription.id,
+        },
+      };
     }
     throw error;
   }
@@ -485,15 +587,14 @@ async function processHfCheckoutSession(session, transporter) {
   validateUserPdfPair(metadata.techPdfUrl, metadata.photoPdfUrl, userId, "hf");
 
   if (metadata.basePriceCharged === "true" && metadata.reportKey) {
-    await admin
-      .firestore()
+    await firestoreDb
       .collection("users")
       .doc(userId)
       .collection("hfEstimateBasePayments")
       .doc(metadata.reportKey)
       .set(
         {
-          paidAt: admin.firestore.FieldValue.serverTimestamp(),
+          paidAt: FieldValue.serverTimestamp(),
           sessionId: session.id,
           claimNumber: metadata.claimNumber || "",
           address: metadata.address || "",
@@ -570,28 +671,102 @@ async function processStripeWebhookEvent(event, stripeClient, transporter) {
     const session = event.data.object;
     if (session?.metadata?.kind === "hf_estimate_email") {
       await processHfCheckoutSession(session, transporter);
-      return;
+      return {
+        handled: true,
+        result: "hf_order_processed",
+        processingStage: "email_sent",
+        details: {
+          checkoutSessionId: session.id,
+          userId: session.metadata?.userId || null,
+        },
+      };
     }
 
     const subscriptionId = stripeResourceId(session.subscription);
-    if (subscriptionId) {
-      await refreshSubscriptionClaims(stripeClient, subscriptionId);
+    if (!subscriptionId) {
+      throw new Error(
+        `Checkout Session ${session.id} is missing its subscription`
+      );
     }
-    return;
+
+    const result = await refreshSubscriptionClaims(stripeClient, subscriptionId);
+    return {
+      ...result,
+      details: {
+        ...result.details,
+        checkoutSessionId: session.id,
+      },
+    };
   }
 
   if (event.type === "invoice.paid") {
     const invoice = event.data.object;
     const subscriptionId = subscriptionIdFromInvoice(invoice);
-    if (subscriptionId) {
-      await refreshSubscriptionClaims(stripeClient, subscriptionId);
+    if (!subscriptionId) {
+      return {
+        handled: false,
+        result: "invoice_without_subscription",
+        processingStage: "ignored",
+        details: {
+          invoiceId: invoice.id || null,
+        },
+      };
     }
-    return;
+
+    const result = await refreshSubscriptionClaims(stripeClient, subscriptionId);
+    return {
+      ...result,
+      details: {
+        ...result.details,
+        invoiceId: invoice.id || null,
+      },
+    };
+  }
+
+  if (event.type === "invoice_payment.paid") {
+    const invoicePayment = event.data.object;
+    const invoiceId = stripeResourceId(invoicePayment.invoice);
+    if (!invoiceId) {
+      throw new Error(
+        `InvoicePayment ${invoicePayment.id} is missing its invoice`
+      );
+    }
+
+    const invoice = await stripeClient.invoices.retrieve(invoiceId);
+    const subscriptionId = subscriptionIdFromInvoice(invoice);
+    if (!subscriptionId) {
+      return {
+        handled: false,
+        result: "invoice_payment_without_subscription",
+        processingStage: "ignored",
+        details: {
+          invoicePaymentId: invoicePayment.id || null,
+          invoiceId,
+        },
+      };
+    }
+
+    const result = await refreshSubscriptionClaims(stripeClient, subscriptionId);
+    return {
+      ...result,
+      details: {
+        ...result.details,
+        invoicePaymentId: invoicePayment.id || null,
+        invoiceId,
+      },
+    };
   }
 
   if (event.type === "customer.subscription.deleted") {
-    await markSubscriptionDeleted(event.data.object);
+    return markSubscriptionDeleted(event.data.object);
   }
+
+  return {
+    handled: false,
+    result: "ignored_event_type",
+    processingStage: "ignored",
+    details: {},
+  };
 }
 
 // 4. WEBHOOK STRIPE (V2)
@@ -625,8 +800,12 @@ exports.stripeWebhook = onRequest(
       return res.status(500).json({ received: false });
     }
 
-    if (claim.state === "processed") {
-      return res.json({ received: true, duplicate: true });
+    if (claim.state === "processed" || claim.state === "ignored") {
+      return res.json({
+        received: true,
+        duplicate: true,
+        status: claim.state,
+      });
     }
     if (claim.state === "processing") {
       return res.status(409).json({ received: false, processing: true });
@@ -642,9 +821,22 @@ exports.stripeWebhook = onRequest(
     });
 
     try {
-      await processStripeWebhookEvent(event, stripeClient, transporter);
-      await markStripeWebhookProcessed(claim.ref);
-      return res.json({ received: true });
+      const result = await processStripeWebhookEvent(
+        event,
+        stripeClient,
+        transporter
+      );
+
+      if (result.handled) {
+        await markStripeWebhookProcessed(claim.ref, result);
+      } else {
+        await markStripeWebhookIgnored(claim.ref, result);
+      }
+
+      return res.json({
+        received: true,
+        status: result.handled ? "processed" : "ignored",
+      });
     } catch (error) {
       console.error(`Error processing Stripe event ${event.id}:`, error);
       try {
@@ -679,13 +871,13 @@ exports.deleteAccount = onCall(
             );
         }
 
-        const db = admin.firestore();
-        const bucket = admin.storage().bucket();
+        const db = firestoreDb;
+        const bucket = firebaseStorage.bucket();
         const stripeClient = Stripe(stripeSecretKey.value());
 
         let userRecord;
         try {
-            userRecord = await admin.auth().getUser(userId);
+            userRecord = await firebaseAuth.getUser(userId);
         } catch (error) {
             if (error?.code === "auth/user-not-found") {
                 throw new HttpsError("unauthenticated", "The user account no longer exists.");
@@ -705,7 +897,7 @@ exports.deleteAccount = onCall(
             await db.recursiveDelete(db.collection("users").doc(userId));
 
             try {
-                await admin.auth().deleteUser(userId);
+                await firebaseAuth.deleteUser(userId);
             } catch (error) {
                 if (error?.code !== "auth/user-not-found") throw error;
             }
@@ -769,6 +961,12 @@ exports.createCheckoutSession = onCall(
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: CHECKOUT_SUCCESS_URL,
       cancel_url: CHECKOUT_CANCEL_URL,
+      metadata: {
+        kind: "subscription",
+        userId: request.auth.uid,
+        plan,
+        billingPeriod,
+      },
       subscription_data: subscriptionData,
     });
 
@@ -806,8 +1004,7 @@ exports.createHfEstimatesCheckoutSession = onCall(
 
     const stripeClient = Stripe(stripeSecretKey.value());
     const reportKey = buildHfReportKey(userId, claimNumber, address, dateInspected);
-    const basePaymentRef = admin
-      .firestore()
+    const basePaymentRef = firestoreDb
       .collection("users")
       .doc(userId)
       .collection("hfEstimateBasePayments")
@@ -1000,10 +1197,10 @@ exports.purgeExpiredInspectionReports = onSchedule(
     timeZone: "America/Denver", // ajusta a tu zona si quieres
   },
   async () => {
-    const db = admin.firestore();
-    const bucket = admin.storage().bucket();
+    const db = firestoreDb;
+    const bucket = firebaseStorage.bucket();
 
-    const now = admin.firestore.Timestamp.now();
+    const now = Timestamp.now();
 
     // Busca en todas las subcolecciones "inspectionReports" de todos los usuarios
     const snap = await db.collectionGroup("inspectionReports")
