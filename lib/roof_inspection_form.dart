@@ -1086,6 +1086,9 @@ _saveCurrentResidentialProgress();
         final pdfs = await runWithBlockingProgress<Map<String, File>>(
           context: context,
           message: 'Generating inspection reports...',
+          secondaryMessage:
+              'This may take several minutes for inspections with many photos. '
+              'Keep ClaimScope open until report generation is complete.',
           task: () => PdfService.generateReports(widget.report),
         );
 
