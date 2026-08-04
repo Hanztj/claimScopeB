@@ -183,7 +183,7 @@ class _PdfPhotoItemBytes {
 
 class PdfService {
   static const String photoCacheVersionFolder = 'photo_cache_v4';
-  static const int commercialPhotoChunkSize = 24;
+  static const int photoSectionChunkSize = 24;
   static const int largeCommercialPhotoSectionThreshold = 65;
   static const int largeCommercialInspectionPhotoThreshold = 100;
 
@@ -493,7 +493,7 @@ class PdfService {
             largeCommercialInspectionPhotoThreshold;
   }
 
-  static Future<void> _deleteCommercialChunkFiles(File sectionFile) async {
+  static Future<void> _deletePhotoChunkFiles(File sectionFile) async {
     final sectionFilename = sectionFile.uri.pathSegments.last;
     final chunkPrefix = '$sectionFilename.chunk_';
 
@@ -507,11 +507,12 @@ class PdfService {
     }
   }
 
-  static Future<File> _buildCommercialPhotoChunk({
+  static Future<File> _buildPhotoChunk({
     required List<PhotoItem> photoItems,
     required int startIndex,
     required int endIndex,
     required int chunkNumber,
+    required bool isCommercial,
     required pw.ThemeData pdfTheme,
     required File sectionFile,
   }) async {
@@ -520,12 +521,12 @@ class PdfService {
     for (var i = startIndex; i < endIndex; i += 2) {
       final firstPhoto = await _loadPdfPhotoItemBytes(
         photoItems[i],
-        isCommercial: true,
+        isCommercial: isCommercial,
       );
       final secondPhoto = i + 1 < endIndex
           ? await _loadPdfPhotoItemBytes(
               photoItems[i + 1],
-              isCommercial: true,
+              isCommercial: isCommercial,
             )
           : null;
 
@@ -613,23 +614,24 @@ class PdfService {
         bold: pw.Font.ttf(fontDataBold),
       );
       final chunkFiles = <File>[];
-      await _deleteCommercialChunkFiles(partialFile);
+      await _deletePhotoChunkFiles(partialFile);
 
       try {
         var chunkNumber = 1;
         for (var startIndex = 0;
             startIndex < photoItems.length;
-            startIndex += commercialPhotoChunkSize) {
+            startIndex += photoSectionChunkSize) {
           final endIndex =
-              (startIndex + commercialPhotoChunkSize < photoItems.length)
-                  ? startIndex + commercialPhotoChunkSize
+              (startIndex + photoSectionChunkSize < photoItems.length)
+                  ? startIndex + photoSectionChunkSize
                   : photoItems.length;
           chunkFiles.add(
-            await _buildCommercialPhotoChunk(
+            await _buildPhotoChunk(
               photoItems: photoItems,
               startIndex: startIndex,
               endIndex: endIndex,
               chunkNumber: chunkNumber,
+              isCommercial: true,
               pdfTheme: pdfTheme,
               sectionFile: partialFile,
             ),
@@ -646,7 +648,7 @@ class PdfService {
           outputFile: partialFile,
         );
       } finally {
-        await _deleteCommercialChunkFiles(partialFile);
+        await _deletePhotoChunkFiles(partialFile);
       }
 
       await writeSectionHash(
@@ -697,6 +699,7 @@ class PdfService {
         await file.delete();
       }
     }
+    await _deletePhotoChunkFiles(File(pdfPath));
   }
 
   static Future<File?> _buildPartialPhotoPdfSection({
@@ -723,45 +726,43 @@ class PdfService {
     final partialFile = File(hashState.partialPdfPath);
     if (!hashState.isDirty) return partialFile;
 
-    final partialPdf = pw.Document();
-    for (var i = 0; i < photoItems.length; i += 2) {
-      final firstPhoto = await _loadPdfPhotoItemBytes(
-        photoItems[i],
-        isCommercial: isCommercial,
-      );
-      final secondPhoto = i + 1 < photoItems.length
-          ? await _loadPdfPhotoItemBytes(
-              photoItems[i + 1],
-              isCommercial: isCommercial,
-            )
-          : null;
+    final chunkFiles = <File>[];
+    await _deletePhotoChunkFiles(partialFile);
 
-      partialPdf.addPage(
-        pw.Page(
-          theme: pdfTheme,
-          build: (context) => pw.Column(
-            children: [
-              _buildPhotoFrame(firstPhoto),
-              if (secondPhoto != null) ...[
-                pw.SizedBox(height: 20),
-                _buildPhotoFrame(secondPhoto),
-              ],
-            ],
+    try {
+      var chunkNumber = 1;
+      for (var startIndex = 0;
+          startIndex < photoItems.length;
+          startIndex += photoSectionChunkSize) {
+        final endIndex =
+            (startIndex + photoSectionChunkSize < photoItems.length)
+                ? startIndex + photoSectionChunkSize
+                : photoItems.length;
+        chunkFiles.add(
+          await _buildPhotoChunk(
+            photoItems: photoItems,
+            startIndex: startIndex,
+            endIndex: endIndex,
+            chunkNumber: chunkNumber,
+            isCommercial: isCommercial,
+            pdfTheme: pdfTheme,
+            sectionFile: partialFile,
           ),
-        ),
+        );
+        chunkNumber++;
+
+        // Yield between chunks so objects from the completed pw.Document
+        // can become collectible before the next group is constructed.
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      await _mergePartialPhotoPdfs(
+        partialFiles: chunkFiles,
+        outputFile: partialFile,
       );
+    } finally {
+      await _deletePhotoChunkFiles(partialFile);
     }
-
-    final tempFile = File('${hashState.partialPdfPath}.tmp');
-    if (await tempFile.exists()) {
-      await tempFile.delete();
-    }
-    await tempFile.writeAsBytes(await partialPdf.save(), flush: true);
-
-    if (await partialFile.exists()) {
-      await partialFile.delete();
-    }
-    await tempFile.rename(partialFile.path);
 
     await writeSectionHash(
       reportCacheKey: reportCacheKey,
