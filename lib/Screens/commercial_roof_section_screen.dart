@@ -1318,13 +1318,10 @@ class CommercialRoofSectionScreen extends StatefulWidget {
                       await _submitCommercialReport(
                         submissionLockHeld: true,
                         beforeGenerate: () async {
-                          await PdfService.buildPartialPhotoPdfForCommercialSection(
-                            report: widget.report,
-                            buildingIndex: widget.buildingIndex,
-                            roofIndex: widget.roofIndex,
-                            buildingName: buildingName,
-                            roofName: roofName,
-                          );
+                          // Final Commercial submit should not pre-generate the
+                          // current roof partial immediately before the full
+                          // report run. generateReports() will generate or
+                          // reuse every required Commercial photo section once.
                           _splitCurrentRoofIntoFacetsIfNeeded();
                         },
                       );

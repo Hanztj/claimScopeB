@@ -150,26 +150,7 @@ String _normalizePhotoCacheToken(String value) {
 
 /// Palanca 3: preset agresivo para commercial (multi-building/section aumenta
 /// mucho el conteo de fotos). Target: max 800px, JPEG quality 65.
-/// Skip: <=800px longSide AND <=150 KB.
-Uint8List _downscaleForPdfCommercial(String path) {
-  final file = File(path);
-  final Uint8List original = file.readAsBytesSync();
-  if (original.lengthInBytes <= 150 * 1024) {
-    final decoded = img.decodeImage(original);
-    if (decoded == null) return original;
-    final longSide =
-        decoded.width > decoded.height ? decoded.width : decoded.height;
-    if (longSide <= 800) return original;
-    return Uint8List.fromList(
-      img.encodeJpg(_resizeToMax(decoded, 800), quality: 65),
-    );
-  }
-  final decoded = img.decodeImage(original);
-  if (decoded == null) return original;
-  final resized = _resizeToMax(decoded, 800);
-  return Uint8List.fromList(img.encodeJpg(resized, quality: 65));
-}
-
+/// Skip: <=800px longSide AND <=150 KB. Eliminado en 2024-06-10 porque el downscale agresivo degradaba demasiado la calidad de las fotos. Ahora se usa el mismo downscale que residential (1024px, quality 75).
 
 class _PdfPhotoItemBytes {
   final Uint8List bytes;
@@ -565,6 +546,10 @@ class PdfService {
   ///
   /// Used by Commercial `Save & Continue` and by the final merge safety net.
   /// It writes only the requested roof section's partial PDF and hash.
+  ///
+  /// Commercial now reuses the exact same chunk → save → merge pipeline used
+  /// by Residential, while keeping Commercial-specific section selection and
+  /// labeling. This avoids maintaining a parallel chunk builder.
   static Future<File> buildPartialPhotoPdfForCommercialSection({
     required InspectionReport report,
     required int buildingIndex,
@@ -594,16 +579,6 @@ class PdfService {
           'No commercial photos were found for $buildingName - $roofName.',
         );
       }
-      await validatePhotoItems(photoItems);
-
-      final hashState = await evaluateSectionHash(
-        reportCacheKey: reportCacheKey,
-        section: section,
-        photos: photoItems.map((item) => item.file),
-      );
-
-      final partialFile = File(hashState.partialPdfPath);
-      if (!hashState.isDirty) return partialFile;
 
       final fontDataRegular =
           await rootBundle.load('assets/fonts/Roboto-Regular.ttf');
@@ -613,51 +588,14 @@ class PdfService {
         base: pw.Font.ttf(fontDataRegular),
         bold: pw.Font.ttf(fontDataBold),
       );
-      final chunkFiles = <File>[];
-      await _deletePhotoChunkFiles(partialFile);
 
-      try {
-        var chunkNumber = 1;
-        for (var startIndex = 0;
-            startIndex < photoItems.length;
-            startIndex += photoSectionChunkSize) {
-          final endIndex =
-              (startIndex + photoSectionChunkSize < photoItems.length)
-                  ? startIndex + photoSectionChunkSize
-                  : photoItems.length;
-          chunkFiles.add(
-            await _buildPhotoChunk(
-              photoItems: photoItems,
-              startIndex: startIndex,
-              endIndex: endIndex,
-              chunkNumber: chunkNumber,
-              isCommercial: true,
-              pdfTheme: pdfTheme,
-              sectionFile: partialFile,
-            ),
-          );
-          chunkNumber++;
-
-          // Yield between chunks so objects from the completed pw.Document
-          // can become collectible before the next group is constructed.
-          await Future<void>.delayed(Duration.zero);
-        }
-
-        await _mergePartialPhotoPdfs(
-          partialFiles: chunkFiles,
-          outputFile: partialFile,
-        );
-      } finally {
-        await _deletePhotoChunkFiles(partialFile);
-      }
-
-      await writeSectionHash(
+      return (await _buildPartialPhotoPdfSection(
         reportCacheKey: reportCacheKey,
         section: section,
-        hash: hashState.currentHash,
-      );
-
-      return partialFile;
+        photoItems: photoItems,
+        isCommercial: true,
+        pdfTheme: pdfTheme,
+      ))!;
     } finally {
       PdfBusyFlag.busy = wasBusy;
     }
@@ -3131,11 +3069,12 @@ class PdfService {
       PhotoItem item, {
       bool isCommercial = false,
     }) async {
-      // Palanca 3: preset agresivo (800px/q65) para commercial vs 1024px/q75
-      // en residential. Ambos corren en isolate via compute(). Sin caches:
-      // cada PhotoItem se procesa en serie y se libera al terminar el frame.
+      // Commercial and Residential now share the same PDF image pipeline.
+      // Photos are already captured at 1024px / quality 75, so Commercial no
+      // longer performs a second forced conversion to 800px / quality 65.
+      // Both continue running in an isolate via compute().
       final Uint8List bytes = await compute(
-        isCommercial ? _downscaleForPdfCommercial : _downscaleForPdf,
+        _downscaleForPdf,
         item.file.path,
       );
       return _PdfPhotoItemBytes(
