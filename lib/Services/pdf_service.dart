@@ -1109,39 +1109,11 @@ class PdfService {
           _buildDataRow("Occupancy Type", "Commercial"),
            pw.SizedBox(height: 5),   
           
-           // Listar cada edificio
-           ...List.generate(report.commercialBuildings.length, (i) {
-           final building = report.commercialBuildings[i];
-           return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-             _buildDataRow(
-               "  Building ${i + 1} Name",
-               building.name != null && building.name!.trim().isNotEmpty
-                   ? building.name!.trim()
-                   : "${building.displayName(i)} (default)",
-             ),
-             _buildDataRow("  Building ${i + 1} Address", building.streetAddress ?? report.address),
-             _buildDataRow("  Building ${i + 1} Roof Sections", building.roofs.length.toString()),
-             pw.SizedBox(height: 5),
-              // Listar cada roof section dentro del edificio
-              ...List.generate(building.roofs.length, (j) {
-                final roof = building.roofs[j];
-                return pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    _buildDataRow("    Roof ${j + 1} Label", roof.roofLabel?? "N/A"), 
-                    _buildDataRow("    Roof ${j + 1} Cover Type", roof.roofType ?? "N/A"),
-                    _buildDataRow("    Roof ${j + 1} Subtype", roof.roofSubType ?? "N/A"),
-                     ..._buildCommercialRoofDetails(roof),
-                    pw.SizedBox(height: 3),
-                  ],
-                );
-              }),
-              pw.SizedBox(height: 10),
-            ],
-           );
-          }),
+           // Keep Commercial building/roof rows as direct MultiPage children.
+          // Avoid wrapping an entire building or roof section in pw.Column,
+          // because a large unbreakable subtree can be pushed repeatedly to
+          // the next page and trigger TooManyPagesException.
+          ..._buildCommercialBuildingsAndRoofs(report),
           ..._buildElevationsUnderlaymentDetails(report),
         ],
         ),  
@@ -2553,6 +2525,67 @@ class PdfService {
       return siding == 'Brick Veneer' ||
           siding == 'Stone Veneer' ||
           siding == 'Tone Veneer';
+    }
+
+    static List<pw.Widget> _buildCommercialBuildingsAndRoofs(
+      InspectionReport report,
+    ) {
+      final widgets = <pw.Widget>[];
+
+      for (var i = 0; i < report.commercialBuildings.length; i++) {
+        final building = report.commercialBuildings[i];
+
+        widgets.add(
+          _buildDataRow(
+            "  Building ${i + 1} Name",
+            building.name != null && building.name!.trim().isNotEmpty
+                ? building.name!.trim()
+                : "${building.displayName(i)} (default)",
+          ),
+        );
+        widgets.add(
+          _buildDataRow(
+            "  Building ${i + 1} Address",
+            building.streetAddress ?? report.address,
+          ),
+        );
+        widgets.add(
+          _buildDataRow(
+            "  Building ${i + 1} Roof Sections",
+            building.roofs.length.toString(),
+          ),
+        );
+        widgets.add(pw.SizedBox(height: 5));
+
+        for (var j = 0; j < building.roofs.length; j++) {
+          final roof = building.roofs[j];
+
+          widgets.add(
+            _buildDataRow(
+              "    Roof ${j + 1} Label",
+              roof.roofLabel ?? "N/A",
+            ),
+          );
+          widgets.add(
+            _buildDataRow(
+              "    Roof ${j + 1} Cover Type",
+              roof.roofType ?? "N/A",
+            ),
+          );
+          widgets.add(
+            _buildDataRow(
+              "    Roof ${j + 1} Subtype",
+              roof.roofSubType ?? "N/A",
+            ),
+          );
+          widgets.addAll(_buildCommercialRoofDetails(roof));
+          widgets.add(pw.SizedBox(height: 3));
+        }
+
+        widgets.add(pw.SizedBox(height: 10));
+      }
+
+      return widgets;
     }
 
     static List<pw.Widget> _buildCommercialRoofDetails(CommercialRoofSectionData roof) {
