@@ -26,18 +26,10 @@ const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
 const webhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 const emailPass = defineSecret("EMAIL_PASS");
 
-const priceBasicMonthly = defineString("STRIPE_PRICE_BASIC_MONTHLY", {
-    default: "price_1TuUwQIV8TkU9SxHrb9ieW5i"
-});
-const priceBasicYearly = defineString("STRIPE_PRICE_BASIC_YEARLY", {
-    default: "price_1TuUwuIV8TkU9SxHqloMd4cx"
-});
-const pricePremiumMonthly = defineString("STRIPE_PRICE_PREMIUM_MONTHLY", {
-    default: "price_1TuV4BIV8TkU9SxHdeD5Z1Y2"
-});
-const pricePremiumYearly = defineString("STRIPE_PRICE_PREMIUM_YEARLY", {
-    default: "price_1TuV4cIV8TkU9SxHvtciIczy"
-});
+const priceBasicMonthly = defineString("STRIPE_PRICE_BASIC_MONTHLY");
+const priceBasicYearly = defineString("STRIPE_PRICE_BASIC_YEARLY");
+const pricePremiumMonthly = defineString("STRIPE_PRICE_PREMIUM_MONTHLY");
+const pricePremiumYearly = defineString("STRIPE_PRICE_PREMIUM_YEARLY");
 
 const CHECKOUT_SUCCESS_URL = "claimscope://success";
 const CHECKOUT_CANCEL_URL = "claimscope://cancel";
@@ -458,22 +450,121 @@ async function markStripeWebhookFailed(ref, error) {
 }
 
 async function setSubscriptionClaims(userId, subscription) {
-  const priceId = subscription.items.data[0]?.price?.id;
-  const selection = resolveSubscriptionSelectionFromPriceId(priceId);
-  if (!selection) {
-    throw new Error(`Unauthorized Stripe Price ID received: ${priceId || "missing"}`);
-  }
-
-  const { plan, billingPeriod } = selection;
+  const status = String(subscription.status || "").trim().toLowerCase();
   const customerId = typeof subscription.customer === "string"
     ? subscription.customer
     : subscription.customer?.id;
 
+  const noAccessStatuses = new Set([
+    "incomplete",
+    "incomplete_expired",
+    "unpaid",
+    "canceled",
+    "paused",
+  ]);
+
   try {
     const userRecord = await firebaseAuth.getUser(userId);
+    const existingClaims = userRecord.customClaims || {};
+
+    if (noAccessStatuses.has(status)) {
+      const updatedClaims = {
+        ...existingClaims,
+        plan: "free",
+        billingPeriod: null,
+        subscriptionId: null,
+      };
+
+      if (!updatedClaims.stripeCustomerId && customerId) {
+        updatedClaims.stripeCustomerId = customerId;
+      }
+
+      await firebaseAuth.setCustomUserClaims(userId, updatedClaims);
+      console.log(
+        `Subscription access revoked for ${userId}: ${subscription.id} (${status})`
+      );
+
+      return {
+        handled: true,
+        result: "subscription_access_revoked",
+        processingStage: "claims_updated",
+        details: {
+          userId,
+          subscriptionId: subscription.id,
+          subscriptionStatus: status,
+        },
+      };
+    }
+
+    if (status === "past_due") {
+      const existingPlan = normalizeSubscriptionPlan(existingClaims.plan);
+      const existingBillingPeriod = normalizeBillingPeriod(
+        existingClaims.billingPeriod
+      );
+      const sameSubscription = existingClaims.subscriptionId === subscription.id;
+
+      if (sameSubscription && existingPlan && existingBillingPeriod) {
+        console.log(
+          `Subscription ${subscription.id} is past_due; preserving existing access for ${userId}`
+        );
+        return {
+          handled: true,
+          result: "subscription_past_due_access_preserved",
+          processingStage: "claims_preserved",
+          details: {
+            userId,
+            subscriptionId: subscription.id,
+            subscriptionStatus: status,
+            plan: existingPlan,
+            billingPeriod: existingBillingPeriod,
+          },
+        };
+      }
+
+      const updatedClaims = {
+        ...existingClaims,
+        plan: "free",
+        billingPeriod: null,
+        subscriptionId: null,
+      };
+
+      if (!updatedClaims.stripeCustomerId && customerId) {
+        updatedClaims.stripeCustomerId = customerId;
+      }
+
+      await firebaseAuth.setCustomUserClaims(userId, updatedClaims);
+      console.log(
+        `Past-due subscription ${subscription.id} had no prior active access for ${userId}; access remains free`
+      );
+
+      return {
+        handled: true,
+        result: "subscription_past_due_without_prior_access",
+        processingStage: "claims_updated",
+        details: {
+          userId,
+          subscriptionId: subscription.id,
+          subscriptionStatus: status,
+        },
+      };
+    }
+
+    if (status !== "active" && status !== "trialing") {
+      throw new Error(
+        `Unsupported Stripe subscription status received: ${status || "missing"}`
+      );
+    }
+
+    const priceId = subscription.items.data[0]?.price?.id;
+    const selection = resolveSubscriptionSelectionFromPriceId(priceId);
+    if (!selection) {
+      throw new Error(`Unauthorized Stripe Price ID received: ${priceId || "missing"}`);
+    }
+
+    const { plan, billingPeriod } = selection;
 
     await firebaseAuth.setCustomUserClaims(userId, {
-      ...(userRecord.customClaims || {}),
+      ...existingClaims,
       plan,
       billingPeriod,
       stripeCustomerId: customerId || null,
@@ -481,7 +572,7 @@ async function setSubscriptionClaims(userId, subscription) {
     });
 
     console.log(
-      `Plan assigned: ${plan} (${billingPeriod}) to ${userId}`
+      `Plan assigned: ${plan} (${billingPeriod}) to ${userId} (${status})`
     );
 
     return {
@@ -491,6 +582,7 @@ async function setSubscriptionClaims(userId, subscription) {
       details: {
         userId,
         subscriptionId: subscription.id,
+        subscriptionStatus: status,
         priceId,
         plan,
         billingPeriod,
@@ -506,9 +598,7 @@ async function setSubscriptionClaims(userId, subscription) {
         details: {
           userId,
           subscriptionId: subscription.id,
-          priceId,
-          plan,
-          billingPeriod,
+          subscriptionStatus: status || null,
         },
       };
     }
@@ -757,6 +847,39 @@ async function processStripeWebhookEvent(event, stripeClient, transporter) {
     };
   }
 
+  if (event.type === "customer.subscription.updated") {
+    const subscriptionId = stripeResourceId(event.data.object);
+    if (!subscriptionId) {
+      throw new Error("Subscription update event is missing its subscription ID");
+    }
+
+    return refreshSubscriptionClaims(stripeClient, subscriptionId);
+  }
+
+  if (event.type === "invoice.payment_failed") {
+    const invoice = event.data.object;
+    const subscriptionId = subscriptionIdFromInvoice(invoice);
+    if (!subscriptionId) {
+      return {
+        handled: false,
+        result: "failed_invoice_without_subscription",
+        processingStage: "ignored",
+        details: {
+          invoiceId: invoice.id || null,
+        },
+      };
+    }
+
+    const result = await refreshSubscriptionClaims(stripeClient, subscriptionId);
+    return {
+      ...result,
+      details: {
+        ...result.details,
+        invoiceId: invoice.id || null,
+      },
+    };
+  }
+
   if (event.type === "customer.subscription.deleted") {
     return markSubscriptionDeleted(event.data.object);
   }
@@ -956,6 +1079,7 @@ exports.createCheckoutSession = onCall(
 
     const session = await stripeClient.checkout.sessions.create({
       mode: "subscription",
+      locale: "en",
       payment_method_collection: "always",
       customer_email: request.auth.token.email || null,
       line_items: [{ price: priceId, quantity: 1 }],
@@ -1056,6 +1180,7 @@ exports.createHfEstimatesCheckoutSession = onCall(
 
     const session = await stripeClient.checkout.sessions.create({
       mode: "payment",
+      locale: "en",
       payment_method_types: ["card"],
       customer_email: isValidEmail(authenticatedEmail) ? authenticatedEmail : null,
       line_items: [
