@@ -10,6 +10,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 final List<String> usStates = [
   'Alabama',
@@ -74,6 +75,38 @@ class InspectionSetupScreen extends StatefulWidget {
 }
 
 class _InspectionSetupScreenState extends State<InspectionSetupScreen> {
+  static final Uri _privacyPolicyUri = Uri.parse(
+    'https://www.hfestimates.com/claimscope-roof-inspection-app/privacy-policy/',
+  );
+
+  Future<void> _openPrivacyPolicy() async {
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      final opened = await launchUrl(
+        _privacyPolicyUri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!opened && mounted) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Privacy Policy could not be opened.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Privacy Policy could not be opened.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   Future<void> _handleSubscriptionAndNavigate(InspectionReport report) async {
     try {
       final plan = await getUserPlanStatus(forceRefresh: true);
@@ -455,6 +488,11 @@ if (!inspectRoof) {
                 },
               );
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.privacy_tip_outlined),
+            tooltip: 'Privacy Policy',
+            onPressed: _openPrivacyPolicy,
           ),
           IconButton(
             icon: const Icon(Icons.delete_forever_outlined),
