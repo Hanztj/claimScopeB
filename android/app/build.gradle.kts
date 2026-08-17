@@ -49,7 +49,7 @@ defaultConfig {
         applicationId = "com.hfestimates.claimscope"
         minSdk = 24
         targetSdk = 36
-        versionCode = 4
+        versionCode = 5
         versionName = "1.0.1"
     }
 
@@ -74,6 +74,7 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.5.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
+    implementation("com.android.billingclient:billing:9.1.0")
 }
 
 flutter {
