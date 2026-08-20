@@ -24,7 +24,9 @@ class MainActivity : FlutterActivity() {
     }
 
     private lateinit var billingClient: BillingClient
-    private var externalLinkInProgress = false
+    private var externalLinkPreparationInProgress = false
+    private var externalLinkLaunchInProgress = false
+    private var pendingExternalTransactionToken: String? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -43,6 +45,8 @@ class MainActivity : FlutterActivity() {
             CHANNEL,
         ).setMethodCallHandler { call, result ->
             when (call.method) {
+                "prepareExternalCheckout" -> prepareExternalCheckout(result)
+
                 "launchExternalCheckout" -> {
                     val url = call.argument<String>("url")
                     if (url.isNullOrBlank()) {
@@ -54,7 +58,12 @@ class MainActivity : FlutterActivity() {
                         return@setMethodCallHandler
                     }
 
-                    launchExternalCheckout(url, result)
+                    launchPreparedExternalCheckout(url, result)
+                }
+
+                "discardExternalCheckoutPreparation" -> {
+                    discardExternalCheckoutPreparation()
+                    result.success(true)
                 }
 
                 else -> result.notImplemented()
@@ -62,8 +71,12 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private fun launchExternalCheckout(url: String, result: MethodChannel.Result) {
-        if (externalLinkInProgress) {
+    private fun prepareExternalCheckout(result: MethodChannel.Result) {
+        if (
+            externalLinkPreparationInProgress ||
+            externalLinkLaunchInProgress ||
+            pendingExternalTransactionToken != null
+        ) {
             result.error(
                 "EXTERNAL_LINK_IN_PROGRESS",
                 "An external checkout is already being prepared.",
@@ -72,24 +85,9 @@ class MainActivity : FlutterActivity() {
             return
         }
 
-        val uri = try {
-            Uri.parse(url)
-        } catch (_: Exception) {
-            null
-        }
-
-        if (uri == null || uri.scheme != "https") {
-            result.error(
-                "INVALID_EXTERNAL_LINK",
-                "The checkout link must use HTTPS.",
-                null,
-            )
-            return
-        }
-
-        externalLinkInProgress = true
+        externalLinkPreparationInProgress = true
         ensureBillingClientReady(result) {
-            checkExternalContentLinkAvailability(uri, result)
+            checkExternalContentLinkAvailability(result)
         }
     }
 
@@ -122,10 +120,7 @@ class MainActivity : FlutterActivity() {
         })
     }
 
-    private fun checkExternalContentLinkAvailability(
-        uri: Uri,
-        result: MethodChannel.Result,
-    ) {
+    private fun checkExternalContentLinkAvailability(result: MethodChannel.Result) {
         billingClient.isBillingProgramAvailableAsync(
             EXTERNAL_CONTENT_LINK_PROGRAM,
             object : BillingProgramAvailabilityListener {
@@ -142,16 +137,13 @@ class MainActivity : FlutterActivity() {
                         return
                     }
 
-                    createExternalTransactionToken(uri, result)
+                    createExternalTransactionToken(result)
                 }
             },
         )
     }
 
-    private fun createExternalTransactionToken(
-        uri: Uri,
-        result: MethodChannel.Result,
-    ) {
+    private fun createExternalTransactionToken(result: MethodChannel.Result) {
         val reportingParams = BillingProgramReportingDetailsParams.newBuilder()
             .setBillingProgram(EXTERNAL_CONTENT_LINK_PROGRAM)
             .build()
@@ -175,14 +167,65 @@ class MainActivity : FlutterActivity() {
                         return
                     }
 
-                    launchExternalContentLink(
-                        uri,
-                        billingProgramReportingDetails.externalTransactionToken,
-                        result,
-                    )
+                    pendingExternalTransactionToken =
+                        billingProgramReportingDetails.externalTransactionToken
+                    externalLinkPreparationInProgress = false
+                    result.success(true)
                 }
             },
         )
+    }
+
+    private fun launchPreparedExternalCheckout(
+        url: String,
+        result: MethodChannel.Result,
+    ) {
+        if (externalLinkPreparationInProgress || externalLinkLaunchInProgress) {
+            result.error(
+                "EXTERNAL_LINK_IN_PROGRESS",
+                "An external checkout is already being prepared.",
+                null,
+            )
+            return
+        }
+
+        val externalTransactionToken = pendingExternalTransactionToken
+        if (externalTransactionToken.isNullOrBlank()) {
+            result.error(
+                "EXTERNAL_TRANSACTION_TOKEN_MISSING",
+                "Google Play checkout preparation is required before opening Stripe Checkout.",
+                null,
+            )
+            return
+        }
+
+        val uri = try {
+            Uri.parse(url)
+        } catch (_: Exception) {
+            null
+        }
+
+        if (uri == null || uri.scheme != "https") {
+            pendingExternalTransactionToken = null
+            result.error(
+                "INVALID_EXTERNAL_LINK",
+                "The checkout link must use HTTPS.",
+                null,
+            )
+            return
+        }
+
+        // Consume the token before the launch attempt so it can never be reused.
+        pendingExternalTransactionToken = null
+        externalLinkLaunchInProgress = true
+
+        ensureBillingClientReady(result) {
+            launchExternalContentLink(
+                uri,
+                externalTransactionToken,
+                result,
+            )
+        }
     }
 
     private fun launchExternalContentLink(
@@ -206,7 +249,7 @@ class MainActivity : FlutterActivity() {
             object : LaunchExternalLinkResponseListener {
                 override fun onLaunchExternalLinkResponse(billingResult: BillingResult) {
                     if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                        externalLinkInProgress = false
+                        externalLinkLaunchInProgress = false
                         result.success(true)
                     } else {
                         finishWithBillingError(
@@ -220,12 +263,25 @@ class MainActivity : FlutterActivity() {
         )
     }
 
+    private fun discardExternalCheckoutPreparation() {
+        if (!externalLinkLaunchInProgress) {
+            externalLinkPreparationInProgress = false
+            pendingExternalTransactionToken = null
+        }
+    }
+
+    private fun resetExternalCheckoutState() {
+        externalLinkPreparationInProgress = false
+        externalLinkLaunchInProgress = false
+        pendingExternalTransactionToken = null
+    }
+
     private fun finishWithBillingError(
         result: MethodChannel.Result,
         code: String,
         billingResult: BillingResult,
     ) {
-        externalLinkInProgress = false
+        resetExternalCheckoutState()
         result.error(
             code,
             billingResult.debugMessage.ifBlank {
@@ -236,6 +292,7 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun onDestroy() {
+        resetExternalCheckoutState()
         if (::billingClient.isInitialized) {
             billingClient.endConnection()
         }

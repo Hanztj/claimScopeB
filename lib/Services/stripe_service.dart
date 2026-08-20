@@ -21,21 +21,34 @@ class StripeService {
 
     final callable =
         FirebaseFunctions.instance.httpsCallable('createCheckoutSession');
-
-    final result = await callable.call({
-      'plan': plan,
-      'billingPeriod': yearly ? 'yearly' : 'monthly',
-    });
-
-    final sessionUrl = result.data['url'] as String?;
-    if (sessionUrl == null) {
-      throw Exception('La función no devolvió la URL de Stripe.');
-    }
-
-    final url = Uri.parse(sessionUrl);
+    final isAndroid = defaultTargetPlatform == TargetPlatform.android;
+    var externalCheckoutPrepared = false;
 
     try {
-      if (defaultTargetPlatform == TargetPlatform.android) {
+      if (isAndroid) {
+        final prepared = await _externalContentLinksChannel.invokeMethod<bool>(
+          'prepareExternalCheckout',
+        );
+
+        if (prepared != true) {
+          throw Exception('Google Play did not prepare the external checkout.');
+        }
+        externalCheckoutPrepared = true;
+      }
+
+      final result = await callable.call({
+        'plan': plan,
+        'billingPeriod': yearly ? 'yearly' : 'monthly',
+      });
+
+      final sessionUrl = result.data['url'] as String?;
+      if (sessionUrl == null) {
+        throw Exception('La función no devolvió la URL de Stripe.');
+      }
+
+      final url = Uri.parse(sessionUrl);
+
+      if (isAndroid) {
         final launched = await _externalContentLinksChannel.invokeMethod<bool>(
           'launchExternalCheckout',
           {'url': sessionUrl},
@@ -44,6 +57,8 @@ class StripeService {
         if (launched != true) {
           throw Exception('Google Play did not launch the checkout link.');
         }
+
+        externalCheckoutPrepared = false;
         return;
       }
 
@@ -60,6 +75,16 @@ class StripeService {
       );
     } catch (e) {
       throw Exception('No se pudo abrir Stripe Checkout: $e');
+    } finally {
+      if (isAndroid && externalCheckoutPrepared) {
+        try {
+          await _externalContentLinksChannel.invokeMethod<bool>(
+            'discardExternalCheckoutPreparation',
+          );
+        } catch (_) {
+          // Best-effort cleanup only. A new checkout always generates a new token.
+        }
+      }
     }
   }
 }
